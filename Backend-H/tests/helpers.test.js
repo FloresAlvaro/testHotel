@@ -75,6 +75,12 @@ describe('Utilidades de fechas y paginacion', () => {
       page: 1,
       pageSize: 15
     });
+    expect(getPaginationParams('-2', '-5', 10)).toEqual({
+      offset: 0,
+      limit: 1,
+      page: 1,
+      pageSize: 1
+    });
     expect(getPaginationParams(2, 500).limit).toBe(100);
   });
 

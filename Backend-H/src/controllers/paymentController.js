@@ -1,8 +1,8 @@
 const Payment = require('../models/Payment');
 const Reservation = require('../models/Reservation');
-const { sendSuccess, sendCreated, sendUpdated, sendError, 
-        sendPaginated, sendPaymentSuccess } = require('../utils/response');
+const { sendSuccess, sendCreated, sendUpdated, sendError, sendPaginated } = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, PAYMENT_STATUS } = require('../config/constants');
+const { getPaginationParams } = require('../utils/helpers');
 
 class PaymentController {
   /**
@@ -55,7 +55,7 @@ class PaymentController {
         notes
       });
 
-      sendPaymentSuccess(res, payment);
+      sendCreated(res, payment, SUCCESS_MESSAGES.PAYMENT_CREATED);
     } catch (error) {
       next(error);
     }
@@ -86,13 +86,12 @@ class PaymentController {
     try {
       const { page = 1, pageSize = 10, status } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
 
       const payments = await Payment.findAll(limit, offset, status);
       const total = await Payment.countAll(status);
 
-      sendPaginated(res, payments, total, page, limit);
+      sendPaginated(res, payments, total, currentPage, limit);
     } catch (error) {
       next(error);
     }
@@ -108,6 +107,53 @@ class PaymentController {
       const payments = await Payment.findByReservationId(reservationId);
 
       sendSuccess(res, payments);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Actualizar datos de un pago pendiente
+   */
+  static async update(req, res, next) {
+    try {
+      const { id } = req.params;
+      const payment = await Payment.findById(id);
+
+      if (!payment) {
+        return sendError(res, ERROR_MESSAGES.PAYMENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+      }
+
+      if (payment.status !== PAYMENT_STATUS.PENDING) {
+        return sendError(res, 'Solo se pueden editar pagos pendientes', HTTP_STATUS.CONFLICT);
+      }
+
+      if (req.body.amount !== undefined) {
+        const reservation = await Reservation.findById(payment.reservation_id);
+        const reservationPayments = await Payment.findByReservationId(payment.reservation_id);
+        const totalPaid = reservationPayments.reduce(
+          (sum, item) => sum + (
+            item.status === PAYMENT_STATUS.COMPLETED ? Number(item.amount) : 0
+          ),
+          0
+        );
+
+        if (totalPaid + Number(req.body.amount) > Number(reservation.total_price)) {
+          return sendError(res, ERROR_MESSAGES.INSUFFICIENT_AMOUNT, HTTP_STATUS.BAD_REQUEST);
+        }
+      }
+
+      const updated = await Payment.update(id, {
+        amount: req.body.amount ?? payment.amount,
+        type: req.body.type ?? payment.type,
+        method: req.body.method ?? payment.method,
+        status: payment.status,
+        transaction_id: req.body.transaction_id !== undefined
+          ? req.body.transaction_id
+          : payment.transaction_id
+      });
+
+      sendUpdated(res, updated, SUCCESS_MESSAGES.PAYMENT_UPDATED);
     } catch (error) {
       next(error);
     }
@@ -239,8 +285,7 @@ class PaymentController {
     try {
       const { page = 1, pageSize = 10 } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit } = getPaginationParams(page, pageSize, 10);
 
       const payments = await Payment.findPending(limit, offset);
 

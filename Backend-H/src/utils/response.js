@@ -74,19 +74,22 @@ const sendDeleted = (res, message = SUCCESS_MESSAGES.DELETED_SUCCESS) => {
  * @param {string} message - Mensaje personalizado
  */
 const sendPaginated = (res, data, total, page = 1, pageSize = 10, message = SUCCESS_MESSAGES.OPERATION_SUCCESS) => {
-  const totalPages = Math.ceil(total / pageSize);
+  const currentPage = Math.max(Number.parseInt(page, 10) || 1, 1);
+  const currentPageSize = Math.min(Math.max(Number.parseInt(pageSize, 10) || 10, 1), 100);
+  const totalRecords = Number(total) || 0;
+  const totalPages = Math.ceil(totalRecords / currentPageSize);
   
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message,
     data,
     pagination: {
-      total,
-      page,
-      pageSize,
+      total: totalRecords,
+      page: currentPage,
+      pageSize: currentPageSize,
       totalPages,
-      hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1
+      hasNextPage: currentPage < totalPages,
+      hasPreviousPage: currentPage > 1
     },
     timestamp: new Date().toISOString()
   });

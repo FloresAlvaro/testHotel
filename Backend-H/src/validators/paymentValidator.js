@@ -13,4 +13,11 @@ const updateStatusSchema = Joi.object({
 	status: Joi.string().valid('pending', 'completed', 'failed', 'refunded').required()
 });
 
-module.exports = { createSchema, updateStatusSchema };
+const updateSchema = Joi.object({
+	amount: Joi.number().positive(),
+	type: Joi.string().valid('full', 'partial', 'advance'),
+	method: Joi.string().valid('cash', 'credit_card', 'debit_card', 'transfer', 'check'),
+	transaction_id: Joi.string().trim().max(100).allow('', null)
+}).min(1);
+
+module.exports = { createSchema, updateSchema, updateStatusSchema };

@@ -3,7 +3,7 @@ const Reservation = require('../models/Reservation');
 const { sendSuccess, sendCreated, sendUpdated, sendDeleted, sendError, 
         sendPaginated } = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');
-const { formatDate } = require('../utils/helpers');
+const { getPaginationParams } = require('../utils/helpers');
 
 class ClientController {
   /**
@@ -14,7 +14,7 @@ class ClientController {
       const {
         name, document, document_type, email, phone,
         address, city, country, nationality, date_of_birth,
-        gender, emergency_contact, emergency_phone
+        gender, emergency_contact, emergency_phone, notes
       } = req.body;
 
       // Validaciones
@@ -32,7 +32,7 @@ class ClientController {
       const client = await Client.create({
         name, document, document_type, email, phone,
         address, city, country, nationality, date_of_birth,
-        gender, emergency_contact, emergency_phone
+        gender, emergency_contact, emergency_phone, notes
       });
 
       sendCreated(res, client, SUCCESS_MESSAGES.CLIENT_CREATED);
@@ -69,13 +69,12 @@ class ClientController {
     try {
       const { page = 1, pageSize = 10 } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
 
       const clients = await Client.findAll(limit, offset);
       const total = await Client.countAll();
 
-      sendPaginated(res, clients, total, page, limit);
+      sendPaginated(res, clients, total, currentPage, limit);
     } catch (error) {
       next(error);
     }
@@ -87,7 +86,6 @@ class ClientController {
   static async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, email, phone, address, city, country, emergency_contact, emergency_phone } = req.body;
 
       // Verificar que existe
       const client = await Client.findById(id);
@@ -96,9 +94,7 @@ class ClientController {
       }
 
       // Actualizar
-      const updatedClient = await Client.update(id, {
-        name, email, phone, address, city, country, emergency_contact, emergency_phone
-      });
+      const updatedClient = await Client.update(id, { ...client, ...req.body });
 
       sendUpdated(res, updatedClient, SUCCESS_MESSAGES.CLIENT_UPDATED);
     } catch (error) {
@@ -137,8 +133,7 @@ class ClientController {
         return sendError(res, 'Término de búsqueda requerido', HTTP_STATUS.BAD_REQUEST);
       }
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit } = getPaginationParams(page, pageSize, 10);
 
       const clients = await Client.search(q, limit, offset);
 
@@ -162,8 +157,7 @@ class ClientController {
         return sendError(res, ERROR_MESSAGES.CLIENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
       }
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit } = getPaginationParams(page, pageSize, 10);
 
       const reservations = await Client.getReservationHistory(id, limit, offset);
 

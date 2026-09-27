@@ -58,25 +58,34 @@ class Room {
   /**
    * Obtener todas las habitaciones
    */
-  static async findAll(limit = 10, offset = 0) {
-    const query = `
+  static async findAll(limit = 10, offset = 0, status = null) {
+    let query = `
       SELECT r.*, rt.name as room_type_name, rt.price
       FROM room r
       JOIN room_type rt ON r.room_type_id = rt.id
-      ORDER BY r.floor, r.number
-      LIMIT $1 OFFSET $2
     `;
 
-    const result = await pool.query(query, [limit, offset]);
+    const params = [];
+    if (status) {
+      query += ' WHERE r.status = $1';
+      params.push(status);
+    }
+
+    query += ` ORDER BY r.floor, r.number LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
+    const result = await pool.query(query, params);
     return result.rows;
   }
 
   /**
    * Contar total de habitaciones
    */
-  static async countAll() {
-    const query = 'SELECT COUNT(*) FROM room';
-    const result = await pool.query(query);
+  static async countAll(status = null) {
+    const query = status
+      ? 'SELECT COUNT(*) FROM room WHERE status = $1'
+      : 'SELECT COUNT(*) FROM room';
+    const result = await pool.query(query, status ? [status] : []);
     return parseInt(result.rows[0].count);
   }
 

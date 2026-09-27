@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const { sendSuccess, sendCreated, sendUpdated, sendDeleted, sendError, 
         sendLoginSuccess, sendLoginFailed, sendPaginated, sendValidationErrors } = require('../utils/response');
-const { formatDate } = require('../utils/helpers');
+const { getPaginationParams } = require('../utils/helpers');
 const { createToken } = require('../utils/jwt');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, USER_ROLES } = require('../config/constants');
 
@@ -103,13 +103,12 @@ class UserController {
     try {
       const { page = 1, pageSize = 10, role } = req.query;
       
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
 
       const users = await User.findAll(limit, offset, role);
       const total = await User.countAll(role);
 
-      sendPaginated(res, users, total, page, limit);
+      sendPaginated(res, users, total, currentPage, limit);
     } catch (error) {
       next(error);
     }
@@ -242,8 +241,7 @@ class UserController {
         return sendError(res, 'Término de búsqueda requerido', HTTP_STATUS.BAD_REQUEST);
       }
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit } = getPaginationParams(page, pageSize, 10);
 
       const users = await User.search(q, limit, offset);
 

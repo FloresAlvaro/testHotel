@@ -4,6 +4,7 @@ const Room = require('../models/Room');
 const { sendSuccess, sendCreated, sendError, sendCheckInSuccess, sendCheckOutSuccess } = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, RESERVATION_STATUS, ROOM_STATUS } = require('../config/constants');
 const { transaction } = require('../config/database');
+const { getPaginationParams } = require('../utils/helpers');
 
 class CheckInController {
   /**
@@ -174,8 +175,7 @@ class CheckInController {
       const { clientId } = req.params;
       const { page = 1, pageSize = 10 } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit } = getPaginationParams(page, pageSize, 10);
 
       const history = await CheckInLog.findClientHistory(clientId, limit, offset);
 

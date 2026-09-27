@@ -3,6 +3,7 @@ const RoomType = require('../models/RoomType');
 const { sendSuccess, sendCreated, sendUpdated, sendError, 
         sendPaginated } = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, ROOM_STATUS } = require('../config/constants');
+const { getPaginationParams } = require('../utils/helpers');
 
 class RoomController {
   /**
@@ -59,21 +60,16 @@ class RoomController {
     try {
       const { page = 1, pageSize = 10, status } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
-
-      let rooms;
-      let total;
-
-      if (status === 'available') {
-        rooms = await Room.findAvailable(limit, offset);
-      } else {
-        rooms = await Room.findAll(limit, offset);
+      if (status && !Object.values(ROOM_STATUS).includes(status)) {
+        return sendError(res, 'Estado de habitación inválido', HTTP_STATUS.BAD_REQUEST);
       }
 
-      total = await Room.countAll();
+      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
 
-      sendPaginated(res, rooms, total, page, limit);
+      const rooms = await Room.findAll(limit, offset, status);
+      const total = await Room.countAll(status);
+
+      sendPaginated(res, rooms, total, currentPage, limit);
     } catch (error) {
       next(error);
     }
@@ -86,8 +82,7 @@ class RoomController {
     try {
       const { page = 1, pageSize = 10 } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit } = getPaginationParams(page, pageSize, 10);
 
       const rooms = await Room.findAvailable(limit, offset);
 

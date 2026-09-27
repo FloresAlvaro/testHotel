@@ -272,9 +272,9 @@ const getDaysDifference = (date1, date2) => {
  * @param {number} pageSize - Tamaño de página
  * @returns {object} { offset, limit }
  */
-const getPaginationParams = (page = 1, pageSize = DEFAULTS.ITEMS_PER_PAGE) => {
-  const parsedPage = Math.max(parseInt(page) || 1, 1);
-  const parsedPageSize = Math.min(parseInt(pageSize) || DEFAULTS.ITEMS_PER_PAGE, 100);
+const getPaginationParams = (page = 1, pageSize = DEFAULTS.ITEMS_PER_PAGE, defaultPageSize = DEFAULTS.ITEMS_PER_PAGE) => {
+  const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
+  const parsedPageSize = Math.min(Math.max(parseInt(pageSize, 10) || defaultPageSize, 1), 100);
   
   const offset = (parsedPage - 1) * parsedPageSize;
   

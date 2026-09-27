@@ -31,7 +31,8 @@ class Reservation {
    */
   static async findById(id, client = pool, forUpdate = false) {
     const query = `
-      SELECT r.*, c.name as client_name, c.document, c.phone, c.email,
+            SELECT r.*, c.name as client_name,
+              c.document as client_document, c.phone as client_phone, c.email as client_email,
              rm.number as room_number, rt.name as room_type_name,
              u.name as receptionist_name
       FROM reservation r
@@ -52,7 +53,9 @@ class Reservation {
    */
   static async findAll(limit = 10, offset = 0, status = null) {
     let query = `
-      SELECT r.*, c.name as client_name, rm.number as room_number,
+            SELECT r.*, c.name as client_name, c.document as client_document,
+              c.phone as client_phone, c.email as client_email,
+              rm.number as room_number,
              rt.name as room_type_name
       FROM reservation r
       JOIN client c ON r.client_id = c.id

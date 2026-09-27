@@ -3,10 +3,28 @@
 !.env.example
 
 **/node_modules/
+**/.npm/
+**/.pnpm-store/
+**/.yarn/cache/
+**/.yarn/unplugged/
+**/.pnp.*
 **/.env
 **/coverage/
 **/*.log
+**/*.tsbuildinfo
+**/.eslintcache
+**/.vite/
+
+# Nuxt dev/build outputs
+**/.output/
+**/.data/
+**/.nuxt/
+**/.nitro/
+**/.cache/
+**/dist/
 
 .DS_Store
 Thumbs.db
 .vscode/
+.fleet/
+.idea/

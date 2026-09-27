@@ -2,6 +2,7 @@ const RoomType = require('../models/RoomType');
 const { sendSuccess, sendCreated, sendUpdated, sendError, 
         sendPaginated } = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');
+const { getPaginationParams } = require('../utils/helpers');
 
 class RoomTypeController {
   /**
@@ -62,13 +63,12 @@ class RoomTypeController {
     try {
       const { page = 1, pageSize = 10 } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
 
       const roomTypes = await RoomType.findAllPaginated(limit, offset);
       const total = await RoomType.countAll();
 
-      sendPaginated(res, roomTypes, total, page, limit);
+      sendPaginated(res, roomTypes, total, currentPage, limit);
     } catch (error) {
       next(error);
     }

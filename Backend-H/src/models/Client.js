@@ -8,7 +8,7 @@ class Client {
     const {
       name, document, document_type, email, phone,
       address, city, country, nationality, date_of_birth,
-      gender, emergency_contact, emergency_phone
+      gender, emergency_contact, emergency_phone, notes
     } = clientData;
 
     try {
@@ -16,16 +16,16 @@ class Client {
         INSERT INTO client (
           name, document, document_type, email, phone,
           address, city, country, nationality, date_of_birth,
-          gender, emergency_contact, emergency_phone, is_active
+          gender, emergency_contact, emergency_phone, notes, is_active
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true)
         RETURNING *
       `;
 
       const result = await pool.query(query, [
         name, document, document_type, email, phone,
         address, city, country, nationality, date_of_birth,
-        gender, emergency_contact, emergency_phone
+        gender, emergency_contact, emergency_phone, notes
       ]);
 
       return result.rows[0];
@@ -102,25 +102,25 @@ class Client {
    */
   static async update(id, clientData) {
     const {
-      name, email, phone,
-      address, city, country,
-      emergency_contact, emergency_phone
+      name, email, phone, address, city, country, nationality,
+      date_of_birth, gender, emergency_contact, emergency_phone, notes
     } = clientData;
 
     const query = `
       UPDATE client
-      SET name = $1, email = $2, phone = $3,
-          address = $4, city = $5, country = $6,
-          emergency_contact = $7, emergency_phone = $8,
+      SET name = $1, email = $2, phone = $3, address = $4,
+          city = $5, country = $6, nationality = $7, date_of_birth = $8,
+          gender = $9, emergency_contact = $10, emergency_phone = $11,
+          notes = $12,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $9 AND is_active = true
+      WHERE id = $13 AND is_active = true
       RETURNING *
     `;
 
     try {
       const result = await pool.query(query, [
-        name, email, phone, address, city, country,
-        emergency_contact, emergency_phone, id
+        name, email, phone, address, city, country, nationality,
+        date_of_birth, gender, emergency_contact, emergency_phone, notes, id
       ]);
 
       return result.rows[0] || null;

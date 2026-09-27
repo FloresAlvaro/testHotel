@@ -4,7 +4,7 @@ const Client = require('../models/Client');
 const { sendSuccess, sendCreated, sendUpdated, sendError, 
         sendPaginated } = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, RESERVATION_STATUS } = require('../config/constants');
-const { calculateTotalPrice, isDateBefore } = require('../utils/helpers');
+const { calculateTotalPrice, getPaginationParams, isDateBefore } = require('../utils/helpers');
 const { transaction } = require('../config/database');
 
 class ReservationController {
@@ -94,13 +94,12 @@ class ReservationController {
     try {
       const { page = 1, pageSize = 10, status } = req.query;
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
 
       const reservations = await Reservation.findAll(limit, offset, status);
       const total = await Reservation.countAll(status);
 
-      sendPaginated(res, reservations, total, page, limit);
+      sendPaginated(res, reservations, total, currentPage, limit);
     } catch (error) {
       next(error);
     }
@@ -148,8 +147,7 @@ class ReservationController {
         return sendError(res, ERROR_MESSAGES.CLIENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
       }
 
-      const limit = Math.min(parseInt(pageSize) || 10, 100);
-      const offset = (Math.max(parseInt(page) || 1, 1) - 1) * limit;
+      const { offset, limit } = getPaginationParams(page, pageSize, 10);
 
       const reservations = await Reservation.findByClientId(clientId, limit, offset);
 

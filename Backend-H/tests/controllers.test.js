@@ -1,21 +1,36 @@
 jest.mock('../src/models/Room', () => ({
   findById: jest.fn(),
-  updateStatus: jest.fn()
+  updateStatus: jest.fn(),
+  findAll: jest.fn(),
+  countAll: jest.fn()
 }));
 
 jest.mock('../src/models/RoomType', () => ({}));
 
 jest.mock('../src/models/Client', () => ({
   findByDocument: jest.fn(),
-  create: jest.fn()
+  create: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn()
 }));
 
-jest.mock('../src/models/Reservation', () => ({}));
+jest.mock('../src/models/Reservation', () => ({
+  findById: jest.fn()
+}));
+jest.mock('../src/models/Payment', () => ({
+  create: jest.fn(),
+  findByReservationId: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn()
+}));
 
 const Room = require('../src/models/Room');
 const Client = require('../src/models/Client');
+const Payment = require('../src/models/Payment');
+const Reservation = require('../src/models/Reservation');
 const RoomController = require('../src/controllers/roomController');
 const ClientController = require('../src/controllers/clientController');
+const PaymentController = require('../src/controllers/paymentController');
 
 const responseMock = () => ({
   status: jest.fn().mockReturnThis(),
@@ -122,7 +137,7 @@ describe('ClientController.create', () => {
     const client = { id: 8, name: 'Ana', document: '12345' };
     Client.findByDocument.mockResolvedValue(null);
     Client.create.mockResolvedValue(client);
-    const req = { body: { name: 'Ana', document: '12345', email: 'ana@example.com' } };
+    const req = { body: { name: 'Ana', document: '12345', email: 'ana@example.com', notes: 'VIP' } };
     const res = responseMock();
     const next = jest.fn();
 
@@ -132,7 +147,8 @@ describe('ClientController.create', () => {
     expect(Client.create).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Ana',
       document: '12345',
-      email: 'ana@example.com'
+      email: 'ana@example.com',
+      notes: 'VIP'
     }));
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -140,5 +156,131 @@ describe('ClientController.create', () => {
       data: client
     }));
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('RoomController.getAll', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('aplica el filtro de estado también al total paginado', async () => {
+    Room.findAll.mockResolvedValue([{ id: 1, status: 'maintenance' }]);
+    Room.countAll.mockResolvedValue(1);
+    const req = { query: { page: '2', pageSize: '5', status: 'maintenance' } };
+    const res = responseMock();
+
+    await RoomController.getAll(req, res, jest.fn());
+
+    expect(Room.findAll).toHaveBeenCalledWith(5, 5, 'maintenance');
+    expect(Room.countAll).toHaveBeenCalledWith('maintenance');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      pagination: expect.objectContaining({ page: 2, pageSize: 5, total: 1 })
+    }));
+  });
+});
+
+describe('PaymentController.create', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('responde como pago creado y no como pago completado', async () => {
+    const reservation = { id: 4, total_price: '100.00' };
+    const payment = { id: 7, reservation_id: 4, amount: '40.00', status: 'pending' };
+    Reservation.findById.mockResolvedValue(reservation);
+    Payment.findByReservationId.mockResolvedValue([]);
+    Payment.create.mockResolvedValue(payment);
+    const req = { body: { reservation_id: 4, amount: 40, method: 'cash' } };
+    const res = responseMock();
+
+    await PaymentController.create(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Pago registrado exitosamente',
+      data: payment
+    }));
+  });
+});
+
+describe('ClientController.update', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('conserva los datos existentes y guarda los campos opcionales editables', async () => {
+    const existingClient = { id: 3, name: 'Ana', nationality: null, notes: null };
+    const updatedClient = { ...existingClient, nationality: 'Boliviana', notes: 'VIP' };
+    Client.findById.mockResolvedValue(existingClient);
+    Client.update.mockResolvedValue(updatedClient);
+    const req = { params: { id: '3' }, body: { nationality: 'Boliviana', notes: 'VIP' } };
+    const res = responseMock();
+
+    await ClientController.update(req, res, jest.fn());
+
+    expect(Client.update).toHaveBeenCalledWith('3', expect.objectContaining({
+      name: 'Ana',
+      nationality: 'Boliviana',
+      notes: 'VIP'
+    }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: updatedClient }));
+  });
+});
+
+describe('PaymentController.update', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('permite actualizar solo pagos pendientes', async () => {
+    Reservation.findById.mockResolvedValue({ total_price: '100.00' });
+    Payment.findById.mockResolvedValue({
+      id: 7,
+      amount: '40.00',
+      type: 'full',
+      method: 'cash',
+      status: 'pending',
+      transaction_id: null
+    });
+    const updatedPayment = { id: 7, amount: '45.00', status: 'pending' };
+    Payment.update.mockResolvedValue(updatedPayment);
+    const req = { params: { id: '7' }, body: { amount: 45 } };
+    const res = responseMock();
+
+    await PaymentController.update(req, res, jest.fn());
+
+    expect(Payment.update).toHaveBeenCalledWith('7', expect.objectContaining({
+      amount: 45,
+      status: 'pending'
+    }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: updatedPayment }));
+  });
+
+  test('rechaza un monto actualizado que supera el saldo de la reserva', async () => {
+    Reservation.findById.mockResolvedValue({ total_price: '100.00' });
+    Payment.findById.mockResolvedValue({
+      id: 7,
+      reservation_id: 4,
+      amount: '40.00',
+      type: 'full',
+      method: 'cash',
+      status: 'pending',
+      transaction_id: null
+    });
+    Payment.findByReservationId.mockResolvedValue([
+      { amount: '70.00', status: 'completed' },
+      { amount: '40.00', status: 'pending' }
+    ]);
+    const req = { params: { id: '7' }, body: { amount: 40 } };
+    const res = responseMock();
+
+    await PaymentController.update(req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Monto insuficiente'
+    }));
+    expect(Payment.update).not.toHaveBeenCalled();
   });
 });

@@ -13,7 +13,7 @@ Backend REST para administrar usuarios, clientes, habitaciones, reservas, entrad
 Desde la raiz del repositorio, crea el archivo de entorno que Compose necesita:
 
 ```powershell
-Copy-Item Backend-H\.env.example .env
+Copy-Item .env.example .env
 ```
 
 Abre `.env` y cambia `JWT_SECRET` por una clave aleatoria de al menos 32 caracteres. Puedes generarla con:

@@ -13,7 +13,8 @@ const clientFields = {
 	date_of_birth: Joi.date().iso().allow(null),
 	gender: Joi.string().valid('M', 'F').allow(null),
 	emergency_contact: Joi.string().trim().max(200).allow('', null),
-	emergency_phone: Joi.string().trim().max(20).allow('', null)
+	emergency_phone: Joi.string().trim().max(20).allow('', null),
+	notes: Joi.string().trim().max(2000).allow('', null)
 };
 
 const createSchema = Joi.object(clientFields);
@@ -24,8 +25,12 @@ const updateSchema = Joi.object({
 	address: clientFields.address,
 	city: clientFields.city,
 	country: clientFields.country,
+	nationality: clientFields.nationality,
+	date_of_birth: clientFields.date_of_birth,
+	gender: clientFields.gender,
 	emergency_contact: clientFields.emergency_contact,
-	emergency_phone: clientFields.emergency_phone
+	emergency_phone: clientFields.emergency_phone,
+	notes: clientFields.notes
 }).fork(['name'], field => field.optional()).min(1);
 
 module.exports = { createSchema, updateSchema };
