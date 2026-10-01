@@ -35,7 +35,9 @@ export const useApiClient = () => {
 
   // Configurar cliente HTTP con $fetch
   const api = $fetch.create({
-    baseURL: config.public.apiBase, // http://localhost:3000/api
+    baseURL: import.meta.server
+      ? config.apiInternalBase
+      : config.public.apiBase,
     credentials: "include",
     retry: 1,
 

@@ -30,13 +30,28 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET debe estar definido en el .env}
       JWT_EXPIRE: ${JWT_EXPIRE:-24h}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
-      CORS_CREDENTIALS: ${CORS_CREDENTIALS:-false}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:${FRONTEND_PORT:-3001}}
+      CORS_CREDENTIALS: ${CORS_CREDENTIALS:-true}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Frontend-H
+    container_name: hotel-frontend
+    restart: unless-stopped
+    environment:
+      NITRO_HOST: 0.0.0.0
+      NITRO_PORT: 3000
+      NUXT_API_INTERNAL_BASE: http://backend:3000/api
+      NUXT_PUBLIC_API_BASE: http://localhost:${BACKEND_PORT:-3000}/api
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

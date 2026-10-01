@@ -1,132 +1,108 @@
 # Sistema de gestion hotelera
 
-Backend REST para administrar usuarios, clientes, habitaciones, reservas, entradas y salidas, pagos e indicadores del hotel. La API esta construida con Node.js, Express y PostgreSQL.
+Aplicacion para administrar usuarios, clientes, habitaciones, reservas, entradas y salidas, pagos e indicadores. Incluye frontend Nuxt, API REST con Express y PostgreSQL.
 
 ## Requisitos
 
-- Docker y Docker Compose para ejecutar el stack completo.
-- Node.js y npm para ejecutar el backend o sus pruebas localmente.
-- PostgreSQL 16 si ejecutas la base de datos fuera de Docker.
+- Docker Desktop con Docker Compose v2.
+- Node.js 20 o superior y npm solo para desarrollo local o pruebas.
 
-## Inicio rapido con Docker
+## Inicio completo con Docker
 
-Desde la raiz del repositorio, crea el archivo de entorno que Compose necesita:
+Ejecuta los comandos desde la raiz del repositorio. Primero crea el archivo de entorno:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Abre `.env` y cambia `JWT_SECRET` por una clave aleatoria de al menos 32 caracteres. Puedes generarla con:
+Edita `.env` y reemplaza `JWT_SECRET` por una clave aleatoria de al menos 32 caracteres. Para generarla en PowerShell:
 
 ```powershell
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Luego construye e inicia el backend y PostgreSQL:
+Los valores de `.env.example` sirven para desarrollo local; cambia tambien la contrasena de PostgreSQL antes de exponer el sistema. Si cambias `POSTGRES_PASSWORD`, usa caracteres seguros para URL, por ejemplo letras y numeros.
+
+Construye las imagenes e inicia PostgreSQL, el backend y el frontend:
 
 ```powershell
 docker compose up --build -d
 ```
 
-Compose publica el backend en `http://localhost:3000` y PostgreSQL en el puerto `5432`. Al iniciar por primera vez una base de datos vacia, PostgreSQL ejecuta `database/init/01-schema.sql` y crea las tablas, restricciones e indices.
+Abre la aplicacion en `http://localhost:3001`. La API esta en `http://localhost:3000`, la documentacion en `http://localhost:3000/api-docs` y PostgreSQL se publica en el puerto `5432`. En el primer inicio, PostgreSQL crea el esquema desde `database/init/01-schema.sql`.
 
-Para revisar el estado y los logs:
+Comprueba el estado y los logs:
 
 ```powershell
 docker compose ps
-docker compose logs -f backend
+docker compose logs -f backend frontend
 ```
 
-Para detener los servicios sin eliminar los datos:
+Verifica el backend:
+
+```powershell
+Invoke-RestMethod http://localhost:3000/health
+```
+
+Para detener los servicios sin borrar los datos:
 
 ```powershell
 docker compose down
 ```
 
-Los datos se conservan en el volumen `postgres_data`. El script SQL de inicializacion se ejecuta automaticamente solo cuando PostgreSQL crea un directorio de datos nuevo; no se vuelve a aplicar sobre un volumen ya inicializado.
+Los datos permanecen en el volumen `postgres_data`. El script de inicializacion se ejecuta solo al crear un volumen vacio; los cambios posteriores al SQL no se aplican automaticamente. `docker compose down -v` elimina la base de datos y todos sus datos.
 
-## Ejecucion local del backend
+Si un puerto esta ocupado, cambia `FRONTEND_PORT`, `BACKEND_PORT` o `POSTGRES_PORT` en `.env` y vuelve a ejecutar Compose. El frontend usa la URL interna de Docker para sus solicitudes SSR y la URL publicada del backend desde el navegador.
 
-1. Crea la configuracion local y ajusta `DATABASE_URL` para que apunte a tu PostgreSQL:
+## Desarrollo local
 
-   ```powershell
-   Copy-Item Backend-H\.env.example Backend-H\.env
-   ```
-
-   Configura tambien un `JWT_SECRET` de al menos 32 caracteres. No uses los valores de ejemplo en produccion.
-
-2. Crea la base de datos `hotel_db` y aplica el esquema desde la raiz del repositorio:
-
-   ```powershell
-   psql -U hotel_user -d hotel_db -f database/init/01-schema.sql
-   ```
-
-   Ajusta el usuario y la base de datos del comando a tu instalacion. La base debe existir antes de aplicar el esquema.
-
-3. Instala dependencias e inicia el servidor:
-
-   ```powershell
-   Set-Location Backend-H
-   npm install
-   npm run dev
-   ```
-
-El servidor valida las variables `DATABASE_URL` y `JWT_SECRET` al arrancar. Tambien acepta `PORT`, `NODE_ENV`, `JWT_EXPIRE`, `BCRYPT_ROUNDS`, parametros del pool de PostgreSQL y opciones de CORS, entre otras. Consulta `Backend-H/.env.example` para la lista de variables y sus valores de referencia.
-
-## API
-
-- Estado del servicio: `GET /health`
-- Documentacion interactiva: `http://localhost:3000/api-docs`
-- Especificacion OpenAPI en JSON: `http://localhost:3000/api-docs.json`
-- Recursos: `/api/users`, `/api/clients`, `/api/rooms`, `/api/room-types`, `/api/reservations`, `/api/check-in`, `/api/payments` y `/api/dashboard`
-
-El registro y el inicio de sesion estan disponibles en `POST /api/users/register` y `POST /api/users/login`. Las rutas protegidas requieren el token JWT recibido al iniciar sesion:
-
-```http
-Authorization: Bearer <token>
-```
-
-El dashboard requiere rol `admin` o `manager`. Otras operaciones aplican permisos por rol; la documentacion Swagger describe los endpoints publicados.
-
-No se crea un usuario inicial automaticamente. Registra una cuenta con `name`, `email` y `password` antes de iniciar sesion; el registro asigna el rol `receptionist`.
-
-Ejemplo de inicio de sesion:
+Puedes mantener PostgreSQL y el backend en Docker y ejecutar Nuxt con recarga en caliente. Desde la raiz:
 
 ```powershell
-Invoke-RestMethod -Method Post `
-  -Uri http://localhost:3000/api/users/login `
-  -ContentType 'application/json' `
-  -Body '{"email":"usuario@hotel.com","password":"password123"}'
+Copy-Item .env.example .env
+docker compose up --build -d db backend
+Set-Location Frontend-H
+npm ci
+$env:NUXT_PUBLIC_API_BASE = 'http://localhost:3000/api'
+$env:NUXT_API_INTERNAL_BASE = 'http://localhost:3000/api'
+npm run dev -- --host 0.0.0.0 --port 3001
 ```
+
+La interfaz local quedara en `http://localhost:3001`. Para ejecutar el backend fuera de Docker, crea `Backend-H/.env` desde `Backend-H/.env.example` y configura `DATABASE_URL` con una instancia PostgreSQL accesible. La base debe existir antes de aplicar el esquema:
+
+```powershell
+psql -U hotel_user -d hotel_db -f database/init/01-schema.sql
+Set-Location Backend-H
+npm ci
+npm run dev
+```
+
+Configura tambien `JWT_SECRET` con al menos 32 caracteres. El backend valida `DATABASE_URL` y `JWT_SECRET` al arrancar.
+
+## API y primer usuario
+
+- Estado: `GET /health`
+- Swagger: `http://localhost:3000/api-docs`
+- OpenAPI JSON: `http://localhost:3000/api-docs.json`
+- Recursos: `/api/users`, `/api/clients`, `/api/rooms`, `/api/room-types`, `/api/reservations`, `/api/check-in`, `/api/payments` y `/api/dashboard`
+
+No se crea un usuario inicial automaticamente. Registra una cuenta desde la aplicacion o con `POST /api/users/register`, enviando `name`, `email` y `password`; el registro asigna el rol `receptionist`. El inicio de sesion esta en `POST /api/users/login`. Las rutas protegidas requieren `Authorization: Bearer <token>`. El dashboard requiere rol `admin` o `manager`.
 
 ## Pruebas
 
-Las pruebas unitarias usan Jest y no requieren iniciar el servidor:
-
 ```powershell
 Set-Location Backend-H
-npm test
-```
-
-Para ejecutar las pruebas serialmente:
-
-```powershell
+npm ci
+$env:DATABASE_URL = 'postgresql://hotel_user:hotel_password@localhost:5432/hotel_db'
+$env:JWT_SECRET = 'test-secret-at-least-32-characters-long'
 npm test -- --runInBand
 ```
 
-## Estructura
+Las pruebas no requieren una instancia PostgreSQL activa; esas variables solo son necesarias para cargar la configuracion del backend.
 
-```text
-Backend-H/
-  src/
-    config/       Configuracion, PostgreSQL y OpenAPI
-    controllers/  Logica de endpoints
-    middleware/   Autenticacion, permisos, validacion y errores
-    models/       Acceso a datos
-    routes/       Rutas HTTP
-    utils/        Utilidades y respuestas
-    validators/   Esquemas Joi
-  tests/          Pruebas unitarias Jest
-database/
-  init/           Esquema inicial de PostgreSQL
-```
+## Solucion de problemas
+
+- Si Compose indica que falta `JWT_SECRET`, confirma que copiaste `.env.example` como `.env` en la raiz y vuelve a iniciar los servicios.
+- Si un puerto no esta disponible, modifica los puertos en `.env`; no cambies los puertos internos de los contenedores.
+- Si cambiaste las credenciales PostgreSQL despues de inicializar el volumen, la base existente conserva las credenciales anteriores. Para reiniciar desde cero, `docker compose down -v` borra los datos.
+- Para revisar un servicio concreto, usa `docker compose logs -f db`, `docker compose logs -f backend` o `docker compose logs -f frontend`.
