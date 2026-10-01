@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Nuxt and frontend build output
+.nuxt/
+.output/
+.nitro/
+.data/
+.cache/
+.dist/
+dist/
+coverage/
+.vite/
+.eslintcache
+*.tsbuildinfo
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
