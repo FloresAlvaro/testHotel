@@ -14,10 +14,14 @@
   },
   "dependencies": {
     "@iconify-json/system-uicons": "^1.2.4",
+    "@nuxt/fonts": "^0.14.0",
     "@nuxt/icon": "^2.5.1",
+    "@nuxt/image": "^2.1.0",
+    "@nuxt/ui": "^4.11.3",
     "@pinia/nuxt": "^0.11.2",
     "nuxt": "^4.5.2",
     "pinia": "^3.0.3",
+    "tailwindcss": "^4.3.3",
     "vue": "^3.5.43"
   },
   "devDependencies": {

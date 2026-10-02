@@ -36,12 +36,6 @@
             href="/admin/settings"
             :active="route.path.startsWith('/admin')"
           />
-          <NavLink
-            icon="📊"
-            label="Reportes"
-            href="/reports"
-            :active="route.path.startsWith('/reports')"
-          />
         </template>
 
         <!-- Para Manager -->
