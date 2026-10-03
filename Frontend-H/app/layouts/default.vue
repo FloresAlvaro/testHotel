@@ -34,7 +34,7 @@
             icon="system-uicons:settings"
             label="Configuración"
             href="/admin/settings"
-            :active="route.path.startsWith('/admin')"
+            :active="route.path.startsWith('/admin') && route.query.tab !== 'users'"
           />
         </template>
 
@@ -81,6 +81,7 @@
             :active="route.path.startsWith('/checkin')"
           />
           <NavLink
+            v-if="isReceptionist"
             icon="system-uicons:calendar"
             label="Mis Reservas"
             href="/reservations"
