@@ -253,7 +253,7 @@ export const ROUTES = {
 
 // ==================== CONFIGURACIÓN ====================
 export const CONFIG = {
-  APP_NAME: "HotelSys",
+  APP_NAME: "Roomly",
   APP_VERSION: "1.0.0",
   API_BASE_URL: process.env.NUXT_PUBLIC_API_BASE || "http://localhost:3000/api",
   JWT_EXPIRY: "24h",

@@ -1,41 +1,28 @@
 <template>
   <main :class="['auth-shell', { dark: theme === 'dark' }]">
     <section class="auth-visual" aria-labelledby="visual-title">
-      <NuxtImg
-        class="auth-image"
-        src="https://images.unsplash.com/photo-1566073771259-6a8506099945"
-        alt="Hotel rodeado de jardines y piscina"
-        width="1800"
-        height="1600"
-        sizes="100vw md:58vw"
-        quality="84"
-        format="webp"
-        preload
-      />
-      <div class="visual-shade" aria-hidden="true" />
-
       <div class="visual-content">
-        <NuxtLink to="/" class="visual-brand" aria-label="HotelSys, inicio">
-          <span class="brand-mark">H</span>
-          <span>HotelSys</span>
+        <NuxtLink to="/" class="visual-brand" aria-label="Roomly, inicio">
+          <span class="brand-mark">R</span>
+          <span>Roomly</span>
         </NuxtLink>
 
         <div class="visual-copy">
-          <p class="visual-eyebrow">GESTIÓN HOTELERA, CON CALMA</p>
-          <h1 id="visual-title">Cada detalle cuenta para que todo fluya.</h1>
-          <p>Reservas, huéspedes y operación diaria, en un solo lugar.</p>
+          <p class="visual-eyebrow">EL PORTAL DE TU HOTEL</p>
+          <h1 id="visual-title">Bienvenido de nuevo</h1>
+          <p>Reservas, huéspedes y cada detalle de la operación, siempre a mano.</p>
         </div>
 
         <div class="visual-caption">
-          <span>EL ARTE DE RECIBIR BIEN</span>
-          <span>01 — 03</span>
+          <span class="caption-mark" aria-hidden="true">✓</span>
+          <span>Acceso privado para el equipo del hotel</span>
         </div>
       </div>
     </section>
 
     <section class="auth-panel" aria-label="Acceso al sistema">
       <header class="auth-topbar">
-        <span>PORTAL DEL EQUIPO</span>
+        <span/>
         <button
           class="theme-toggle"
           type="button"
@@ -52,7 +39,7 @@
       </div>
 
       <footer class="auth-footer">
-        <span>© 2026 HotelSys</span>
+        <span>© 2026 Roomly</span>
         <span>Acceso protegido</span>
       </footer>
     </section>
@@ -68,66 +55,57 @@ const theme = computed(() => uiStore.theme);
 
 <style scoped lang="scss">
 .auth-shell {
-  --panel-bg: #f8f9f6;
-  --panel-text: #1e2a24;
-  --panel-muted: #758078;
-  --panel-border: #dce3dd;
+  --panel-bg: #f5f4ff;
+  --panel-text: #252b3d;
+  --panel-muted: #707b96;
+  --panel-border: #e1e3f0;
   --field-bg: #ffffff;
 
   display: grid;
-  grid-template-columns: minmax(0, 1.16fr) minmax(420px, 0.84fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(390px, 1fr);
+  gap: 0;
+  padding: 12px;
   min-height: 100vh;
   min-height: 100svh;
-  background: var(--panel-bg);
+  background: #ffffff;
   color: var(--panel-text);
 
   &.dark {
-    --panel-bg: #151d18;
-    --panel-text: #eef2ee;
-    --panel-muted: #a2afa6;
-    --panel-border: #344138;
-    --field-bg: #1c2720;
+    --panel-bg: #1d1d2b;
+    --panel-text: #f2f1fa;
+    --panel-muted: #aaa9bf;
+    --panel-border: #38384d;
+    --field-bg: #242437;
+
+    background: #15151f;
   }
 }
 
 .auth-visual {
   position: relative;
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: calc(100svh - 24px);
   overflow: hidden;
-  background: #203c32;
-  color: #ffffff;
-}
+  border: 1px solid #e7e7f2;
+  background:
+    radial-gradient(ellipse at 72% 55%, rgba(119, 111, 255, 0.08), transparent 38%),
+    #ffffff;
+  color: var(--panel-text);
 
-.auth-image,
-.visual-shade {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.auth-image {
-  object-fit: cover;
-  object-position: center;
-}
-
-.visual-shade {
-  background: linear-gradient(
-    180deg,
-    rgba(14, 30, 24, 0.2) 0%,
-    rgba(14, 30, 24, 0.08) 38%,
-    rgba(14, 30, 24, 0.78) 100%
-  );
+  .dark & {
+    border-color: var(--panel-border);
+    background:
+      radial-gradient(ellipse at 72% 55%, rgba(119, 111, 255, 0.12), transparent 38%),
+      #191923;
+  }
 }
 
 .visual-content {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  min-height: calc(100svh - 26px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: clamp(32px, 4.6vw, 72px);
+  padding: clamp(30px, 4.4vw, 68px);
 }
 
 .visual-brand {
@@ -135,43 +113,53 @@ const theme = computed(() => uiStore.theme);
   align-items: center;
   gap: 12px;
   width: fit-content;
-  color: #ffffff;
-  font-size: 17px;
+  color: var(--panel-text);
+  font-size: 16px;
   font-weight: 600;
   text-decoration: none;
 }
 
 .brand-mark {
   display: grid;
-  width: 38px;
+  width: 34px;
   aspect-ratio: 1;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.68);
-  color: #f2d39d;
+  border-radius: 8px;
+  background: #5148e8;
+  color: #ffffff;
   font-family: "Alata", sans-serif;
-  font-size: 25px;
+  font-size: 20px;
   font-weight: 600;
 }
 
 .visual-copy {
-  max-width: 620px;
-  padding: 54px 0 44px;
+  max-width: 570px;
+  padding: 48px 0;
 
   h1 {
-    max-width: 600px;
-    margin: 15px 0 17px;
+    max-width: 540px;
+    margin: 14px 0 15px;
     font-family: "Alata", sans-serif;
-    font-size: 58px;
-    font-weight: 500;
-    line-height: 0.99;
+    font-size: clamp(42px, 4.2vw, 58px);
+    font-weight: 400;
+    line-height: 1.02;
+
+    span {
+      display: block;
+      color: #5148e8;
+    }
   }
 
   > p:last-child {
-    max-width: 390px;
+    max-width: 360px;
     margin: 0;
-    color: rgba(255, 255, 255, 0.84);
-    font-size: 15px;
-    line-height: 1.7;
+    color: var(--panel-muted);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .dark & h1 span {
+    color: #a8a1ff;
   }
 }
 
@@ -180,27 +168,41 @@ const theme = computed(() => uiStore.theme);
 .auth-topbar > span {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
 }
 
 .visual-eyebrow {
   margin: 0;
-  color: #f2d39d;
+  color: #5148e8;
 }
 
 .visual-caption {
-  display: flex;
-  justify-content: space-between;
-  color: rgba(255, 255, 255, 0.76);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--panel-muted);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.caption-mark {
+  display: grid;
+  width: 22px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #eeedff;
+  color: #5148e8;
+  font-size: 13px;
 }
 
 .auth-panel {
   display: flex;
   min-width: 0;
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: calc(100svh - 24px);
   flex-direction: column;
-  padding: clamp(26px, 4vw, 62px) clamp(26px, 5.5vw, 84px) 26px;
+  padding: clamp(24px, 3.8vw, 54px) clamp(24px, 4vw, 60px) 22px;
+  border: 1px solid #e5e4f3;
   background: var(--panel-bg);
   color: var(--panel-text);
 }
@@ -229,19 +231,19 @@ const theme = computed(() => uiStore.theme);
   transition: background-color 160ms ease, border-color 160ms ease;
 
   &:hover {
-    border-color: #a9b8ad;
-    background: rgba(63, 99, 77, 0.08);
+    border-color: #aaa5f1;
+    background: rgba(81, 72, 232, 0.08);
   }
 
   &:focus-visible {
-    outline: 3px solid rgba(58, 100, 75, 0.26);
+    outline: 3px solid rgba(81, 72, 232, 0.26);
     outline-offset: 2px;
   }
 }
 
 .auth-content {
   width: 100%;
-  max-width: 430px;
+  max-width: 390px;
   margin: auto;
   padding: 42px 0;
 }
@@ -256,79 +258,81 @@ const theme = computed(() => uiStore.theme);
 
 @media (max-width: 900px) {
   .auth-shell {
-    grid-template-columns: minmax(0, 1fr) minmax(390px, 0.95fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.95fr);
   }
 
   .visual-content {
-    padding: 28px;
+    padding: 32px;
   }
 
   .visual-copy h1 {
-    font-size: 46px;
+    font-size: 42px;
   }
 
   .auth-panel {
-    padding-inline: 34px;
+    padding-inline: 30px;
   }
 }
 
 @media (max-width: 720px) {
   .auth-shell {
     grid-template-columns: minmax(0, 1fr);
+    padding: 8px;
   }
 
   .auth-visual {
-    min-height: 250px;
-    max-height: 34svh;
+    min-height: 218px;
+    max-height: 30svh;
   }
 
   .visual-content {
-    padding: 22px 24px;
+    min-height: 216px;
+    padding: 20px 22px;
   }
 
   .visual-copy {
-    padding: 24px 0 15px;
+    padding: 14px 0 10px;
 
     h1 {
-      max-width: 430px;
-      margin: 8px 0;
-      font-size: 34px;
+      max-width: 480px;
+      margin: 7px 0;
+      font-size: 31px;
       line-height: 1.02;
     }
 
     > p:last-child {
-      display: none;
+      max-width: 440px;
+      font-size: 12px;
     }
   }
 
-  .visual-eyebrow,
-  .visual-caption {
-    font-size: 9px;
-  }
-
   .brand-mark {
-    width: 32px;
-    font-size: 22px;
+    width: 29px;
+    font-size: 18px;
   }
 
   .auth-panel {
     min-height: 0;
-    padding: 20px 24px 22px;
+    padding: 18px 22px 16px;
   }
 
   .auth-content {
     max-width: 480px;
-    padding: 40px 0;
+    padding: 30px 0;
+  }
+
+  .auth-footer {
+    padding-top: 4px;
   }
 }
 
 @media (max-width: 390px) {
   .auth-panel {
-    padding-inline: 18px;
+    padding-inline: 16px;
   }
 
   .visual-copy h1 {
-    font-size: 30px;
+    font-size: 28px;
   }
 }
 </style>

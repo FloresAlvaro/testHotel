@@ -1,9 +1,8 @@
 <template>
   <section class="login-page" aria-labelledby="login-title">
     <header class="login-heading">
-      <p class="login-eyebrow">BIENVENIDO DE NUEVO</p>
-      <h1 id="login-title">Tu hotel, en buenas manos.</h1>
-      <p>Inicia sesión para continuar con la operación del día.</p>
+      <h1 id="login-title">Iniciar sesión</h1>
+      <p>Ingresa tus datos para continuar.</p>
     </header>
 
     <form class="login-form" @submit.prevent="handleLogin">
@@ -188,37 +187,29 @@ onMounted(() => {
 }
 
 .login-heading {
-  margin-bottom: 36px;
+  margin-bottom: 25px;
 
   h1 {
-    margin: 10px 0 9px;
+    margin: 0 0 6px;
     color: var(--panel-text);
     font-family: "Alata", sans-serif;
-    font-size: 40px;
-    font-weight: 400;
-    line-height: 1.02;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.2;
   }
 
   > p:last-child {
     margin: 0;
     color: var(--panel-muted);
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
   }
-}
-
-.login-eyebrow {
-  margin: 0;
-  color: #527463;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 23px;
+  gap: 18px;
 }
 
 .form-field {
@@ -243,25 +234,25 @@ onMounted(() => {
 .input-shell {
   display: flex;
   min-width: 0;
-  min-height: 54px;
+  min-height: 48px;
   align-items: center;
   gap: 12px;
   padding: 0 15px;
   border: 1px solid var(--panel-border);
   border-radius: 6px;
   background: var(--field-bg);
-  color: #718078;
+  color: #8189a4;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 
   &:focus-within {
-    border-color: #527463;
-    box-shadow: 0 0 0 3px rgba(82, 116, 99, 0.13);
+    border-color: #7168ef;
+    box-shadow: 0 0 0 3px rgba(81, 72, 232, 0.12);
   }
 
   input {
     width: 100%;
     min-width: 0;
-    height: 52px;
+    height: 46px;
     border: 0;
     outline: 0;
     background: transparent;
@@ -290,29 +281,29 @@ onMounted(() => {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #718078;
+  color: #8189a4;
   cursor: pointer;
 
   &:hover {
-    background: rgba(82, 116, 99, 0.1);
-    color: #345744;
+    background: rgba(81, 72, 232, 0.1);
+    color: #5148e8;
   }
 
   &:focus-visible {
-    outline: 2px solid #527463;
+    outline: 2px solid #5148e8;
     outline-offset: 2px;
   }
 }
 
 .forgot-link,
 .register-prompt a {
-  color: #416a55;
+  color: #5148e8;
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
 
   &:hover {
-    color: #264b37;
+    color: #3931c6;
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -330,15 +321,15 @@ onMounted(() => {
 
 .login-submit {
   display: flex;
-  min-height: 54px;
+  min-height: 48px;
   align-items: center;
   justify-content: center;
   gap: 10px;
   margin-top: 2px;
   padding: 0 20px;
-  border: 1px solid #284d3b;
+  border: 1px solid #5148e8;
   border-radius: 6px;
-  background: #284d3b;
+  background: #5148e8;
   color: #ffffff;
   cursor: pointer;
   font: inherit;
@@ -347,7 +338,7 @@ onMounted(() => {
   transition: background-color 160ms ease, transform 160ms ease;
 
   &:hover:not(:disabled) {
-    background: #1e3c2e;
+    background: #4037d2;
   }
 
   &:active:not(:disabled) {
@@ -355,7 +346,7 @@ onMounted(() => {
   }
 
   &:focus-visible {
-    outline: 3px solid rgba(82, 116, 99, 0.3);
+    outline: 3px solid rgba(81, 72, 232, 0.28);
     outline-offset: 3px;
   }
 
@@ -389,8 +380,8 @@ onMounted(() => {
   flex-wrap: wrap;
   justify-content: center;
   gap: 5px;
-  margin-top: 30px;
-  padding-top: 22px;
+  margin-top: 24px;
+  padding-top: 18px;
   border-top: 1px solid var(--panel-border);
   color: var(--panel-muted);
   font-size: 12px;
@@ -403,9 +394,7 @@ onMounted(() => {
 }
 
 @media (max-width: 900px) {
-  .login-heading h1 {
-    font-size: 38px;
-  }
+  .login-heading h1 { font-size: 26px; }
 }
 
 @media (max-width: 390px) {
@@ -413,7 +402,7 @@ onMounted(() => {
     margin-bottom: 28px;
 
     h1 {
-      font-size: 35px;
+      font-size: 25px;
     }
   }
 

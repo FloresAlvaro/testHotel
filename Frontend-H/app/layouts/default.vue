@@ -4,7 +4,7 @@
     <aside :class="['sidebar', { 'sidebar-closed': !sidebarOpen }]">
       <div class="sidebar-header">
         <div class="logo">
-          <h1>🏨 HotelSys</h1>
+          <h1>🏨 Roomly</h1>
         </div>
         <button
           class="sidebar-toggle-mobile"
@@ -166,7 +166,7 @@
 
       <!-- Footer -->
       <footer class="footer">
-        <p>&copy; 2026 HotelSys. Todos los derechos reservados.</p>
+        <p>&copy; 2026 Roomly. Todos los derechos reservados.</p>
       </footer>
     </div>
 
