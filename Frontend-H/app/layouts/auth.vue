@@ -64,7 +64,6 @@ const theme = computed(() => uiStore.theme);
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(390px, 1fr);
   gap: 0;
-  padding: 12px;
   min-height: 100vh;
   min-height: 100svh;
   background: #ffffff;
@@ -85,7 +84,7 @@ const theme = computed(() => uiStore.theme);
   position: relative;
   min-height: calc(100svh - 24px);
   overflow: hidden;
-  border: 1px solid #e7e7f2;
+  border: 0px solid #e7e7f2;
   background:
     radial-gradient(ellipse at 72% 55%, rgba(119, 111, 255, 0.08), transparent 38%),
     #ffffff;
@@ -202,7 +201,7 @@ const theme = computed(() => uiStore.theme);
   min-height: calc(100svh - 24px);
   flex-direction: column;
   padding: clamp(24px, 3.8vw, 54px) clamp(24px, 4vw, 60px) 22px;
-  border: 1px solid #e5e4f3;
+  border: 0px solid #e5e4f3;
   background: var(--panel-bg);
   color: var(--panel-text);
 }
