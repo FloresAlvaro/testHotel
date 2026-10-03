@@ -32,6 +32,7 @@ const poolConfig = {
 };
 
 const pool = new Pool(poolConfig);
+const queryPool = pool.query.bind(pool);
 
 // ============================================
 // VALIDAR CONEXIÓN AL INICIAR
@@ -125,7 +126,7 @@ const query = async (text, params) => {
   const start = Date.now();
   
   try {
-    const result = await pool.query(text, params);
+    const result = await queryPool(text, params);
     const duration = Date.now() - start;
     
     // Log de queries en desarrollo
@@ -199,7 +200,7 @@ const close = async () => {
 const startHealthCheck = (interval = 60000) => {
   setInterval(async () => {
     try {
-      const result = await pool.query('SELECT 1');
+      const result = await queryPool('SELECT 1');
       if (!isConnected) {
         isConnected = true;
         console.log('✅ Conexión a BD restaurada');

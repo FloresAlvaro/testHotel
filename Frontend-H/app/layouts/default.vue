@@ -19,19 +19,19 @@
         <!-- Para Admin -->
         <template v-if="isAdmin">
           <NavLink
-            icon="👥"
+            icon="system-uicons:grid"
             label="Dashboard"
-            href="/"
-            :active="route.path === '/'"
+            href="/dashboard"
+            :active="route.path === '/' || route.path === '/dashboard'"
           />
           <NavLink
-            icon="👤"
+            icon="system-uicons:users"
             label="Usuarios"
             href="/admin/settings?tab=users"
             :active="route.path.startsWith('/admin/settings') && route.query.tab === 'users'"
           />
           <NavLink
-            icon="⚙️"
+            icon="system-uicons:settings"
             label="Configuración"
             href="/admin/settings"
             :active="route.path.startsWith('/admin')"
@@ -41,25 +41,25 @@
         <!-- Para Manager -->
         <template v-if="isManager || isAdmin">
           <NavLink
-            icon="🛏️"
+            icon="system-uicons:home"
             label="Habitaciones"
             href="/rooms"
             :active="route.path.startsWith('/rooms')"
           />
           <NavLink
-            icon="📅"
+            icon="system-uicons:calendar"
             label="Reservas"
             href="/reservations"
             :active="route.path.startsWith('/reservations')"
           />
           <NavLink
-            icon="💰"
+            icon="system-uicons:coin"
             label="Pagos"
             href="/payments"
             :active="route.path.startsWith('/payments')"
           />
           <NavLink
-            icon="📊"
+            icon="system-uicons:graph-bar"
             label="Reportes"
             href="/reports"
             :active="route.path.startsWith('/reports')"
@@ -69,19 +69,19 @@
         <!-- Para Recepcionista -->
         <template v-if="isReceptionist || isManager || isAdmin">
           <NavLink
-            icon="👥"
+            icon="system-uicons:users"
             label="Clientes"
             href="/clients"
             :active="route.path.startsWith('/clients')"
           />
           <NavLink
-            icon="🔑"
+            icon="system-uicons:lock"
             label="Check-in/out"
             href="/checkin"
             :active="route.path.startsWith('/checkin')"
           />
           <NavLink
-            icon="📅"
+            icon="system-uicons:calendar"
             label="Mis Reservas"
             href="/reservations"
             :active="route.path.startsWith('/reservations')"
@@ -91,8 +91,12 @@
 
       <!-- Footer del sidebar -->
       <div class="sidebar-footer">
-        <button class="theme-toggle" @click="uiStore.toggleTheme">
-          {{ theme === 'dark' ? '☀️' : '🌙' }}
+        <button
+          class="theme-toggle"
+          :aria-label="theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+          @click="uiStore.toggleTheme"
+        >
+          <Icon :name="theme === 'dark' ? 'system-uicons:sun' : 'system-uicons:moon'" size="18" />
         </button>
       </div>
     </aside>
@@ -278,6 +282,7 @@ watch(
 .app-wrapper {
   display: flex;
   height: 100vh;
+  min-height: 100vh;
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s;
@@ -292,24 +297,24 @@ watch(
   }
 
   &:not(.dark) {
-    --bg-primary: #f5f5f5;
+    --bg-primary: #f7f8fa;
     --bg-secondary: #ffffff;
-    --text-primary: #1a1a1a;
-    --text-secondary: #666666;
-    --border-color: #e0e0e0;
+    --text-primary: #172033;
+    --text-secondary: #718096;
+    --border-color: #e5eaf1;
     --sidebar-bg: #ffffff;
   }
 }
 
 // ==================== SIDEBAR ====================
 .sidebar {
-  width: 280px;
+  width: 176px;
+  flex: 0 0 176px;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   transition: transform 0.3s ease;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 
   @media (max-width: 768px) {
     position: fixed;
@@ -326,7 +331,8 @@ watch(
 }
 
 .sidebar-header {
-  padding: 20px;
+  min-height: 54px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
@@ -334,7 +340,7 @@ watch(
 
   .logo h1 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     color: var(--text-primary);
   }
 }
@@ -354,52 +360,51 @@ watch(
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 0;
+  padding: 8px 0;
 
   a {
     display: flex;
     align-items: center;
-    padding: 12px 20px;
-    color: var(--text-primary);
+    padding: 9px 16px;
+    color: var(--text-secondary);
     text-decoration: none;
     transition: background 0.2s;
     border-left: 3px solid transparent;
 
     &:hover {
-      background: var(--bg-secondary);
+      background: var(--bg-primary);
+      color: var(--text-primary);
     }
 
     &.active {
-      background: rgba(59, 130, 246, 0.1);
+      background: #eff6ff;
       border-left-color: #3b82f6;
       color: #3b82f6;
       font-weight: 600;
-    }
-
-    span:first-child {
-      font-size: 1.2rem;
-      margin-right: 12px;
     }
   }
 }
 
 .sidebar-footer {
-  padding: 20px;
+  padding: 10px 12px;
   border-top: 1px solid var(--border-color);
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
 
   .theme-toggle {
-    background: none;
-    border: 2px solid var(--border-color);
-    padding: 8px 16px;
-    font-size: 1.2rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    width: 34px;
+    height: 34px;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: 9px;
+    color: #f97316;
+    display: grid;
+    place-items: center;
     transition: all 0.2s;
 
     &:hover {
-      background: var(--bg-secondary);
+      background: var(--bg-primary);
       border-color: #3b82f6;
     }
   }
@@ -417,7 +422,8 @@ watch(
 .header {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  padding: 16px 20px;
+  min-height: 54px;
+  padding: 8px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -442,7 +448,7 @@ watch(
 
     h2 {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 1rem;
       color: var(--text-primary);
     }
   }
@@ -504,8 +510,8 @@ watch(
     }
 
     .avatar {
-      width: 36px;
-      height: 36px;
+      width: 30px;
+      height: 30px;
       background: #3b82f6;
       color: white;
       border-radius: 50%;
@@ -523,12 +529,12 @@ watch(
 
       strong {
         color: var(--text-primary);
-        font-size: 0.95rem;
+        font-size: 0.78rem;
       }
 
       small {
         color: var(--text-secondary);
-        font-size: 0.8rem;
+        font-size: 0.68rem;
       }
     }
   }
@@ -574,12 +580,34 @@ watch(
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 12px 20px 20px;
   background: var(--bg-primary);
 
   .content-inner {
-    max-width: 1400px;
+    max-width: 1500px;
     margin: 0 auto;
+  }
+
+  @media (max-width: 520px) {
+    .header {
+      padding-inline: 12px;
+    }
+
+    .header-right {
+      gap: 8px;
+    }
+
+    .user-btn {
+      padding: 6px !important;
+
+      .user-info {
+        display: none !important;
+      }
+    }
+
+    .content {
+      padding: 16px 12px;
+    }
   }
 }
 
@@ -587,10 +615,10 @@ watch(
 .footer {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
-  padding: 16px 20px;
+  padding: 10px 20px;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.68rem;
 
   p {
     margin: 0;

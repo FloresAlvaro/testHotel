@@ -1,17 +1,17 @@
 <template>
-  <div class="space-y-6">
+  <div class="dashboard-page space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white">
           Dashboard
         </h1>
-        <p class="text-slate-600 dark:text-slate-400 mt-1">
+        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
           Bienvenido, {{ user?.name || 'Usuario' }}
         </p>
       </div>
       <div class="text-right">
-        <p class="text-2xl font-bold text-slate-900 dark:text-white">
+        <p class="text-base font-bold text-slate-900 dark:text-white sm:text-lg">
           {{ currentDate }}
         </p>
         <p class="text-slate-600 dark:text-slate-400">
@@ -21,12 +21,12 @@
     </div>
 
     <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Huéspedes Hoy -->
-      <CCard class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-200 dark:border-blue-700">
-        <div class="space-y-2">
+      <CCard class="dashboard-stat border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <h3 class="text-slate-600 dark:text-slate-300 font-medium">
+            <h3 class="text-xs text-slate-500 dark:text-slate-300 font-medium">
               Check-ins Hoy
             </h3>
             <Icon
@@ -35,20 +35,20 @@
               class="text-blue-500"
             />
           </div>
-          <p class="text-3xl font-bold text-slate-900 dark:text-white">
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">
             {{ todayCheckIns.length }}
           </p>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">
             {{ pendingCheckOuts.length }} check-outs pendientes
           </p>
         </div>
       </CCard>
 
       <!-- Habitaciones Disponibles -->
-      <CCard class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 border-green-200 dark:border-green-700">
-        <div class="space-y-2">
+      <CCard class="dashboard-stat border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <h3 class="text-slate-600 dark:text-slate-300 font-medium">
+            <h3 class="text-xs text-slate-500 dark:text-slate-300 font-medium">
               Disponibles
             </h3>
             <Icon
@@ -57,20 +57,20 @@
               class="text-green-500"
             />
           </div>
-          <p class="text-3xl font-bold text-slate-900 dark:text-white">
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">
             {{ availableRooms.length }}
           </p>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">
             de {{ totalRooms }} habitaciones
           </p>
         </div>
       </CCard>
 
       <!-- Ocupación -->
-      <CCard class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 border-purple-200 dark:border-purple-700">
-        <div class="space-y-2">
+      <CCard class="dashboard-stat border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <h3 class="text-slate-600 dark:text-slate-300 font-medium">
+            <h3 class="text-xs text-slate-500 dark:text-slate-300 font-medium">
               Ocupación
             </h3>
             <Icon
@@ -79,20 +79,20 @@
               class="text-purple-500"
             />
           </div>
-          <p class="text-3xl font-bold text-slate-900 dark:text-white">
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">
             {{ occupancyRate }}%
           </p>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">
             {{ occupiedRooms.length }} habitaciones ocupadas
           </p>
         </div>
       </CCard>
 
       <!-- Ingresos Hoy -->
-      <CCard class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 border-amber-200 dark:border-amber-700">
-        <div class="space-y-2">
+      <CCard class="dashboard-stat border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <h3 class="text-slate-600 dark:text-slate-300 font-medium">
+            <h3 class="text-xs text-slate-500 dark:text-slate-300 font-medium">
               Ingresos Hoy
             </h3>
             <Icon
@@ -101,10 +101,10 @@
               class="text-amber-500"
             />
           </div>
-          <p class="text-3xl font-bold text-slate-900 dark:text-white">
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">
             Bs. {{ todayRevenue }}
           </p>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">
             {{ completedPayments }} pagos completados
           </p>
         </div>
@@ -112,28 +112,26 @@
     </div>
 
     <!-- Contenido Principal -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <!-- Check-ins Pendientes -->
       <div class="lg:col-span-2">
-        <CCard>
-          <template #header-action>
-            <NuxtLink
-              to="/checkin"
-              class="text-blue-500 hover:text-blue-600 text-sm font-medium"
-            >
-              Ver todos →
-            </NuxtLink>
-          </template>
-
-          <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
-              Check-ins Pendientes
-            </h3>
-
+        <CCard class="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div class="flex min-h-[138px] flex-col justify-center">
             <div
               v-if="todayCheckIns.length > 0"
-              class="space-y-3 max-h-96 overflow-y-auto"
+              class="space-y-3 max-h-44 overflow-y-auto"
             >
+              <div class="mb-3 flex items-center justify-between">
+                <h3 class="font-semibold text-slate-900 dark:text-white">
+                  Check-ins Pendientes
+                </h3>
+                <NuxtLink
+                  to="/checkin"
+                  class="text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Ver todos
+                </NuxtLink>
+              </div>
               <div
                 v-for="checkIn in todayCheckIns.slice(0, 5)"
                 :key="checkIn.id"
@@ -152,10 +150,10 @@
                 </CButton>
               </div>
             </div>
-            <div v-else class="text-center py-8">
+            <div v-else class="text-center">
               <Icon
                 name="system-uicons:info-circle"
-                size="32"
+                size="38"
                 class="mx-auto text-slate-400 mb-2"
               />
               <p class="text-slate-600 dark:text-slate-400">
@@ -168,24 +166,23 @@
 
       <!-- Próximas Reservas -->
       <div>
-        <CCard>
-          <template #header-action>
-            <NuxtLink
-              to="/reservations"
-              class="text-blue-500 hover:text-blue-600 text-sm font-medium"
-            >
-              Ver todas →
-            </NuxtLink>
-          </template>
-
+        <CCard class="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
           <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
-              Próximas Reservas
-            </h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+                Próximas Reservas
+              </h3>
+              <NuxtLink
+                to="/reservations"
+                class="text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                Ver todas
+              </NuxtLink>
+            </div>
 
             <div
               v-if="upcomingReservations.length > 0"
-              class="space-y-3 max-h-96 overflow-y-auto"
+              class="space-y-2.5 max-h-44 overflow-y-auto"
             >
               <div
                 v-for="res in upcomingReservations.slice(0, 5)"
@@ -216,10 +213,10 @@
     </div>
 
     <!-- Acceso Rápido -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
       <NuxtLink
         to="/clients"
-        class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        class="flex items-center gap-3 p-2 sm:p-4 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors"
       >
         <Icon
           name="system-uicons:user"
@@ -238,7 +235,7 @@
 
       <NuxtLink
         to="/rooms"
-        class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        class="flex items-center gap-3 p-2 sm:p-4 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors"
       >
         <Icon
           name="system-uicons:home"
@@ -257,7 +254,7 @@
 
       <NuxtLink
         to="/reservations"
-        class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        class="flex items-center gap-3 p-2 sm:p-4 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors"
       >
         <Icon
           name="system-uicons:calendar"
@@ -276,7 +273,7 @@
 
       <NuxtLink
         to="/payments"
-        class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        class="flex items-center gap-3 p-2 sm:p-4 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors"
       >
         <Icon
           name="system-uicons:coin"
@@ -398,3 +395,9 @@ onBeforeUnmount(() => {
   if (dateTimer) clearInterval(dateTimer)
 })
 </script>
+
+<style scoped>
+.dashboard-stat :deep(.card-body) {
+  padding: 8px;
+}
+</style>
