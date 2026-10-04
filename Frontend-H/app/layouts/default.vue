@@ -1,11 +1,19 @@
 <template>
   <div class="app-wrapper" :class="{ dark: theme === 'dark' }">
     <!-- Sidebar -->
-    <aside :class="['sidebar', { 'sidebar-closed': !sidebarOpen }]">
+    <aside :class="['sidebar', { 'sidebar-closed': !sidebarOpen, 'sidebar-compact': sidebarCompact }]">
       <div class="sidebar-header">
         <div class="logo">
-          <h1>🏨 Roomly</h1>
+          <h1><span class="logo-mark">🏨</span><span class="logo-name">Roomly</span></h1>
         </div>
+        <button
+          class="sidebar-collapse-toggle"
+          :aria-label="sidebarCompact ? 'Expandir menú' : 'Contraer menú'"
+          :title="sidebarCompact ? 'Expandir menú' : 'Contraer menú'"
+          @click="uiStore.toggleSidebarCompact"
+        >
+          <Icon :name="sidebarCompact ? 'system-uicons:chevron-right' : 'system-uicons:chevron-left'" size="18" />
+        </button>
         <button
           class="sidebar-toggle-mobile"
           @click="uiStore.toggleMobileMenu"
@@ -19,21 +27,17 @@
         <!-- Para Admin -->
         <template v-if="isAdmin">
           <NavLink
-            icon="system-uicons:grid"
-            label="Dashboard"
-            href="/dashboard"
-            :active="route.path === '/' || route.path === '/dashboard'"
-          />
-          <NavLink
             icon="system-uicons:users"
             label="Usuarios"
             href="/admin/settings?tab=users"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/admin/settings') && route.query.tab === 'users'"
           />
           <NavLink
             icon="system-uicons:settings"
             label="Configuración"
             href="/admin/settings"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/admin') && route.query.tab !== 'users'"
           />
         </template>
@@ -41,27 +45,38 @@
         <!-- Para Manager -->
         <template v-if="isManager || isAdmin">
           <NavLink
+            icon="system-uicons:grid"
+            label="Dashboard"
+            href="/dashboard"
+            :compact="sidebarCompact"
+            :active="route.path === '/' || route.path === '/dashboard'"
+          />
+          <NavLink
             icon="system-uicons:home"
             label="Habitaciones"
             href="/rooms"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/rooms')"
           />
           <NavLink
             icon="system-uicons:calendar"
             label="Reservas"
             href="/reservations"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/reservations')"
           />
           <NavLink
             icon="system-uicons:coin"
             label="Pagos"
             href="/payments"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/payments')"
           />
           <NavLink
             icon="system-uicons:graph-bar"
             label="Reportes"
             href="/reports"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/reports')"
           />
         </template>
@@ -72,12 +87,14 @@
             icon="system-uicons:users"
             label="Clientes"
             href="/clients"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/clients')"
           />
           <NavLink
             icon="system-uicons:lock"
             label="Check-in/out"
             href="/checkin"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/checkin')"
           />
           <NavLink
@@ -85,6 +102,7 @@
             icon="system-uicons:calendar"
             label="Mis Reservas"
             href="/reservations"
+            :compact="sidebarCompact"
             :active="route.path.startsWith('/reservations')"
           />
         </template>
@@ -202,6 +220,7 @@ const showUserMenu = ref(false);
 
 // ==================== COMPUTED ====================
 const sidebarOpen = computed(() => uiStore.sidebarOpen);
+const sidebarCompact = computed(() => uiStore.sidebarCompact);
 const mobileMenuOpen = computed(() => uiStore.mobileMenuOpen);
 const theme = computed(() => uiStore.theme);
 const user = computed(() => authStore.user);
@@ -309,15 +328,49 @@ watch(
 
 // ==================== SIDEBAR ====================
 .sidebar {
-  width: 176px;
-  flex: 0 0 176px;
+  width: 220px;
+  flex: 0 0 220px;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease;
+  transition: width 0.25s ease, flex-basis 0.25s ease, transform 0.3s ease;
+
+  &.sidebar-compact {
+    width: 68px;
+    flex-basis: 68px;
+
+    .sidebar-header {
+      justify-content: center;
+      padding-inline: 8px;
+    }
+
+    .logo-name {
+      display: none;
+    }
+
+    .sidebar-collapse-toggle {
+      position: absolute;
+      top: 14px;
+      right: 3px;
+      width: 24px;
+      height: 24px;
+      flex-basis: 24px;
+    }
+
+    .sidebar-nav a {
+      justify-content: center;
+      padding-inline: 0;
+    }
+
+    .theme-toggle {
+      margin-inline: auto;
+    }
+  }
 
   @media (max-width: 768px) {
+    width: 220px;
+    flex-basis: 220px;
     position: fixed;
     left: 0;
     top: 0;
@@ -327,6 +380,25 @@ watch(
 
     &:not(.sidebar-closed) {
       transform: translateX(0);
+    }
+
+    &.sidebar-compact {
+      width: 220px;
+      flex-basis: 220px;
+
+      .sidebar-header {
+        justify-content: space-between;
+        padding-inline: 16px;
+      }
+
+      .logo-name {
+        display: inline;
+      }
+
+      .sidebar-nav a {
+        justify-content: flex-start;
+        padding-inline: 16px;
+      }
     }
   }
 }
@@ -341,8 +413,30 @@ watch(
 
   .logo h1 {
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 1.1rem;
     color: var(--text-primary);
+  }
+}
+
+.sidebar-collapse-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-primary);
   }
 }
 
@@ -355,6 +449,12 @@ watch(
 
   @media (max-width: 768px) {
     display: block;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar-collapse-toggle {
+    display: none;
   }
 }
 

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div>
+    <div v-if="activeTab !== 'users'">
       <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
         Configuración
       </h1>
@@ -11,7 +11,7 @@
     </div>
 
     <!-- Navegación de Pestañas -->
-    <div class="border-b border-slate-200 dark:border-slate-700">
+    <div v-if="activeTab !== 'users'" class="border-b border-slate-200 dark:border-slate-700">
       <div class="flex gap-8">
         <button
           v-for="tab in tabs"
@@ -154,48 +154,62 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-              <tr
-                v-for="user in users"
-                :key="user.id"
-                class="hover:bg-slate-50 dark:hover:bg-slate-800/50"
-              >
-                <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">
-                  {{ user.name }}
-                </td>
-                <td class="py-3 px-4 text-slate-600 dark:text-slate-400">
-                  {{ user.email }}
-                </td>
-                <td class="py-3 px-4">
-                  <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                    {{ roleLabels[user.role] }}
-                  </span>
-                </td>
-                <td class="py-3 px-4">
-                  <span
-                    :class="user.is_active ? 'text-green-600' : 'text-red-600'"
-                    class="font-medium"
-                  >
-                    {{ user.is_active ? 'Activo' : 'Inactivo' }}
-                  </span>
-                </td>
-                <td class="py-3 px-4 text-center">
-                  <div class="flex items-center justify-center gap-2">
-                    <CButton variant="ghost" size="sm" aria-label="Editar usuario" @click="openEditUser(user)">
-                      <Icon name="system-uicons:edit" size="16" />
-                    </CButton>
-                    <CButton
-                      variant="ghost"
-                      size="sm"
-                      :disabled="user.id === authStore.user?.id || isSavingUser"
-                      :class="user.is_active ? 'text-red-500 hover:text-red-600' : 'text-green-600 hover:text-green-700'"
-                      :aria-label="user.is_active ? 'Desactivar usuario' : 'Activar usuario'"
-                      @click="toggleUserActive(user)"
-                    >
-                      <Icon :name="user.is_active ? 'system-uicons:lock' : 'system-uicons:unlock'" size="16" />
-                    </CButton>
-                  </div>
+              <tr v-if="isLoadingUsers">
+                <td colspan="5" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                  Cargando usuarios...
                 </td>
               </tr>
+              <tr v-else-if="users.length === 0">
+                <td colspan="5" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                  No hay usuarios para mostrar.
+                </td>
+              </tr>
+              <template v-else>
+                <tr
+                  v-for="user in users"
+                  :key="user.id"
+                  class="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                >
+                  <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                    {{ user.name }}
+                  </td>
+                  <td class="py-3 px-4 text-slate-600 dark:text-slate-400">
+                    {{ user.email }}
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      {{ roleLabels[user.role] }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span
+                      :class="user.is_active ? 'text-green-600' : 'text-red-600'"
+                      class="font-medium"
+                    >
+                      {{ user.is_active ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                      <CButton variant="ghost" size="sm" :aria-label="`Editar usuario ${user.name}`" @click="openEditUser(user)">
+                        <Icon name="system-uicons:edit" size="16" />
+                        <span>Editar</span>
+                      </CButton>
+                      <CButton
+                        variant="ghost"
+                        size="sm"
+                        :disabled="user.id === authStore.user?.id || isSavingUser"
+                        :class="user.is_active ? 'text-red-500 hover:text-red-600' : 'text-green-600 hover:text-green-700'"
+                        :aria-label="`${user.is_active ? 'Desactivar' : 'Activar'} usuario ${user.name}`"
+                        @click="toggleUserActive(user)"
+                      >
+                        <Icon :name="user.is_active ? 'system-uicons:lock' : 'system-uicons:unlock'" size="16" />
+                        <span>{{ user.is_active ? 'Desactivar' : 'Activar' }}</span>
+                      </CButton>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -403,9 +417,17 @@
 
     <CModal :is-open="isUserModalOpen" :title="userForm.id ? 'Editar usuario' : 'Crear usuario'" size="md" @close="isUserModalOpen = false">
       <form class="space-y-4" @submit.prevent="saveUser">
-        <CInput v-model="userForm.name" label="Nombre" required />
-        <CInput v-model="userForm.email" type="email" label="Email" required />
-        <CInput v-if="!userForm.id" v-model="userForm.password" type="password" label="Contraseña temporal" required />
+        <CInput v-model="userForm.name" label="Nombre completo" placeholder="Ej. Ana Pérez" required hint="Debe tener al menos 2 caracteres." />
+        <CInput v-model="userForm.email" type="email" label="Correo electrónico" placeholder="nombre@hotel.com" required />
+        <CInput
+          v-if="!userForm.id"
+          v-model="userForm.password"
+          type="password"
+          label="Contraseña inicial"
+          placeholder="Mínimo 8 caracteres"
+          required
+          hint="Comparte esta contraseña inicial de forma segura con el usuario."
+        />
         <label v-if="userForm.id" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Rol
           <select v-model="userForm.role" class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-800">
@@ -414,10 +436,10 @@
             <option value="receptionist">Recepcionista</option>
           </select>
         </label>
-        <p v-else class="text-sm text-slate-600 dark:text-slate-400">El backend crea las cuentas nuevas con rol de recepcionista.</p>
+        <p v-else class="text-sm text-slate-600 dark:text-slate-400">Las cuentas nuevas se crean con el rol de Recepcionista. Puedes cambiar el rol después de crear la cuenta.</p>
         <div class="flex justify-end gap-2 pt-3">
           <CButton type="button" variant="secondary" @click="isUserModalOpen = false">Cancelar</CButton>
-          <CButton type="submit" variant="primary" :loading="isSavingUser">Guardar</CButton>
+          <CButton type="submit" variant="primary" :loading="isSavingUser">{{ userForm.id ? 'Guardar cambios' : 'Crear usuario' }}</CButton>
         </div>
       </form>
     </CModal>
@@ -446,6 +468,7 @@ const isBackingUp = ref(false)
 const isSavingPassword = ref(false)
 const isSavingUser = ref(false)
 const isUserModalOpen = ref(false)
+const isLoadingUsers = ref(false)
 const users = ref<User[]>([])
 const passwordForm = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
 const userForm = reactive<{ id: number | null; name: string; email: string; password: string; role: UserRole; is_active: boolean }>({
@@ -484,8 +507,13 @@ const lastBackup = computed(() => backupHistory.value[0]?.date || 'Todavía no h
 const roleLabels: Record<UserRole, string> = { admin: 'Administrador', manager: 'Gerente', receptionist: 'Recepcionista' }
 
 const loadUsers = async () => {
-  const response = await api.getUsers(1, 100)
-  users.value = response.data || []
+  isLoadingUsers.value = true
+  try {
+    const response = await api.getUsers(1, 100)
+    users.value = response.data || []
+  } finally {
+    isLoadingUsers.value = false
+  }
 }
 
 const saveSettings = async () => {
@@ -579,12 +607,27 @@ const openEditUser = (user: User) => {
 }
 
 const saveUser = async () => {
+  const normalizedName = userForm.name.trim()
+  const normalizedEmail = userForm.email.trim()
+  if (normalizedName.length < 2 || normalizedName.length > 200) {
+    uiStore.error('El nombre debe tener entre 2 y 200 caracteres')
+    return
+  }
+  if (normalizedEmail.length > 200) {
+    uiStore.error('El correo electrónico no puede superar los 200 caracteres')
+    return
+  }
+  if (!userForm.id && (userForm.password.length < 8 || userForm.password.length > 128)) {
+    uiStore.error('La contraseña inicial debe tener entre 8 y 128 caracteres')
+    return
+  }
+
   isSavingUser.value = true
   try {
     if (userForm.id) {
-      await api.updateUser(userForm.id, { name: userForm.name, email: userForm.email, role: userForm.role, is_active: userForm.is_active })
+      await api.updateUser(userForm.id, { name: normalizedName, email: normalizedEmail, role: userForm.role, is_active: userForm.is_active })
     } else {
-      await api.register({ name: userForm.name, email: userForm.email, password: userForm.password })
+      await api.register({ name: normalizedName, email: normalizedEmail, password: userForm.password })
     }
     await loadUsers()
     isUserModalOpen.value = false

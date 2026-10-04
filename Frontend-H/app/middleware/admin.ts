@@ -3,6 +3,8 @@
  * Solo permite acceso a usuarios con rol admin
  */
 export default defineNuxtRouteMiddleware(() => {
+  if (import.meta.server) return;
+
   const authStore = useAuthStore();
   const uiStore = useUiStore();
 

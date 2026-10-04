@@ -306,7 +306,7 @@ import { formatDate } from '~/utils/formatters'
 import { getTodayDateOnly } from '~/utils/dates'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: ['auth', 'manager']
 })
 
 const authStore = useAuthStore()

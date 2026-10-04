@@ -3,6 +3,8 @@
  * Permite acceso a manager y admin
  */
 export default defineNuxtRouteMiddleware(() => {
+  if (import.meta.server) return;
+
   const authStore = useAuthStore();
   const uiStore = useUiStore();
 

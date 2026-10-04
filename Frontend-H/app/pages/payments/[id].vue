@@ -174,7 +174,7 @@
           </div>
         </CCard>
 
-        <CCard v-if="payment?.status === 'completed'">
+        <CCard v-if="payment?.status === 'completed' && canRefund">
           <div class="space-y-2">
             <CButton variant="warning" class="w-full" :loading="isUpdating" @click="refund">
               <Icon name="system-uicons:undo" size="18" class="mr-2" />
@@ -199,6 +199,7 @@ definePageMeta({
 })
 
 const route = useRoute()
+const authStore = useAuthStore()
 const paymentsStore = usePaymentsStore()
 const { fetchPayment, completePayment, refundPayment } = usePayments()
 
@@ -207,6 +208,7 @@ const loading = ref(false)
 const isUpdating = ref(false)
 
 const payment = computed(() => paymentsStore.currentPayment)
+const canRefund = computed(() => authStore.isAdmin || authStore.isManager)
 
 const markCompleted = async () => {
   if (!payment.value) return;

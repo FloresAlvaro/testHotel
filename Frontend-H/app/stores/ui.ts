@@ -5,6 +5,7 @@ export const useUiStore = defineStore("ui", () => {
 
   // State
   const sidebarOpen = ref(true);
+  const sidebarCompact = ref(false);
   const mobileMenuOpen = ref(false);
   const notifications = ref<
     Array<{
@@ -29,6 +30,10 @@ export const useUiStore = defineStore("ui", () => {
   // Actions
   const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value;
+  };
+
+  const toggleSidebarCompact = () => {
+    sidebarCompact.value = !sidebarCompact.value;
   };
 
   const closeSidebar = () => {
@@ -120,6 +125,7 @@ export const useUiStore = defineStore("ui", () => {
   return {
     // State
     sidebarOpen,
+    sidebarCompact,
     mobileMenuOpen,
     notifications,
     modals,
@@ -131,6 +137,7 @@ export const useUiStore = defineStore("ui", () => {
 
     // Methods
     toggleSidebar,
+    toggleSidebarCompact,
     closeSidebar,
     openSidebar,
     toggleMobileMenu,

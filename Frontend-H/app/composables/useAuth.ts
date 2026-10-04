@@ -1,4 +1,5 @@
 import { useAuthService } from "../services/auth";
+import { getDefaultRouteForRole } from "~/utils/authRoutes";
 
 export const useAuth = () => {
   const authStore = useAuthStore();
@@ -127,14 +128,7 @@ export const useAuth = () => {
       return;
     }
 
-    const roleRoutes: Record<string, string> = {
-      admin: "/dashboard",
-      manager: "/dashboard",
-      receptionist: "/dashboard",
-    };
-
-    const route = roleRoutes[user.value?.role || "receptionist"] || "/";
-    await router.push(route);
+    await router.push(getDefaultRouteForRole(user.value?.role));
   };
 
   /**

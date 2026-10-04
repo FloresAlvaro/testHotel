@@ -11,15 +11,7 @@ export default defineNuxtRouteMiddleware((to) => {
     "/auth/forgot-password",
   ];
 
-  if (import.meta.server) {
-    if (!publicRoutes.includes(to.path)) {
-      return navigateTo({
-        path: "/auth/login",
-        query: { redirect: to.fullPath },
-      });
-    }
-    return;
-  }
+  if (import.meta.server) return;
 
   const authStore = useAuthStore();
 
@@ -27,7 +19,7 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // Si está en ruta pública y ya está autenticado, redirigir a home
   if (publicRoutes.includes(to.path) && authStore.isAuthenticated) {
-    return navigateTo("/dashboard");
+    return navigateTo(getDefaultRouteForRole(authStore.user?.role));
   }
 
   // Si intenta acceder a ruta privada sin autenticación

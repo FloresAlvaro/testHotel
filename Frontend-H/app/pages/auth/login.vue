@@ -99,6 +99,7 @@ import { useAuthStore } from "~/stores/auth";
 import { useUIStore } from "~/stores/ui";
 import { useAuthService } from "~/services/auth";
 import { isValidEmail, isValidLength } from "~/utils/validators";
+import { getDefaultRouteForRole } from "~/utils/authRoutes";
 
 definePageMeta({
   layout: "auth",
@@ -157,7 +158,7 @@ const handleLogin = async () => {
     const redirectUrl =
       (typeof queryRedirect === "string" ? queryRedirect : null) ||
       sessionStorage.getItem("redirectUrl") ||
-      "/dashboard";
+      getDefaultRouteForRole(authStore.user?.role);
     sessionStorage.removeItem("redirectUrl");
     await router.push(redirectUrl);
   } catch (error: unknown) {
@@ -175,7 +176,9 @@ onMounted(() => {
   if (authStore.isAuthenticated) {
     const queryRedirect = route.query.redirect;
     router.replace(
-      typeof queryRedirect === "string" ? queryRedirect : "/dashboard",
+      typeof queryRedirect === "string"
+        ? queryRedirect
+        : getDefaultRouteForRole(authStore.user?.role),
     );
   }
 });

@@ -2,10 +2,10 @@
   <Teleport to="body">
     <Transition name="modal-fade">
       <div v-if="isOpen" class="modal-overlay" @click="handleOverlayClick">
-        <div class="modal-container" @click.stop>
+        <div class="modal-container" :data-size="size" @click.stop>
           <div class="modal-header">
             <h2 class="modal-title">{{ title }}</h2>
-            <button class="modal-close" @click="closeModal">✕</button>
+            <button class="modal-close" aria-label="Cerrar ventana" @click="closeModal">✕</button>
           </div>
 
           <div class="modal-body">

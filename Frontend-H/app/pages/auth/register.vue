@@ -147,6 +147,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '~/stores/ui'
 import { useAuthService } from '~/services/auth'
+import { getDefaultRouteForRole } from '~/utils/authRoutes'
 import { isValidEmail, isValidLength } from '~/utils/validators'
 
 definePageMeta({
@@ -223,7 +224,7 @@ const handleRegister = async () => {
       email: form.value.email,
       password: form.value.password
     })
-    await router.push('/dashboard')
+    await router.push(getDefaultRouteForRole(authService.user.value?.role))
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error al crear la cuenta'
     uiStore.error(message)
@@ -234,7 +235,9 @@ const handleRegister = async () => {
 
 onMounted(() => {
   // Si ya está autenticado, redirigir
-  if (authService.isAuthenticated.value) router.push('/dashboard')
+  if (authService.isAuthenticated.value) {
+    router.push(getDefaultRouteForRole(authService.user.value?.role))
+  }
 })
 </script>
 

@@ -3,5 +3,8 @@
 </template>
 
 <script setup lang="ts">
-await navigateTo('/dashboard', { replace: true });
+const authStore = useAuthStore();
+if (import.meta.client) {
+  await navigateTo(getDefaultRouteForRole(authStore.user?.role), { replace: true });
+}
 </script>
