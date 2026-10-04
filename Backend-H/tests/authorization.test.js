@@ -38,4 +38,15 @@ describe('Autorizacion por roles', () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();
   });
+
+  test('permite a recepción completar operaciones de pago autorizadas', () => {
+    const req = { user: { role: 'receptionist' } };
+    const res = responseMock();
+    const next = jest.fn();
+
+    authorize('admin', 'manager', 'receptionist')(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.status).not.toHaveBeenCalled();
+  });
 });

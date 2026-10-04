@@ -15,7 +15,7 @@ router.get('/', PaymentController.getAll);
 router.post('/', authorize('admin', 'manager', 'receptionist'), validate(createSchema), PaymentController.create);
 router.put('/:id', authorize('admin', 'manager'), validate(updateSchema), PaymentController.update);
 router.patch('/:id/status', authorize('admin', 'manager'), validate(updateStatusSchema), PaymentController.updateStatus);
-router.patch('/:id/complete', authorize('admin', 'manager'), PaymentController.complete);
+router.patch('/:id/complete', authorize('admin', 'manager', 'receptionist'), PaymentController.complete);
 router.patch('/:id/refund', authorize('admin', 'manager'), PaymentController.refund);
 
 module.exports = router;

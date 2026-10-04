@@ -52,7 +52,7 @@ docker compose down
 
 Los datos permanecen en el volumen `postgres_data`. El script de inicializacion se ejecuta solo al crear un volumen vacio; los cambios posteriores al SQL no se aplican automaticamente. `docker compose down -v` elimina la base de datos y todos sus datos.
 
-Si un puerto esta ocupado, cambia `FRONTEND_PORT`, `BACKEND_PORT` o `POSTGRES_PORT` en `.env` y vuelve a ejecutar Compose. El frontend usa la URL interna de Docker para sus solicitudes SSR y la URL publicada del backend desde el navegador.
+Si un puerto esta ocupado, cambia `FRONTEND_PORT`, `BACKEND_PORT` o `POSTGRES_PORT` en `.env` y vuelve a ejecutar Compose. El frontend usa la URL interna de Docker para sus solicitudes SSR y la URL publicada del backend desde el navegador. Si sirves el frontend desde otro origen local, define `CORS_ORIGIN` en `.env` con el origen exacto (por ejemplo, `http://localhost:3002`); puedes separar varios origenes con comas.
 
 ## Desarrollo local
 

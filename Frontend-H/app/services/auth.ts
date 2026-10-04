@@ -20,9 +20,18 @@ export const useAuthService = () => {
         uiStore.success("Sesión iniciada correctamente");
         return response.data;
       }
+      throw new Error(response.message || "No se pudo iniciar sesión");
     } catch (error: unknown) {
-      authStore.setError("Email o contraseña incorrectos");
-      uiStore.error("Email o contraseña incorrectos");
+      const statusCode =
+        error && typeof error === "object" && "statusCode" in error
+          ? error.statusCode
+          : undefined;
+      const message =
+        statusCode === 429
+          ? "Demasiados intentos. Espera unos minutos y vuelve a intentar."
+          : "Email o contraseña incorrectos";
+      authStore.setError(message);
+      uiStore.error(message);
       throw error;
     } finally {
       uiStore.setLoading(false);

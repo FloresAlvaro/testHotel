@@ -33,7 +33,8 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
-  max: RATE_LIMIT_MAX_REQUESTS
+  max: RATE_LIMIT_MAX_REQUESTS,
+  skip: (req) => req.path === '/users/login'
 });
 app.use('/api/', limiter);
 

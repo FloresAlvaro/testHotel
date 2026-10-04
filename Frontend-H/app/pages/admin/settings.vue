@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div v-if="activeTab !== 'users'">
+    <div>
       <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
         Configuración
       </h1>
@@ -11,7 +11,7 @@
     </div>
 
     <!-- Navegación de Pestañas -->
-    <div v-if="activeTab !== 'users'" class="border-b border-slate-200 dark:border-slate-700">
+    <div class="border-b border-slate-200 dark:border-slate-700">
       <div class="flex gap-8">
         <button
           v-for="tab in tabs"

@@ -115,7 +115,7 @@ class Room {
                       rt.id as room_type_id, rt.name as room_type_name, rt.price, rt.capacity
       FROM room r
       JOIN room_type rt ON r.room_type_id = rt.id
-      WHERE r.status = 'available'
+      WHERE r.status IN ('available', 'reserved', 'occupied')
       AND NOT EXISTS (
         SELECT 1 FROM reservation res
         WHERE res.room_id = r.id

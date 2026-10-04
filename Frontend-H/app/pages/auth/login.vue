@@ -79,6 +79,10 @@
         <Icon v-else name="system-uicons:arrow-right" size="20" aria-hidden="true" />
       </button>
 
+      <p v-if="authStore.error" class="field-error login-error" role="alert">
+        {{ authStore.error }}
+      </p>
+
       <p class="security-note">
         <Icon name="system-uicons:lock" size="16" aria-hidden="true" />
         Acceso privado para el equipo del hotel

@@ -1,8 +1,10 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const UserController = require('../controllers/userController');
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/authorization');
 const validate = require('../middleware/validation');
+const { RATE_LIMIT_WINDOW_MS } = require('../config/environment');
 const {
 	registerSchema,
 	loginSchema,
@@ -11,6 +13,17 @@ const {
 } = require('../validators/userValidator');
 
 const router = express.Router();
+const loginRateLimiter = rateLimit({
+	windowMs: RATE_LIMIT_WINDOW_MS,
+	max: 10,
+	skipSuccessfulRequests: true,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: {
+		success: false,
+		message: 'Demasiados intentos de inicio de sesión. Intenta nuevamente en unos minutos.'
+	}
+});
 
 const authorizeSelfOrAdmin = (req, res, next) => {
 	if (req.user.role !== 'admin' && String(req.user.id) !== String(req.params.id)) {
@@ -22,7 +35,7 @@ const authorizeSelfOrAdmin = (req, res, next) => {
 
 // Públicas
 router.post('/register', validate(registerSchema), UserController.register);
-router.post('/login', validate(loginSchema), UserController.login);
+router.post('/login', loginRateLimiter, validate(loginSchema), UserController.login);
 
 // Protegidas
 router.get('/profile', auth, UserController.getProfile);

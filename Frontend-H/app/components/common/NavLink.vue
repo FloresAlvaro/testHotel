@@ -11,6 +11,21 @@
   </NuxtLink>
 </template>
 
+<script setup lang="ts">
+interface Props {
+  icon: string;
+  label: string;
+  href: string;
+  active?: boolean;
+  compact?: boolean;
+}
+
+withDefaults(defineProps<Props>(), {
+  active: false,
+  compact: false,
+});
+</script>
+
 <style scoped>
 .nav-link {
   display: flex;

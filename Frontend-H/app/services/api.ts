@@ -94,6 +94,7 @@ export const useApiClient = () => {
       api<ApiResponse<LoginResponse>>("/users/login", {
         method: "POST",
         body: data,
+        retry: 0,
       }),
 
     register: (data: Pick<RegisterRequest, "name" | "email" | "password">) =>
