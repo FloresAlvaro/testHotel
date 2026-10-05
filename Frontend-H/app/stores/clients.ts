@@ -1,9 +1,7 @@
 import { defineStore } from "pinia";
 import { useApiClient } from "../services/api";
+import { getErrorMessage } from "~/utils/errors";
 import type { Client, CreateClientRequest, UpdateClientRequest } from "~/types";
-
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback;
 
 export const useClientsStore = defineStore("clients", () => {
   const api = useApiClient();

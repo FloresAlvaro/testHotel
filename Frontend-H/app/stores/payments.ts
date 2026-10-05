@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { useApiClient } from "../services/api";
+import { getErrorMessage } from "~/utils/errors";
 import type {
   Payment,
   PaymentStats,
@@ -7,9 +8,6 @@ import type {
   CreatePaymentRequest,
   UpdatePaymentRequest,
 } from "~/types";
-
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback;
 
 export const usePaymentsStore = defineStore("payments", () => {
   const api = useApiClient();

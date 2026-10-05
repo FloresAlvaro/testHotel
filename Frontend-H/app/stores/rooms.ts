@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { useApiClient } from "../services/api";
+import { getErrorMessage } from "~/utils/errors";
 import type {
   OccupancyStats,
   Room,
@@ -8,9 +9,6 @@ import type {
   CreateRoomRequest,
   UpdateRoomRequest,
 } from "~/types";
-
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback;
 
 export const useRoomsStore = defineStore("rooms", () => {
   const api = useApiClient();
