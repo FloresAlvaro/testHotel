@@ -66,31 +66,4 @@ const getRoomStatusLabel = (status: string) => {
 const handleSort = (column: string) => emit('sort', column);
 </script>
 
-<style scoped lang="scss">
-.status-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-
-  &.status-available {
-    background: #d1fae5;
-    color: #065f46;
-  }
-
-  &.status-occupied {
-    background: #dbeafe;
-    color: #0c4a6e;
-  }
-
-  &.status-maintenance {
-    background: #fef3c7;
-    color: #78350f;
-  }
-
-  &.status-reserved {
-    background: #fed7aa;
-    color: #7c2d12;
-  }
-}
-</style>
+<style scoped lang="scss" src="./TRoomsTable.scss"></style>

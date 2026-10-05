@@ -223,35 +223,4 @@ const handleCancel = () => {
 };
 </script>
 
-<style scoped lang="scss">
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-
-  > :deep(div) {
-    flex: 1;
-  }
-}
-
-.form-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-</style>
+<style scoped lang="scss" src="./FClientForm.scss"></style>

@@ -36,9 +36,4 @@ const handleConfirm = () => emit('confirm');
 const handleCancel = () => emit('cancel');
 </script>
 
-<style scoped lang="scss">
-.confirm-message {
-  color: var(--text-primary, #1a1a1a);
-  line-height: 1.6;
-}
-</style>
+<style scoped lang="scss" src="./MConfirmModal.scss"></style>

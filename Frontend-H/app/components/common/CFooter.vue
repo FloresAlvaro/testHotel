@@ -8,22 +8,4 @@
   </footer>
 </template>
 
-<style scoped lang="scss">
-.footer {
-  background: var(--bg-secondary, #ffffff);
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  padding: 16px 20px;
-  text-align: center;
-  color: var(--text-secondary, #999999);
-  font-size: 0.9rem;
-}
-
-.footer-content {
-  max-width: 1400px;
-  margin: 0 auto;
-
-  p {
-    margin: 0;
-  }
-}
-</style>
+<style scoped lang="scss" src="./CFooter.scss"></style>

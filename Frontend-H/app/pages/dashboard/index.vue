@@ -396,8 +396,4 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
-.dashboard-stat :deep(.card-body) {
-  padding: 8px;
-}
-</style>
+<style scoped src="./index.css"></style>

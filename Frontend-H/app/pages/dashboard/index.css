@@ -1,0 +1,4 @@
+
+.dashboard-stat :deep(.card-body) {
+  padding: 8px;
+}
