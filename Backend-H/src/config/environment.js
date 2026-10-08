@@ -121,8 +121,7 @@ const CORS_CREDENTIALS = process.env.CORS_CREDENTIALS === 'true';
 // ============================================
 
 const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || 900000, 10); // 15 minutos
-const configuredRateLimitMax = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || 100, 10);
-const RATE_LIMIT_MAX_REQUESTS = isProduction ? 50 : configuredRateLimitMax;
+const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || 100, 10);
 
 // ============================================
 // CONFIGURACIÓN DE LOGGING
@@ -177,6 +176,13 @@ const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE || 86400000); // 24
 
 const ENABLE_HEALTH_CHECK = process.env.ENABLE_HEALTH_CHECK !== 'false';
 const HEALTH_CHECK_INTERVAL = parseInt(process.env.HEALTH_CHECK_INTERVAL || 60000); // 1 minuto
+
+for (const [name, value] of Object.entries({ RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, HEALTH_CHECK_INTERVAL })) {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    console.error(`ERROR: ${name} debe ser un entero positivo`);
+    process.exit(1);
+  }
+}
 
 // ============================================
 // VALIDACIONES ADICIONALES

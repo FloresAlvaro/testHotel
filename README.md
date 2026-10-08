@@ -5,7 +5,7 @@ Aplicacion para administrar usuarios, clientes, habitaciones, reservas, entradas
 ## Requisitos
 
 - Docker Desktop con Docker Compose v2.
-- Node.js 20 o superior y npm solo para desarrollo local o pruebas.
+- Node.js 22.19+ (rama 22), 24.11+ (rama 24) o 26+ y npm solo para desarrollo local o pruebas.
 
 ## Inicio completo con Docker
 
@@ -21,7 +21,7 @@ Edita `.env` y reemplaza `JWT_SECRET` por una clave aleatoria de al menos 32 car
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Los valores de `.env.example` sirven para desarrollo local; cambia tambien la contrasena de PostgreSQL antes de exponer el sistema. Si cambias `POSTGRES_PASSWORD`, usa caracteres seguros para URL, por ejemplo letras y numeros.
+Los valores de `.env.example` sirven para desarrollo local; genera tambien una contrasena aleatoria para POSTGRES_PASSWORD con el mismo comando antes de iniciar PostgreSQL. Si cambias `POSTGRES_PASSWORD`, usa caracteres seguros para URL, por ejemplo letras y numeros.
 
 Construye las imagenes e inicia PostgreSQL, el backend y el frontend:
 
@@ -52,7 +52,7 @@ docker compose down
 
 Los datos permanecen en el volumen `postgres_data`. El script de inicializacion se ejecuta solo al crear un volumen vacio; los cambios posteriores al SQL no se aplican automaticamente. `docker compose down -v` elimina la base de datos y todos sus datos.
 
-Si un puerto esta ocupado, cambia `FRONTEND_PORT`, `BACKEND_PORT` o `POSTGRES_PORT` en `.env` y vuelve a ejecutar Compose. El frontend usa la URL interna de Docker para sus solicitudes SSR y la URL publicada del backend desde el navegador. Si sirves el frontend desde otro origen local, define `CORS_ORIGIN` en `.env` con el origen exacto (por ejemplo, `http://localhost:3002`); puedes separar varios origenes con comas.
+Si un puerto esta ocupado, cambia `FRONTEND_PORT`, `BACKEND_PORT` o `POSTGRES_PORT` en `.env` y vuelve a ejecutar Compose. Para acceder desde otros equipos, define `NUXT_PUBLIC_API_BASE` con la URL publica de la API, por ejemplo `http://192.168.1.10:3000/api`, y `CORS_ORIGIN` con el origen exacto del frontend. El frontend usa la URL interna de Docker para sus solicitudes SSR y la URL publicada del backend desde el navegador. Si sirves el frontend desde otro origen local, define `CORS_ORIGIN` en `.env` con el origen exacto (por ejemplo, `http://localhost:3002`); puedes separar varios origenes con comas.
 
 ## Desarrollo local
 
@@ -88,6 +88,16 @@ Configura tambien `JWT_SECRET` con al menos 32 caracteres. El backend valida `DA
 
 No se crea un usuario inicial automaticamente. Registra una cuenta desde la aplicacion o con `POST /api/users/register`, enviando `name`, `email` y `password`; el registro asigna el rol `receptionist`. El inicio de sesion esta en `POST /api/users/login`. Las rutas protegidas requieren `Authorization: Bearer <token>`. El dashboard requiere rol `admin` o `manager`.
 
+## Datos de prueba (solo desarrollo)
+
+El arranque automatico aplica solamente el esquema. El archivo `database/seeds/data_seed.sql` es opcional y crea usuarios con contrasenas conocidas; no lo ejecutes en produccion. Para cargarlo explicitamente en una base de desarrollo vacia:
+
+```powershell
+Get-Content database/seeds/data_seed.sql -Raw | docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Si una base existente ya contiene estos usuarios, mover el seed no los elimina ni cambia sus contrasenas. Cambia sus claves y revisa los datos de prueba antes de exponer el sistema. En una base sin seed, crea la primera cuenta y asigna el rol admin mediante un administrador de PostgreSQL.
+
 ## Pruebas
 
 ```powershell
@@ -106,3 +116,9 @@ Las pruebas no requieren una instancia PostgreSQL activa; esas variables solo so
 - Si un puerto no esta disponible, modifica los puertos en `.env`; no cambies los puertos internos de los contenedores.
 - Si cambiaste las credenciales PostgreSQL despues de inicializar el volumen, la base existente conserva las credenciales anteriores. Para reiniciar desde cero, `docker compose down -v` borra los datos.
 - Para revisar un servicio concreto, usa `docker compose logs -f db`, `docker compose logs -f backend` o `docker compose logs -f frontend`.
+
+## Credenciales y monitoreo
+
+Cambiar `POSTGRES_PASSWORD` en `.env` no cambia la clave de una base existente. Conectate con las credenciales actuales, ejecuta `\password hotel_user` en psql (o el nombre configurado en POSTGRES_USER), introduce la nueva clave de `.env` y recrea el backend con `docker compose up -d --force-recreate backend`. No borres el volumen para cambiar credenciales.
+
+`GET /health` comprueba PostgreSQL y devuelve HTTP 503 cuando no esta disponible. `ENABLE_HEALTH_CHECK` controla el monitoreo periodico, y `HEALTH_CHECK_INTERVAL` su intervalo en milisegundos. `RATE_LIMIT_MAX_REQUESTS` y `RATE_LIMIT_WINDOW_MS` configuran el limite global de API, tambien en produccion.

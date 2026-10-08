@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-hotel_db}
       POSTGRES_USER: ${POSTGRES_USER:-hotel_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotel_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD debe estar definido en el .env}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -26,12 +26,16 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-hotel_user}:${POSTGRES_PASSWORD:-hotel_password}@db:5432/${POSTGRES_DB:-hotel_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hotel_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD debe estar definido en el .env}@db:5432/${POSTGRES_DB:-hotel_db}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET debe estar definido en el .env}
       JWT_EXPIRE: ${JWT_EXPIRE:-24h}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:${FRONTEND_PORT:-3001}}
       CORS_CREDENTIALS: ${CORS_CREDENTIALS:-true}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      ENABLE_HEALTH_CHECK: ${ENABLE_HEALTH_CHECK:-true}
+      HEALTH_CHECK_INTERVAL: ${HEALTH_CHECK_INTERVAL:-60000}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     depends_on:
@@ -47,7 +51,7 @@ services:
       NITRO_HOST: 0.0.0.0
       NITRO_PORT: 3000
       NUXT_API_INTERNAL_BASE: http://backend:3000/api
-      NUXT_PUBLIC_API_BASE: http://localhost:${BACKEND_PORT:-3000}/api
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost:${BACKEND_PORT:-3000}/api}
     ports:
       - "${FRONTEND_PORT:-3001}:3000"
     depends_on:

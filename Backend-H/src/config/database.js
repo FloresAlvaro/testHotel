@@ -5,7 +5,9 @@ const {
   DB_POOL_MIN,
   DB_POOL_MAX,
   DB_IDLE_TIMEOUT,
-  DB_CONNECT_TIMEOUT
+  DB_CONNECT_TIMEOUT,
+  ENABLE_HEALTH_CHECK,
+  HEALTH_CHECK_INTERVAL
 } = require('./environment');
 
 // ============================================
@@ -41,10 +43,10 @@ const queryPool = pool.query.bind(pool);
 let isConnected = false;
 
 const testConnection = async () => {
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    client.release();
     
     console.log(`✅ Conexión a PostgreSQL establecida: ${result.rows[0].now}`);
     isConnected = true;
@@ -53,6 +55,8 @@ const testConnection = async () => {
     console.error('❌ Error conectando a PostgreSQL:', error.message);
     isConnected = false;
     return false;
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -186,6 +190,7 @@ const reconnect = async () => {
  */
 const close = async () => {
   try {
+    clearInterval(healthCheckTimer);
     await pool.end();
     console.log('✓ Pool de conexiones cerrado correctamente');
     isConnected = false;
@@ -197,8 +202,8 @@ const close = async () => {
 /**
  * Verificar estado de la BD periódicamente
  */
-const startHealthCheck = (interval = 60000) => {
-  setInterval(async () => {
+const startHealthCheck = (interval) => {
+  return setInterval(async () => {
     try {
       const result = await queryPool('SELECT 1');
       if (!isConnected) {
@@ -215,7 +220,9 @@ const startHealthCheck = (interval = 60000) => {
 };
 
 // Iniciar health check
-startHealthCheck();
+const healthCheckTimer = ENABLE_HEALTH_CHECK
+  ? startHealthCheck(HEALTH_CHECK_INTERVAL)
+  : null;
 
 // ============================================
 // MANEJO DE CIERRE GRACEFUL

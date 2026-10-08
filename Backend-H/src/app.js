@@ -7,6 +7,7 @@ const swaggerUi = require('swagger-ui-express');
 const errorHandler = require('./middleware/errorHandler');
 const routes = require('./routes');
 const swaggerSpec = require('./config/swagger');
+const database = require('./config/database');
 const {
   CORS_ORIGIN,
   CORS_CREDENTIALS,
@@ -55,8 +56,13 @@ app.get('/api-docs.json', (req, res) => {
 app.use('/api', routes);
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+app.get('/health', async (req, res) => {
+  const ready = await database.testConnection();
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'OK' : 'unavailable',
+    database: ready ? 'available' : 'unavailable',
+    timestamp: new Date()
+  });
 });
 
 // Manejo de errores
