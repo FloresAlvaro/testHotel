@@ -1,16 +1,17 @@
 <template>
-  <div class="table-wrapper">
+  <div class="table-wrapper" :aria-busy="loading || undefined">
     <div v-if="$slots['toolbar']" class="table-toolbar">
       <slot name="toolbar" />
     </div>
 
+    <div class="table-scroll">
     <table class="table">
       <thead>
         <tr>
-          <th v-for="col in columns" :key="col.key" :style="{ width: col.width }">
+          <th v-for="col in columns" :key="col.key" scope="col" :style="{ width: col.width }">
             <div class="th-content">
               <span>{{ col.label }}</span>
-              <button v-if="col.sortable" class="sort-btn" @click="handleSort(col.key)">
+              <button v-if="col.sortable" type="button" :aria-label="`Ordenar por ${col.label}`" class="sort-btn" @click="handleSort(col.key)">
                 📊
               </button>
             </div>
@@ -20,7 +21,7 @@
       </thead>
 
       <tbody>
-        <tr v-for="(row, index) in rows" :key="index" class="table-row">
+        <tr v-for="row in rows" :key="getRowKey(row)" class="table-row">
           <td v-for="col in columns" :key="col.key">
             <slot :name="`cell-${col.key}`" :row="row" :value="getCellValue(row, col.key)">
               {{ getCellValue(row, col.key) }}
@@ -31,7 +32,9 @@
           </td>
         </tr>
 
-        <tr v-if="rows.length === 0" class="empty-row">
+        <tr v-if="loading"><td :colspan="columns.length + ($slots['actions'] ? 1 : 0)" role="status">Cargando…</td></tr>
+        <tr v-else-if="error"><td :colspan="columns.length + ($slots['actions'] ? 1 : 0)" role="alert">{{ error }}</td></tr>
+        <tr v-else-if="rows.length === 0" class="empty-row">
           <td :colspan="columns.length + ($slots['actions'] ? 1 : 0)">
             <div class="empty-state">
               <p>{{ emptyText }}</p>
@@ -40,10 +43,11 @@
         </tr>
       </tbody>
     </table>
+    </div>
 
     <div v-if="showPagination && pagination" class="table-pagination">
       <span class="pagination-info">
-        Mostrando {{ pagination.page * pagination.pageSize - pagination.pageSize + 1 }}
+        Mostrando {{ pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1 }}
         -
         {{ Math.min(pagination.page * pagination.pageSize, pagination.total) }}
         de {{ pagination.total }}
@@ -51,7 +55,7 @@
 
       <div class="pagination-controls">
         <button
-          :disabled="pagination.page === 1"
+          :disabled="loading || pagination.page <= 1"
           class="pagination-btn"
           @click="$emit('prev-page')"
         >
@@ -59,11 +63,11 @@
         </button>
 
         <span class="pagination-pages">
-          Página {{ pagination.page }} de {{ pagination.totalPages }}
+          Página {{ pagination.page }} de {{ Math.max(1, pagination.totalPages) }}
         </span>
 
         <button
-          :disabled="pagination.page >= pagination.totalPages"
+          :disabled="loading || pagination.page >= pagination.totalPages"
           class="pagination-btn"
           @click="$emit('next-page')"
         >
@@ -92,12 +96,18 @@ interface Pagination {
 interface Props {
   columns: Column[];
   rows: T[];
+  rowKey?: string | ((row: T) => string | number);
+  loading?: boolean;
+  error?: string;
   emptyText?: string;
   showPagination?: boolean;
   pagination?: Pagination | null;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
+  rowKey: 'id',
+  loading: false,
+  error: '',
   emptyText: 'No hay datos disponibles',
   showPagination: false,
   pagination: null
@@ -109,6 +119,11 @@ const emit = defineEmits<{
   'next-page': [];
 }>();
 
+const getRowKey = (row: T): string | number => {
+  const key = typeof props.rowKey === 'function' ? props.rowKey(row) : (row as Record<string, unknown>)[props.rowKey];
+  if (typeof key !== 'string' && typeof key !== 'number') throw new Error('CTable requiere una clave unica por fila');
+  return key;
+};
 const handleSort = (column: string) => {
   emit('sort', column);
 };
@@ -118,4 +133,4 @@ const getCellValue = (row: T, key: string): string | number | boolean | null | u
 };
 </script>
 
-<style scoped lang="scss" src="./CTable.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/common/CTable.scss"></style>

@@ -16,9 +16,9 @@
       @next-page="$emit('next-page')"
     >
       <template #cell-status="{ value }">
-        <span :class="['status-badge', `status-${value}`]">
+        <CStatusBadge :status="String(value || '')">
           {{ getRoomStatusLabel(String(value || '')) }}
-        </span>
+        </CStatusBadge>
       </template>
 
       <template #actions="{ row }">
@@ -65,5 +65,3 @@ const getRoomStatusLabel = (status: string) => {
 
 const handleSort = (column: string) => emit('sort', column);
 </script>
-
-<style scoped lang="scss" src="./TRoomsTable.scss"></style>

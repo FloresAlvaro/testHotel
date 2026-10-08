@@ -9,7 +9,10 @@
       <span v-if="prefixIcon" class="input-prefix">{{ prefixIcon }}</span>
 
       <input
+        v-bind="$attrs"
         :id="inputId"
+        :aria-invalid="error ? true : undefined"
+        :aria-describedby="[error ? `${inputId}-error` : null, hint ? `${inputId}-hint` : null].filter(Boolean).join(' ') || undefined"
         :type="type"
         :value="modelValue"
         :placeholder="placeholder"
@@ -24,13 +27,14 @@
       <span v-if="suffixIcon" class="input-suffix">{{ suffixIcon }}</span>
     </div>
 
-    <p v-if="error" class="input-error-text">{{ error }}</p>
-    <p v-if="hint" class="input-hint">{{ hint }}</p>
+    <p v-if="error" :id="`${inputId}-error`" role="alert" class="input-error-text">{{ error }}</p>
+    <p v-if="hint" :id="`${inputId}-hint`" class="input-hint">{{ hint }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useId } from 'vue';
+defineOptions({ inheritAttrs: false });
 
 interface Props {
   modelValue: string | number;
@@ -71,11 +75,11 @@ const emit = defineEmits<{
 
 const handleInput = (e: Event) => {
   const target = e.target as HTMLInputElement;
-  emit('update:modelValue', props.type === 'number' ? Number(target.value) : target.value);
+  emit('update:modelValue', props.type === 'number' && target.value !== '' ? Number(target.value) : target.value);
 };
 
 const handleBlur = () => emit('blur');
 const handleFocus = () => emit('focus');
 </script>
 
-<style scoped lang="scss" src="./CInput.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/common/CInput.scss"></style>

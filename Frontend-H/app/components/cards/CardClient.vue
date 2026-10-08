@@ -53,4 +53,4 @@ const getInitials = (name: string) => {
 };
 </script>
 
-<style scoped lang="scss" src="./CardClient.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/cards/CardClient.scss"></style>

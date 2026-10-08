@@ -7,72 +7,33 @@ import type {
 
 export const usePaymentsService = () => {
   const api = useApiClient();
-  const uiStore = useUiStore();
 
   const getPayments = async (
     page = 1,
     pageSize = 10,
     status?: PaymentStatus,
   ) => {
-    try {
-      return await api.getPayments(page, pageSize, status);
-    } catch (error) {
-      console.error("Error cargando pagos:", error);
-      throw error;
-    }
+    return await api.getPayments(page, pageSize, status);
   };
 
   const getPayment = async (id: number) => {
-    try {
-      return await api.getPayment(id);
-    } catch (error) {
-      console.error("Error cargando pago:", error);
-      throw error;
-    }
+    return await api.getPayment(id);
   };
 
   const createPayment = async (data: CreatePaymentRequest) => {
-    try {
-      const response = await api.createPayment(data);
-      uiStore.success("Pago registrado correctamente");
-      return response;
-    } catch (error: unknown) {
-      uiStore.error("Error al registrar pago");
-      throw error;
-    }
+    return await api.createPayment(data);
   };
 
   const updatePayment = async (id: number, data: UpdatePaymentRequest) => {
-    try {
-      const response = await api.updatePayment(id, data);
-      uiStore.success("Pago actualizado correctamente");
-      return response;
-    } catch (error: unknown) {
-      uiStore.error("Error al actualizar pago");
-      throw error;
-    }
+    return await api.updatePayment(id, data);
   };
 
   const completePayment = async (id: number) => {
-    try {
-      const response = await api.completePayment(id);
-      uiStore.success("Pago completado");
-      return response;
-    } catch (error: unknown) {
-      uiStore.error("Error al completar pago");
-      throw error;
-    }
+    return await api.completePayment(id);
   };
 
   const refundPayment = async (id: number) => {
-    try {
-      const response = await api.refundPayment(id);
-      uiStore.success("Pago reembolsado");
-      return response;
-    } catch (error: unknown) {
-      uiStore.error("Error al reembolsar pago");
-      throw error;
-    }
+    return await api.refundPayment(id);
   };
 
   return {

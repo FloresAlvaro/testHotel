@@ -241,4 +241,4 @@ onMounted(() => {
 })
 </script>
 
-<style scoped src="./register.css"></style>
+<style scoped src="~/assets/styles/pages/auth/register.css"></style>

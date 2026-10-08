@@ -5,6 +5,7 @@
     :class="{ active, compact }"
     :title="compact ? label : undefined"
     :aria-label="compact ? label : undefined"
+    :aria-current="active ? 'page' : undefined"
   >
     <Icon :name="icon" class="nav-link-icon" aria-hidden="true" />
     <span class="nav-link-label">{{ label }}</span>
@@ -26,4 +27,4 @@ withDefaults(defineProps<Props>(), {
 });
 </script>
 
-<style scoped src="./NavLink.css"></style>
+<style scoped src="~/assets/styles/components/common/NavLink.css"></style>

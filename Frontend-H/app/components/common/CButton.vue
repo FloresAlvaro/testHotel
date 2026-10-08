@@ -1,5 +1,7 @@
 <template>
   <button
+    type="button"
+    :aria-busy="loading || undefined"
     :class="[
       'btn',
       `btn-${variant}`,
@@ -36,4 +38,4 @@ withDefaults(defineProps<Props>(), {
 });
 </script>
 
-<style scoped lang="scss" src="./CButton.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/common/CButton.scss"></style>

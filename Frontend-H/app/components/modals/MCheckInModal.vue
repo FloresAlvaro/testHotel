@@ -55,4 +55,4 @@ const handleConfirm = () => emit('confirm', notes.value);
 const handleCancel = () => emit('cancel');
 </script>
 
-<style scoped lang="scss" src="./MCheckInModal.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/modals/MCheckInModal.scss"></style>

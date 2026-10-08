@@ -15,9 +15,9 @@
       @next-page="$emit('next-page')"
     >
       <template #cell-status="{ value }">
-        <span :class="['status-badge', `status-${value}`]">
+        <CStatusBadge :status="String(value || '')">
           {{ RESERVATION_STATUS_LABELS[String(value)] || value }}
-        </span>
+        </CStatusBadge>
       </template>
 
       <template #cell-check_in="{ value }">
@@ -67,5 +67,3 @@ const columns = [
   { key: 'status', label: 'Estado' }
 ];
 </script>
-
-<style scoped lang="scss" src="./TReservationsTable.scss"></style>

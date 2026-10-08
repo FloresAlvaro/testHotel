@@ -6,7 +6,7 @@ export const useUiStore = defineStore("ui", () => {
   // State
   const sidebarOpen = ref(true);
   const sidebarCompact = ref(false);
-  const mobileMenuOpen = ref(false);
+  const mobileMenuOpen = computed(() => sidebarOpen.value);
   const notifications = ref<
     Array<{
       id: string;
@@ -20,13 +20,6 @@ export const useUiStore = defineStore("ui", () => {
   const loading = ref(false);
 
   // Computed
-  const isMobile = computed(() => {
-    if (import.meta.client) {
-      return window.innerWidth < 768;
-    }
-    return false;
-  });
-
   // Actions
   const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value;
@@ -45,11 +38,11 @@ export const useUiStore = defineStore("ui", () => {
   };
 
   const toggleMobileMenu = () => {
-    mobileMenuOpen.value = !mobileMenuOpen.value;
+    toggleSidebar();
   };
 
   const closeMobileMenu = () => {
-    mobileMenuOpen.value = false;
+    closeSidebar();
   };
 
   const addNotification = (
@@ -95,9 +88,14 @@ export const useUiStore = defineStore("ui", () => {
     modals.value[name] = !modals.value[name];
   };
 
+  const applyTheme = () => {
+    if (import.meta.client) document.documentElement.classList.toggle('dark', theme.value === 'dark');
+  };
+
   const toggleTheme = () => {
     theme.value = theme.value === "light" ? "dark" : "light";
     if (import.meta.client) {
+      applyTheme();
       localStorage.setItem("theme", theme.value);
     }
   };
@@ -105,6 +103,7 @@ export const useUiStore = defineStore("ui", () => {
   const setTheme = (newTheme: "light" | "dark") => {
     theme.value = newTheme;
     if (import.meta.client) {
+      applyTheme();
       localStorage.setItem("theme", newTheme);
     }
   };
@@ -113,9 +112,10 @@ export const useUiStore = defineStore("ui", () => {
     if (!import.meta.client) return;
 
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (savedTheme) {
+    if (savedTheme === "light" || savedTheme === "dark") {
       theme.value = savedTheme;
     }
+    applyTheme();
   };
 
   const setLoading = (value: boolean) => {
@@ -133,7 +133,6 @@ export const useUiStore = defineStore("ui", () => {
     loading,
 
     // Computed
-    isMobile,
 
     // Methods
     toggleSidebar,

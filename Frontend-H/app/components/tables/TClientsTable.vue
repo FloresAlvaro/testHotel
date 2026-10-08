@@ -1,5 +1,5 @@
 <template>
-  <CCard v-if="true" title="Clientes">
+  <CCard title="Clientes">
     <template #header-action>
       <CButton variant="primary" size="sm" icon="➕" @click="$emit('add')">
         Nuevo
@@ -9,6 +9,7 @@
     <CTable
       :columns="columns"
       :rows="clients"
+      :loading="loading"
       :pagination="pagination"
       :show-pagination="true"
       @sort="handleSort"

@@ -1,0 +1,14 @@
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral-text);
+}
+.status-badge[data-tone='success'] { background: var(--status-success-bg); color: var(--status-success-text); }
+.status-badge[data-tone='info'] { background: var(--status-info-bg); color: var(--status-info-text); }
+.status-badge[data-tone='warning'] { background: var(--status-warning-bg); color: var(--status-warning-text); }
+.status-badge[data-tone='danger'] { background: var(--status-danger-bg); color: var(--status-danger-text); }
+.status-badge[data-tone='orange'] { background: var(--status-orange-bg); color: var(--status-orange-text); }

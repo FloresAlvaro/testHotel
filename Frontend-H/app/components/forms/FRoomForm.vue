@@ -85,7 +85,7 @@ const handleSubmit = () => {
   const data: CreateRoomRequest = {
     number: form.value.number.trim(),
     room_type_id: roomTypeId,
-    ...(form.value.floor.trim() && Number.isInteger(floor) ? { floor } : {})
+    ...(String(form.value.floor).trim() && Number.isInteger(floor) ? { floor } : {})
   };
   emit('submit', data);
 };
@@ -95,4 +95,4 @@ const handleCancel = () => {
 };
 </script>
 
-<style scoped lang="scss" src="./FRoomForm.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/forms/FRoomForm.scss"></style>

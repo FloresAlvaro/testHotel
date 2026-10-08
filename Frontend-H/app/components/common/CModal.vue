@@ -2,10 +2,10 @@
   <Teleport to="body">
     <Transition name="modal-fade">
       <div v-if="isOpen" class="modal-overlay" @click="handleOverlayClick">
-        <div class="modal-container" :data-size="size" @click.stop>
+        <div ref="dialog" class="modal-container" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" :data-size="size" @click.stop>
           <div class="modal-header">
-            <h2 class="modal-title">{{ title }}</h2>
-            <button class="modal-close" aria-label="Cerrar ventana" @click="closeModal">✕</button>
+            <h2 :id="titleId" class="modal-title">{{ title }}</h2>
+            <button type="button" class="modal-close" aria-label="Cerrar ventana" @click="closeModal">✕</button>
           </div>
 
           <div class="modal-body">
@@ -22,6 +22,10 @@
 </template>
 
 <script setup lang="ts">
+import { useId } from 'vue';
+
+const dialog = ref<HTMLElement | null>(null);
+const titleId = useId();
 interface Props {
   isOpen: boolean;
   title: string;
@@ -46,21 +50,7 @@ const handleOverlayClick = () => {
   }
 };
 
-// Prevenir scroll cuando el modal está abierto
-watch(
-  () => props.isOpen,
-  (isOpen) => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-  }
-);
-
-onBeforeUnmount(() => {
-  document.body.style.overflow = 'auto';
-});
+useDialogAccessibility(dialog, () => props.isOpen, closeModal);
 </script>
 
-<style scoped lang="scss" src="./CModal.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/common/CModal.scss"></style>

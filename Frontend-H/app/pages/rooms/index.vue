@@ -144,7 +144,7 @@ definePageMeta({
 const router = useRouter()
 const roomsStore = useRoomsStore()
 const uiStore = useUIStore()
-const { fetchRooms, createRoom, updateRoom } = useRooms()
+const { fetchRooms } = useRooms()
 
 const loading = ref(false)
 const isSubmitting = ref(false)
@@ -196,10 +196,10 @@ const handleSubmit = async (data: CreateRoomRequest) => {
   isSubmitting.value = true
   try {
     if (selectedRoom.value) {
-      await updateRoom(selectedRoom.value.id, data)
+      await roomsStore.updateRoom(selectedRoom.value.id, data)
       uiStore.success('Habitación actualizada exitosamente')
     } else {
-      await createRoom(data)
+      await roomsStore.createRoom(data)
       uiStore.success('Habitación creada exitosamente')
     }
     closeModal()
@@ -213,7 +213,7 @@ const handleSubmit = async (data: CreateRoomRequest) => {
 
 const sendToMaintenance = async (roomId: number) => {
   try {
-    await updateRoom(roomId, { status: 'maintenance' })
+    await roomsStore.updateRoom(roomId, { status: 'maintenance' })
     uiStore.success('Habitación enviada a mantenimiento')
     await fetchRooms()
   } catch (error: unknown) {

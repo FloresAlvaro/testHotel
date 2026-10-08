@@ -188,4 +188,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped src="./login.css"></style>
+<style scoped src="~/assets/styles/pages/auth/login.css"></style>

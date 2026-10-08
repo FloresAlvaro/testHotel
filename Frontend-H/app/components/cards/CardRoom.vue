@@ -44,4 +44,4 @@ defineEmits<{
 const getRoomStatusLabel = (status: string) => ROOM_STATUS_LABELS[status] || status;
 </script>
 
-<style scoped lang="scss" src="./CardRoom.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/cards/CardRoom.scss"></style>

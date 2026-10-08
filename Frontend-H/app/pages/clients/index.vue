@@ -23,49 +23,13 @@
 			>
 		</label>
 
-		<p v-if="errorMessage" role="alert" class="text-red-700">{{ errorMessage }}</p>
-		<div v-else class="overflow-x-auto rounded border border-slate-200 dark:border-slate-700">
-			<table class="w-full text-left">
-				<thead class="bg-slate-50 dark:bg-slate-800">
-					<tr>
-						<th class="px-4 py-3">Nombre</th>
-						<th class="px-4 py-3">Documento</th>
-						<th class="px-4 py-3">Contacto</th>
-						<th class="px-4 py-3">Acción</th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-					<tr v-for="client in visibleClients" :key="client.id">
-						<td class="px-4 py-3">{{ client.name }}</td>
-						<td class="px-4 py-3">{{ client.document }}</td>
-						<td class="px-4 py-3">{{ client.email || client.phone || 'Sin contacto' }}</td>
-						<td class="px-4 py-3">
-							<NuxtLink :to="`/clients/${client.id}`" class="text-blue-700 hover:underline">Ver ficha</NuxtLink>
-						</td>
-					</tr>
-					<tr v-if="!loading && visibleClients.length === 0">
-						<td colspan="4" class="px-4 py-8 text-center text-slate-500">No hay clientes para mostrar.</td>
-					</tr>
-					<tr v-if="loading">
-						<td colspan="4" class="px-4 py-8 text-center text-slate-500">Cargando clientes…</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-
-		<nav v-if="pagination.totalPages > 1" class="flex items-center justify-end gap-3" aria-label="Paginación">
-			<button
-				class="rounded border px-3 py-2 disabled:opacity-50"
-				:disabled="loading || pagination.page <= 1"
-				@click="loadPage(pagination.page - 1)"
-			>Anterior</button>
-			<span>Página {{ pagination.page }} de {{ pagination.totalPages }}</span>
-			<button
-				class="rounded border px-3 py-2 disabled:opacity-50"
-				:disabled="loading || pagination.page >= pagination.totalPages"
-				@click="loadPage(pagination.page + 1)"
-			>Siguiente</button>
-		</nav>
+        <CTable
+:columns="columns" :rows="visibleClients" :loading="loading" :error="errorMessage"
+          :pagination="pagination" :show-pagination="true"
+          @prev-page="loadPage(pagination.page - 1)" @next-page="loadPage(pagination.page + 1)">
+          <template #cell-contact="{ row }">{{ row.email || row.phone || 'Sin contacto' }}</template>
+          <template #actions="{ row }"><NuxtLink :to="`/clients/${row.id}`" class="text-blue-700 hover:underline">Ver ficha</NuxtLink></template>
+        </CTable>
 	</section>
 </template>
 
@@ -75,6 +39,11 @@ import { computed, onMounted, ref } from 'vue';
 definePageMeta({ middleware: ['auth', 'receptionist'] });
 
 const { clients, loading, pagination, fetchClients } = useClients();
+const columns = [
+  { key: 'name', label: 'Nombre' },
+  { key: 'document', label: 'Documento' },
+  { key: 'contact', label: 'Contacto' },
+];
 const query = ref('');
 const errorMessage = ref('');
 

@@ -10,7 +10,8 @@
     "lint:fix": "eslint . --fix",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "test:ui": "node --test tests/ui.test.mjs"
   },
   "dependencies": {
     "@iconify-json/system-uicons": "^1.2.4",

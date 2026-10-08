@@ -132,4 +132,4 @@ const handleCancel = () => {
 };
 </script>
 
-<style scoped lang="scss" src="./FReservationForm.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/forms/FReservationForm.scss"></style>

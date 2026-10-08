@@ -5,6 +5,7 @@
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
+      <CNotifications />
     </div>
   </UApp>
 </template>

@@ -13,9 +13,9 @@
       </template>
 
       <template #cell-status="{ value }">
-        <span :class="['status-badge', `status-${value}`]">
+        <CStatusBadge :status="String(value || '')">
           {{ PAYMENT_STATUS_LABELS[String(value)] || value }}
-        </span>
+        </CStatusBadge>
       </template>
 
       <template #cell-created_at="{ value }">
@@ -66,5 +66,3 @@ const columns = [
   { key: 'created_at', label: 'Fecha' }
 ];
 </script>
-
-<style scoped lang="scss" src="./TPaymentsTable.scss"></style>

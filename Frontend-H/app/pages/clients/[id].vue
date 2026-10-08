@@ -291,7 +291,7 @@ const router = useRouter()
 const route = useRoute()
 const clientsStore = useClientsStore()
 const uiStore = useUIStore()
-const { fetchClient, deleteClient, updateClient, getClientReservations } = useClients()
+const { fetchClient, getClientReservations } = useClients()
 
 const clientId = Number(route.params.id)
 const loading = ref(false)
@@ -331,7 +331,7 @@ const closeModal = () => {
 const handleSubmit = async (data: CreateClientRequest) => {
   isSubmitting.value = true
   try {
-    await updateClient(clientId, data)
+    await clientsStore.updateClient(clientId, data)
     uiStore.success('Cliente actualizado exitosamente')
     closeModal()
     await fetchClient(clientId)
@@ -349,7 +349,7 @@ const confirmDelete = () => {
 const confirmDeleteAction = async () => {
   isDeleting.value = true
   try {
-    await deleteClient(clientId)
+    await clientsStore.deleteClient(clientId)
     uiStore.success('Cliente eliminado exitosamente')
     await router.push('/clients')
   } catch (error: unknown) {

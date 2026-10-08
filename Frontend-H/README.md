@@ -1,75 +1,51 @@
-# Nuxt Minimal Starter
+# Frontend Roomly
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Interfaz Nuxt del sistema hotelero. Consulta el README de la raíz para iniciar PostgreSQL y la API.
 
-## Setup
+## Desarrollo y comprobaciones
 
-Make sure to install dependencies:
+Requiere Node.js 22.19+ de la rama 22, 24.11+ de la rama 24 o 26+.
 
-```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
+```powershell
+npm ci
+npm run dev -- --port 3001
+npm run lint
+npm run typecheck
+npm run test:ui
 npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+Configura NUXT_PUBLIC_API_BASE para el navegador y NUXT_API_INTERNAL_BASE para SSR. Por defecto apuntan a http://localhost:3000/api. El build descarga Alata y requiere acceso a los proveedores de fuentes.
 
-```bash
-# npm
-npm run preview
+## Organización
 
-# pnpm
-pnpm preview
+- app/components/common: controles, tablas, modales, notificaciones e indicadores de estado.
+- app/components/navigation: sidebar, encabezado y menú de usuario.
+- app/components/settings: una vista por pestaña de configuración.
+- app/composables/useAdminSettings.ts: controlador de las pestañas; sus preferencias y exportaciones son locales al navegador.
+- app/utils/navigation.ts: enlaces y visibilidad por rol; la API y los middleware siguen controlando permisos.
+- app/assets/styles: todos los estilos, separados por componentes, layouts y páginas.
 
-# yarn
-yarn preview
+## Estilos
 
-# bun
-bun run preview
+Global.css importa Tailwind, Nuxt UI, tokens.css y base.css. Los colores del tema están definidos en la raíz del documento para que también los hereden modales y notificaciones trasladados a body.
+
+Cada componente importa su archivo con scoped. No importes todos los estilos de componentes desde global.css:
+
+```vue
+<style scoped lang="scss" src="~/assets/styles/components/common/CButton.scss"></style>
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+Usa variables compartidas para colores y medidas reutilizables. Los badges de tablas usan CStatusBadge.
+
+## Datos y comportamiento
+
+Los servicios realizan solicitudes y transforman respuestas. Los stores administran estado compartido. Los composables coordinan operaciones y filtros. Cuando una página muestra sus propios avisos de una mutación, invoca el store directamente para evitar repetir los avisos del composable.
+
+CTable admite carga, error, estado vacío, paginación y rowKey (por defecto id). Las filas necesitan claves únicas y estables. CInput pasa atributos nativos al input y mantiene un número vacío como cadena vacía.
+
+CModal usa useDialogAccessibility para Escape, foco inicial, Tab, restauración del foco y bloqueo de scroll compatible con modales anidados.
+
+## Pruebas
+
+npm run test:ui comprueba controles, navegación por rol, tema, menú móvil, foco de modales y mutaciones de habitaciones con el runner de Node y Vue. Usa dobles del DOM; no requiere PostgreSQL ni comprueba la apariencia en un navegador real.

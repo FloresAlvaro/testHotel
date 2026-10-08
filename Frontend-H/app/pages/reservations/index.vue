@@ -219,7 +219,7 @@ definePageMeta({
 const router = useRouter()
 const reservationsStore = useReservationsStore()
 const uiStore = useUIStore()
-const { fetchReservations, createReservation, updateReservation } = useReservations()
+const { fetchReservations } = useReservations()
 
 const loading = ref(false)
 const isSubmitting = ref(false)
@@ -319,10 +319,10 @@ const handleSubmit = async (data: CreateReservationRequest) => {
   isSubmitting.value = true
   try {
     if (selectedReservation.value) {
-      await updateReservation(selectedReservation.value.id, data)
+      await reservationsStore.updateReservation(selectedReservation.value.id, data)
       uiStore.success('Reserva actualizada exitosamente')
     } else {
-      await createReservation(data)
+      await reservationsStore.createReservation(data)
       uiStore.success('Reserva creada exitosamente')
     }
     closeModal()

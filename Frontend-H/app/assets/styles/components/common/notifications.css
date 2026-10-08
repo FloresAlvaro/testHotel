@@ -1,0 +1,7 @@
+.notification-stack { position: fixed; inset: auto 16px 16px auto; z-index: 1100; width: min(400px, calc(100vw - 32px)); display: grid; gap: 8px; }
+.notification { display: flex; align-items: start; gap: 12px; padding: 16px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-left: 4px solid var(--color-brand); border-radius: var(--radius-control); box-shadow: 0 4px 16px #0002; }
+.notification[data-type='error'] { border-left-color: var(--color-danger); }
+.notification[data-type='success'] { border-left-color: #10b981; }
+.notification[data-type='warning'] { border-left-color: #f59e0b; }
+.notification p { margin: 0; flex: 1; overflow-wrap: anywhere; }
+.notification button { background: transparent; cursor: pointer; color: inherit; }

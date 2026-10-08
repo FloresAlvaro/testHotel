@@ -119,4 +119,4 @@ const handleCancel = () => {
 };
 </script>
 
-<style scoped lang="scss" src="./FPaymentForm.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/forms/FPaymentForm.scss"></style>

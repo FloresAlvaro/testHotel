@@ -82,6 +82,11 @@ export const useModal = <T = unknown>(modalName: string) => {
     modalData.value = null;
   };
 
+  onBeforeUnmount(() => {
+    if (clearDataTimer) clearTimeout(clearDataTimer);
+    uiStore.closeModal(modalName);
+  });
+
   return {
     // State
     isOpen,

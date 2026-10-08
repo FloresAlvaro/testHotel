@@ -396,4 +396,4 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped src="./index.css"></style>
+<style scoped src="~/assets/styles/pages/dashboard/index.css"></style>

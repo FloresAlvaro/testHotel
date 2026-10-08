@@ -238,7 +238,7 @@ const router = useRouter()
 const route = useRoute()
 const paymentsStore = usePaymentsStore()
 const uiStore = useUIStore()
-const { fetchPayments, createPayment } = usePayments()
+const { fetchPayments } = usePayments()
 
 const loading = ref(false)
 const isSubmitting = ref(false)
@@ -360,7 +360,7 @@ const closeModal = () => {
 const handleSubmit = async (data: CreatePaymentRequest) => {
   isSubmitting.value = true
   try {
-    await createPayment(data)
+    await paymentsStore.createPayment(data)
     uiStore.success('Pago registrado exitosamente')
     closeModal()
     await fetchPayments(1, 100)

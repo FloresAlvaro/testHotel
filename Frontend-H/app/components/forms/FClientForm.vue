@@ -223,4 +223,4 @@ const handleCancel = () => {
 };
 </script>
 
-<style scoped lang="scss" src="./FClientForm.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/forms/FClientForm.scss"></style>

@@ -36,4 +36,4 @@ const handleConfirm = () => emit('confirm');
 const handleCancel = () => emit('cancel');
 </script>
 
-<style scoped lang="scss" src="./MConfirmModal.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/modals/MConfirmModal.scss"></style>

@@ -53,4 +53,4 @@ const uiStore = useUiStore();
 const theme = computed(() => uiStore.theme);
 </script>
 
-<style scoped lang="scss" src="./auth.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/layouts/auth.scss"></style>

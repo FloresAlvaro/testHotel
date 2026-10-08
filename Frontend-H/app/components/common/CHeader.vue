@@ -24,4 +24,4 @@ defineEmits<{
 }>();
 </script>
 
-<style scoped lang="scss" src="./CHeader.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/common/CHeader.scss"></style>

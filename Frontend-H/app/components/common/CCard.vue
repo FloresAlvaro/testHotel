@@ -29,4 +29,4 @@ withDefaults(defineProps<Props>(), {
 });
 </script>
 
-<style scoped lang="scss" src="./CCard.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/common/CCard.scss"></style>

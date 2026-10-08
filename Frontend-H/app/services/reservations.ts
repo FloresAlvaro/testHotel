@@ -7,64 +7,32 @@ import type {
 
 export const useReservationsService = () => {
   const api = useApiClient();
-  const uiStore = useUiStore();
 
   const getReservations = async (
     page = 1,
     pageSize = 10,
     status?: ReservationStatus,
   ) => {
-    try {
-      return await api.getReservations(page, pageSize, status);
-    } catch (error) {
-      console.error("Error cargando reservas:", error);
-      throw error;
-    }
+    return await api.getReservations(page, pageSize, status);
   };
 
   const getReservation = async (id: number) => {
-    try {
-      return await api.getReservation(id);
-    } catch (error) {
-      console.error("Error cargando reserva:", error);
-      throw error;
-    }
+    return await api.getReservation(id);
   };
 
   const createReservation = async (data: CreateReservationRequest) => {
-    try {
-      const response = await api.createReservation(data);
-      uiStore.success("Reserva creada correctamente");
-      return response;
-    } catch (error: unknown) {
-      uiStore.error("Error al crear reserva");
-      throw error;
-    }
+    return await api.createReservation(data);
   };
 
   const updateReservation = async (
     id: number,
     data: UpdateReservationRequest,
   ) => {
-    try {
-      const response = await api.updateReservation(id, data);
-      uiStore.success("Reserva actualizada correctamente");
-      return response;
-    } catch (error: unknown) {
-      uiStore.error("Error al actualizar reserva");
-      throw error;
-    }
+    return await api.updateReservation(id, data);
   };
 
   const cancelReservation = async (id: number) => {
-    try {
-      const response = await api.cancelReservation(id);
-      uiStore.success("Reserva cancelada correctamente");
-      return response;
-    } catch (error: unknown) {
-      uiStore.error("Error al cancelar reserva");
-      throw error;
-    }
+    return await api.cancelReservation(id);
   };
 
   return {

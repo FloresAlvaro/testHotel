@@ -60,4 +60,4 @@ defineEmits<{
 }>();
 </script>
 
-<style scoped lang="scss" src="./CardReservation.scss"></style>
+<style scoped lang="scss" src="~/assets/styles/components/cards/CardReservation.scss"></style>
