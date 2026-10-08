@@ -64,8 +64,8 @@ export const useApiClient = () => {
     },
 
     // Interceptor de errores
-    onResponseError({ response, error }) {
-      console.error(`[API Error] ${response.status}:`, error);
+    onResponseError({ response }) {
+      console.error(`[API Error] ${response.status}:`, response._data?.message || response.statusText);
 
       // Manejar errores comunes
       if (response.status === 401) {

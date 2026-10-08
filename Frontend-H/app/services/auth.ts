@@ -25,11 +25,19 @@ export const useAuthService = () => {
       const statusCode =
         error && typeof error === "object" && "statusCode" in error
           ? error.statusCode
-          : undefined;
+          : error && typeof error === "object" && "status" in error
+            ? error.status
+            : undefined;
       const message =
         statusCode === 429
           ? "Demasiados intentos. Espera unos minutos y vuelve a intentar."
-          : "Email o contraseña incorrectos";
+          : statusCode === 401
+            ? "Email o contraseña incorrectos"
+            : statusCode === 403
+              ? "Esta cuenta está inactiva o no tiene acceso"
+              : typeof statusCode === "number" && statusCode >= 500
+                ? "El servidor no está disponible. Inténtalo nuevamente en unos momentos."
+                : "No se pudo iniciar sesión. Comprueba la conexión e inténtalo nuevamente.";
       authStore.setError(message);
       uiStore.error(message);
       throw error;

@@ -185,3 +185,24 @@ test('room mutations preserve the original error and send one maintenance reques
   assert.equal(mutations, 1);
   assert.equal(redundantCalls, 0);
 });
+
+test('login distinguishes wrong credentials from server and connection failures', async () => {
+  for (const [statusCode, expected] of [
+    [401, 'Email o contraseña incorrectos'],
+    [403, 'Esta cuenta está inactiva o no tiene acceso'],
+    [429, 'Demasiados intentos. Espera unos minutos y vuelve a intentar.'],
+    [500, 'El servidor no está disponible. Inténtalo nuevamente en unos momentos.'],
+    [undefined, 'No se pudo iniciar sesión. Comprueba la conexión e inténtalo nuevamente.'],
+  ]) {
+    const original = Object.assign(new Error('Request failed'), { statusCode });
+    let message;
+    const { useAuthService } = evaluate(source('services/auth.ts'), {
+      require: () => ({ useApiClient: () => ({ login: async () => { throw original; } }) }),
+      useAuthStore: () => ({ setError: value => { message = value; } }),
+      useRouter: () => ({}),
+      useUiStore: () => ({ setLoading() {}, error() {} }),
+    });
+    await assert.rejects(useAuthService().login('admin@hotel.com', 'password'), error => error === original);
+    assert.equal(message, expected);
+  }
+});
