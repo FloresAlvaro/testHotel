@@ -42,8 +42,8 @@ validateDatabaseURL(process.env.DATABASE_URL);
 // ============================================
 
 const validatePort = (port) => {
-  const parsedPort = parseInt(port);
-  if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+  const parsedPort = Number(port);
+  if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
     console.error('❌ ERROR: PORT debe ser un número entre 1 y 65535');
     process.exit(1);
   }
@@ -82,8 +82,8 @@ const validateJWTSecret = (secret) => {
 // ============================================
 
 const validateBcryptRounds = (rounds) => {
-  const parsedRounds = parseInt(rounds);
-  if (isNaN(parsedRounds) || parsedRounds < 8 || parsedRounds > 15) {
+  const parsedRounds = Number(rounds);
+  if (!Number.isInteger(parsedRounds) || parsedRounds < 8 || parsedRounds > 15) {
     console.error('❌ ERROR: BCRYPT_ROUNDS debe ser un número entre 8 y 15');
     process.exit(1);
   }
@@ -120,8 +120,8 @@ const CORS_CREDENTIALS = process.env.CORS_CREDENTIALS === 'true';
 // CONFIGURACIÓN DE RATE LIMITING
 // ============================================
 
-const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || 900000, 10); // 15 minutos
-const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || 100, 10);
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 900000); // 15 minutos
+const RATE_LIMIT_MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 100);
 
 // ============================================
 // CONFIGURACIÓN DE LOGGING
@@ -134,16 +134,16 @@ const LOG_FORMAT = process.env.LOG_FORMAT || 'combined';
 // CONFIGURACIÓN DE BASE DE DATOS
 // ============================================
 
-const DB_POOL_MIN = parseInt(process.env.DB_POOL_MIN || (isProduction ? 5 : 2));
-const DB_POOL_MAX = parseInt(process.env.DB_POOL_MAX || (isProduction ? 30 : 20));
-const DB_IDLE_TIMEOUT = parseInt(process.env.DB_IDLE_TIMEOUT || 30000);
-const DB_CONNECT_TIMEOUT = parseInt(process.env.DB_CONNECT_TIMEOUT || (isProduction ? 5000 : 2000));
+const DB_POOL_MIN = Number(process.env.DB_POOL_MIN || (isProduction ? 5 : 2));
+const DB_POOL_MAX = Number(process.env.DB_POOL_MAX || (isProduction ? 30 : 20));
+const DB_IDLE_TIMEOUT = Number(process.env.DB_IDLE_TIMEOUT || 30000);
+const DB_CONNECT_TIMEOUT = Number(process.env.DB_CONNECT_TIMEOUT || (isProduction ? 5000 : 2000));
 
 // ============================================
 // CONFIGURACIÓN DE ARCHIVO
 // ============================================
 
-const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 5242880); // 5MB
+const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE || 5242880); // 5MB
 const ALLOWED_MIME_TYPES = process.env.ALLOWED_MIME_TYPES || 'image/jpeg,image/png,image/jpg';
 
 // ============================================
@@ -151,7 +151,7 @@ const ALLOWED_MIME_TYPES = process.env.ALLOWED_MIME_TYPES || 'image/jpeg,image/p
 // ============================================
 
 const SMTP_HOST = process.env.SMTP_HOST || null;
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || 587);
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER || null;
 const SMTP_PASSWORD = process.env.SMTP_PASSWORD || null;
 const SMTP_FROM = process.env.SMTP_FROM || 'noreply@hotel.com';
@@ -168,16 +168,16 @@ const PAYMENT_API_URL = process.env.PAYMENT_API_URL || null;
 // ============================================
 
 const SESSION_SECRET = process.env.SESSION_SECRET || (isDevelopment ? 'session-secret' : process.env.JWT_SECRET);
-const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE || 86400000); // 24 horas
+const SESSION_MAX_AGE = Number(process.env.SESSION_MAX_AGE || 86400000); // 24 horas
 
 // ============================================
 // CONFIGURACIÓN DE MONITOREO
 // ============================================
 
 const ENABLE_HEALTH_CHECK = process.env.ENABLE_HEALTH_CHECK !== 'false';
-const HEALTH_CHECK_INTERVAL = parseInt(process.env.HEALTH_CHECK_INTERVAL || 60000); // 1 minuto
+const HEALTH_CHECK_INTERVAL = Number(process.env.HEALTH_CHECK_INTERVAL || 60000); // 1 minuto
 
-for (const [name, value] of Object.entries({ RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, HEALTH_CHECK_INTERVAL })) {
+for (const [name, value] of Object.entries({ RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, HEALTH_CHECK_INTERVAL, DB_POOL_MAX, DB_IDLE_TIMEOUT, DB_CONNECT_TIMEOUT })) {
   if (!Number.isSafeInteger(value) || value < 1) {
     console.error(`ERROR: ${name} debe ser un entero positivo`);
     process.exit(1);
@@ -187,6 +187,16 @@ for (const [name, value] of Object.entries({ RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MA
 // ============================================
 // VALIDACIONES ADICIONALES
 // ============================================
+if (!Number.isInteger(DB_POOL_MIN) || DB_POOL_MIN < 0 || DB_POOL_MIN > DB_POOL_MAX) {
+  console.error('ERROR: DB_POOL_MIN debe ser un entero entre 0 y DB_POOL_MAX');
+  process.exit(1);
+}
+try {
+  require('jsonwebtoken').sign({}, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+} catch {
+  console.error('ERROR: JWT_EXPIRE debe ser una duración válida, por ejemplo 24h');
+  process.exit(1);
+}
 
 if (isProduction) {
   if (JWT_SECRET.length < 32) {

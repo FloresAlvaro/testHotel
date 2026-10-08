@@ -1,5 +1,4 @@
 const Client = require('../models/Client');
-const Reservation = require('../models/Reservation');
 const { sendSuccess, sendCreated, sendUpdated, sendDeleted, sendError, 
         sendPaginated } = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');

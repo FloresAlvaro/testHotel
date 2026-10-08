@@ -18,7 +18,7 @@ class Room {
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') {
-        throw new Error('El número de habitación ya existe');
+        throw Object.assign(new Error('El número de habitación ya existe'), { statusCode: 409 });
       }
       throw error;
     }
@@ -33,10 +33,10 @@ class Room {
       FROM room r
       JOIN room_type rt ON r.room_type_id = rt.id
       WHERE r.id = $1
-      ${forUpdate ? 'FOR UPDATE' : ''}
+      ${forUpdate ? 'FOR UPDATE OF r' : ''}
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 
@@ -115,7 +115,7 @@ class Room {
                       rt.id as room_type_id, rt.name as room_type_name, rt.price, rt.capacity
       FROM room r
       JOIN room_type rt ON r.room_type_id = rt.id
-      WHERE r.status IN ('available', 'reserved', 'occupied')
+      WHERE rt.is_active = TRUE AND r.status IN ('available', 'reserved', 'occupied')
       AND NOT EXISTS (
         SELECT 1 FROM reservation res
         WHERE res.room_id = r.id
@@ -140,22 +140,22 @@ class Room {
   /**
    * Actualizar habitación
    */
-  static async update(id, roomData) {
+  static async update(id, roomData, client = pool) {
     const { number, room_type_id, floor, status } = roomData;
 
     const query = `
       UPDATE room
-      SET number = $1, room_type_id = $2, floor = $3, status = $4, updated_at = CURRENT_TIMESTAMP
+      SET number = $1, room_type_id = $2, floor = $3, status = $4
       WHERE id = $5
       RETURNING *
     `;
 
     try {
-      const result = await pool.query(query, [number, room_type_id, floor, status, id]);
+      const result = await client.query(query, [number, room_type_id, floor, status, id]);
       return result.rows[0] || null;
     } catch (error) {
       if (error.code === '23505') {
-        throw new Error('El número de habitación ya existe');
+        throw Object.assign(new Error('El número de habitación ya existe'), { statusCode: 409 });
       }
       throw error;
     }
@@ -167,7 +167,7 @@ class Room {
   static async updateStatus(id, status, client = pool) {
     const query = `
       UPDATE room
-      SET status = $1, updated_at = CURRENT_TIMESTAMP
+      SET status = $1
       WHERE id = $2
       RETURNING *
     `;

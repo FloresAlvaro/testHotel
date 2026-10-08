@@ -80,16 +80,12 @@ class RoomTypeController {
   static async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, description, price, capacity, amenities, image } = req.body;
-
       const roomType = await RoomType.findById(id);
       if (!roomType) {
         return sendError(res, ERROR_MESSAGES.ROOM_TYPE_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
       }
 
-      const updated = await RoomType.update(id, {
-        name, description, price: parseFloat(price), capacity: parseInt(capacity), amenities, image
-      });
+      const updated = await RoomType.update(id, { ...roomType, ...req.body });
 
       sendUpdated(res, updated, SUCCESS_MESSAGES.UPDATED_SUCCESS);
     } catch (error) {

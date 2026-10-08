@@ -104,6 +104,8 @@ const swaggerSpec = {
       post: {
         tags: ['Users'],
         summary: 'Registrar usuario de recepcion',
+        security: [{ bearerAuth: [] }],
+        description: 'Solo administradores pueden crear cuentas de empleados.',
         requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UserCredentials' } } } },
         responses: { 201: { description: 'Usuario creado' }, 422: { description: 'Datos invalidos', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } }
       }

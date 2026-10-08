@@ -74,7 +74,7 @@ class CheckInLog {
   static async updateCheckOut(checkInLogId, checkOutTime, client = pool) {
     const query = `
       UPDATE check_in_log
-      SET check_out_time = $1, updated_at = CURRENT_TIMESTAMP
+      SET check_out_time = $1
       WHERE id = $2
       RETURNING *
     `;

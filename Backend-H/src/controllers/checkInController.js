@@ -1,9 +1,7 @@
+const ReservationService = require('../services/reservationService');
 const CheckInLog = require('../models/CheckInLog');
-const Reservation = require('../models/Reservation');
-const Room = require('../models/Room');
-const { sendSuccess, sendCreated, sendError, sendCheckInSuccess, sendCheckOutSuccess } = require('../utils/response');
-const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, RESERVATION_STATUS, ROOM_STATUS } = require('../config/constants');
-const { transaction } = require('../config/database');
+const { sendSuccess, sendError, sendCheckInSuccess, sendCheckOutSuccess } = require('../utils/response');
+const { ERROR_MESSAGES, HTTP_STATUS } = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
 class CheckInController {
@@ -12,55 +10,8 @@ class CheckInController {
    */
   static async checkIn(req, res, next) {
     try {
-      const { reservation_id, notes } = req.body;
-      const user_id = req.user.id;
-
-      if (!reservation_id) {
-        return sendError(res, 'ID de reserva requerido', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      const result = await transaction(async (client) => {
-        const reservation = await Reservation.findById(reservation_id, client, true);
-        if (!reservation) {
-          return { error: ERROR_MESSAGES.RESERVATION_NOT_FOUND, statusCode: HTTP_STATUS.NOT_FOUND };
-        }
-
-        if (reservation.status !== RESERVATION_STATUS.CONFIRMED) {
-          return {
-            error: 'Solo se puede realizar check-in de reservas confirmadas',
-            statusCode: HTTP_STATUS.CONFLICT
-          };
-        }
-
-        const existingCheckIn = await CheckInLog.findByReservationId(reservation_id, client, true);
-        if (existingCheckIn && existingCheckIn.check_in_time) {
-          return {
-            error: ERROR_MESSAGES.RESERVATION_ALREADY_CHECKED_IN,
-            statusCode: HTTP_STATUS.CONFLICT
-          };
-        }
-
-        const createdCheckIn = await CheckInLog.create({
-          reservation_id,
-          user_id,
-          check_in_time: new Date(),
-          notes
-        }, client);
-
-        await Reservation.updateStatus(
-          reservation_id,
-          RESERVATION_STATUS.CHECKED_IN,
-          client
-        );
-        await Room.updateStatus(reservation.room_id, ROOM_STATUS.OCCUPIED, client);
-        return { checkIn: createdCheckIn };
-      });
-
-      if (result.error) {
-        return sendError(res, result.error, result.statusCode);
-      }
-
-      sendCheckInSuccess(res, result.checkIn);
+      const log = await ReservationService.checkIn(req.body.reservation_id, req.body.notes, { ...req.user, ip: req.ip });
+      sendCheckInSuccess(res, log);
     } catch (error) {
       next(error);
     }
@@ -71,53 +22,8 @@ class CheckInController {
    */
   static async checkOut(req, res, next) {
     try {
-      const { reservation_id } = req.body;
-
-      if (!reservation_id) {
-        return sendError(res, 'ID de reserva requerido', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      const result = await transaction(async (client) => {
-        const reservation = await Reservation.findById(reservation_id, client, true);
-        if (!reservation) {
-          return { error: ERROR_MESSAGES.RESERVATION_NOT_FOUND, statusCode: HTTP_STATUS.NOT_FOUND };
-        }
-
-        if (reservation.status !== RESERVATION_STATUS.CHECKED_IN) {
-          return {
-            error: 'Solo se puede realizar check-out de reservas con check-in activo',
-            statusCode: HTTP_STATUS.CONFLICT
-          };
-        }
-
-        const checkInLog = await CheckInLog.findByReservationId(reservation_id, client, true);
-        if (!checkInLog) {
-          return { error: ERROR_MESSAGES.CHECKIN_LOG_NOT_FOUND, statusCode: HTTP_STATUS.NOT_FOUND };
-        }
-
-        if (checkInLog.check_out_time) {
-          return { error: ERROR_MESSAGES.CHECKOUT_ALREADY_RECORDED, statusCode: HTTP_STATUS.CONFLICT };
-        }
-
-        const updatedCheckOut = await CheckInLog.updateCheckOut(
-          checkInLog.id,
-          new Date(),
-          client
-        );
-        await Reservation.updateStatus(
-          reservation_id,
-          RESERVATION_STATUS.CHECKED_OUT,
-          client
-        );
-        await Room.updateStatus(reservation.room_id, ROOM_STATUS.MAINTENANCE, client);
-        return { checkOut: updatedCheckOut };
-      });
-
-      if (result.error) {
-        return sendError(res, result.error, result.statusCode);
-      }
-
-      sendCheckOutSuccess(res, result.checkOut);
+      const log = await ReservationService.checkOut(req.body.reservation_id, { ...req.user, ip: req.ip });
+      sendCheckOutSuccess(res, log);
     } catch (error) {
       next(error);
     }

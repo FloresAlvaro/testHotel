@@ -5,6 +5,7 @@ const validate = require('../middleware/validation');
 const { createSchema, updateSchema } = require('../validators/reservationValidator');
 
 const router = express.Router();
+require('../validators/common').configureRouter(router);
 
 router.get('/active', ReservationController.getActive);
 router.get('/upcoming', ReservationController.getUpcoming);

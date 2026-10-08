@@ -4,11 +4,14 @@ const authorize = require('../middleware/authorization');
 const validate = require('../middleware/validation');
 const { createSchema, updateSchema, updateStatusSchema } = require('../validators/paymentValidator');
 
+const { periodSchema } = require('../validators/common');
+
 const router = express.Router();
+require('../validators/common').configureRouter(router);
 
 router.get('/pending', PaymentController.getPending);
-router.get('/revenue/period', authorize('admin', 'manager'), PaymentController.getRevenueByPeriod);
-router.get('/revenue/method', authorize('admin', 'manager'), PaymentController.getRevenueByMethod);
+router.get('/revenue/period', authorize('admin', 'manager'), validate(periodSchema, 'query'), PaymentController.getRevenueByPeriod);
+router.get('/revenue/method', authorize('admin', 'manager'), validate(periodSchema, 'query'), PaymentController.getRevenueByMethod);
 router.get('/reservation/:reservationId', PaymentController.getByReservation);
 router.get('/:id', PaymentController.getById);
 router.get('/', PaymentController.getAll);

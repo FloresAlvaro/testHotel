@@ -13,6 +13,7 @@ const {
 } = require('../validators/userValidator');
 
 const router = express.Router();
+require('../validators/common').configureRouter(router);
 const loginRateLimiter = rateLimit({
 	windowMs: RATE_LIMIT_WINDOW_MS,
 	max: 10,
@@ -34,7 +35,7 @@ const authorizeSelfOrAdmin = (req, res, next) => {
 };
 
 // Públicas
-router.post('/register', validate(registerSchema), UserController.register);
+router.post('/register', auth, authorize('admin'), validate(registerSchema), UserController.register);
 router.post('/login', loginRateLimiter, validate(loginSchema), UserController.login);
 
 // Protegidas

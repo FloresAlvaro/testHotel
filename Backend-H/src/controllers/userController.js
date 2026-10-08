@@ -1,6 +1,7 @@
+const UserService = require('../services/userService');
 const User = require('../models/User');
-const { sendSuccess, sendCreated, sendUpdated, sendDeleted, sendError, 
-        sendLoginSuccess, sendLoginFailed, sendPaginated, sendValidationErrors } = require('../utils/response');
+const { sendSuccess, sendCreated, sendUpdated, sendError,
+        sendLoginSuccess, sendLoginFailed, sendPaginated } = require('../utils/response');
 const { getPaginationParams } = require('../utils/helpers');
 const { createToken } = require('../utils/jwt');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, USER_ROLES } = require('../config/constants');
@@ -137,23 +138,9 @@ class UserController {
    */
   static async update(req, res, next) {
     try {
-      const { id } = req.params;
-      const { name, email, role, is_active } = req.body;
-
-      // Verificar que el usuario exista
-      const user = await User.findById(id);
-      if (!user) {
-        return sendError(res, ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      // Actualizar
-      const updatedUser = await User.update(id, { name, email, role, is_active });
-
-      sendUpdated(res, updatedUser, SUCCESS_MESSAGES.USER_UPDATED);
+      const user = await UserService.update(req.params.id, req.body, { ...req.user, ip: req.ip });
+      sendUpdated(res, user, SUCCESS_MESSAGES.USER_UPDATED);
     } catch (error) {
-      if (error.message.includes('email ya está')) {
-        return sendError(res, ERROR_MESSAGES.EMAIL_ALREADY_EXISTS, HTTP_STATUS.CONFLICT);
-      }
       next(error);
     }
   }
@@ -199,13 +186,7 @@ class UserController {
    */
   static async deactivate(req, res, next) {
     try {
-      const { id } = req.params;
-
-      const user = await User.deactivate(id);
-      if (!user) {
-        return sendError(res, ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
+      const user = await UserService.update(req.params.id, { is_active: false }, { ...req.user, ip: req.ip });
       sendSuccess(res, user, HTTP_STATUS.OK, 'Usuario desactivado');
     } catch (error) {
       next(error);
@@ -217,13 +198,7 @@ class UserController {
    */
   static async activate(req, res, next) {
     try {
-      const { id } = req.params;
-
-      const user = await User.activate(id);
-      if (!user) {
-        return sendError(res, ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
+      const user = await UserService.update(req.params.id, { is_active: true }, { ...req.user, ip: req.ip });
       sendSuccess(res, user, HTTP_STATUS.OK, 'Usuario activado');
     } catch (error) {
       next(error);

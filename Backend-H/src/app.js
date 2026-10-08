@@ -12,7 +12,8 @@ const {
   CORS_ORIGIN,
   CORS_CREDENTIALS,
   RATE_LIMIT_WINDOW_MS,
-  RATE_LIMIT_MAX_REQUESTS
+  RATE_LIMIT_MAX_REQUESTS,
+  LOG_FORMAT
 } = require('./config/environment');
 
 const app = express();
@@ -27,7 +28,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    return callback(new Error('Origen CORS no permitido'));
+    return callback(Object.assign(new Error('Origen CORS no permitido'), { statusCode: 403 }));
   }
 }));
 
@@ -40,7 +41,13 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Logging
-app.use(morgan('combined'));
+const logFormat = LOG_FORMAT === 'json'
+  ? (tokens, req, res) => JSON.stringify({
+    method: tokens.method(req, res), path: req.originalUrl.split('?')[0],
+    status: Number(tokens.status(req, res)), durationMs: Number(tokens['response-time'](req, res))
+  })
+  : LOG_FORMAT;
+app.use(morgan(logFormat));
 
 // Body parser
 app.use(express.json());

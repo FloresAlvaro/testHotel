@@ -18,7 +18,7 @@ class RoomType {
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') {
-        throw new Error('El tipo de habitación ya existe');
+        throw Object.assign(new Error('El tipo de habitación ya existe'), { statusCode: 409 });
       }
       throw error;
     }
@@ -27,12 +27,12 @@ class RoomType {
   /**
    * Obtener tipo de habitación por ID
    */
-  static async findById(id) {
+  static async findById(id, client = pool) {
     const query = `
       SELECT * FROM room_type WHERE id = $1 AND is_active = true
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 
@@ -83,7 +83,7 @@ class RoomType {
     const query = `
       UPDATE room_type
       SET name = $1, description = $2, price = $3, capacity = $4,
-          amenities = $5, image = $6, updated_at = CURRENT_TIMESTAMP
+          amenities = $5, image = $6
       WHERE id = $7 AND is_active = true
       RETURNING *
     `;
@@ -93,7 +93,7 @@ class RoomType {
       return result.rows[0] || null;
     } catch (error) {
       if (error.code === '23505') {
-        throw new Error('El nombre del tipo ya existe');
+        throw Object.assign(new Error('El nombre del tipo ya existe'), { statusCode: 409 });
       }
       throw error;
     }
@@ -105,7 +105,7 @@ class RoomType {
   static async deactivate(id) {
     const query = `
       UPDATE room_type
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      SET is_active = false
       WHERE id = $1
       RETURNING *
     `;

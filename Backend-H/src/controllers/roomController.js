@@ -1,3 +1,4 @@
+const RoomService = require('../services/roomService');
 const Room = require('../models/Room');
 const RoomType = require('../models/RoomType');
 const { sendSuccess, sendCreated, sendUpdated, sendError, 
@@ -116,39 +117,8 @@ class RoomController {
    */
   static async update(req, res, next) {
     try {
-      const { id } = req.params;
-      const { number, room_type_id, floor, status } = req.body;
-
-      const room = await Room.findById(id);
-      if (!room) {
-        return sendError(res, ERROR_MESSAGES.ROOM_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      if (status && !Object.values(ROOM_STATUS).includes(status)) {
-        return sendError(res, 'Estado de habitación inválido', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      if (status && status !== room.status) {
-        const allowedTransitions = {
-          available: ['reserved', 'maintenance'],
-          reserved: ['occupied', 'available', 'maintenance'],
-          occupied: ['maintenance'],
-          maintenance: ['available']
-        };
-
-        if (!allowedTransitions[room.status].includes(status)) {
-          return sendError(res, 'Transición de estado de habitación no permitida', HTTP_STATUS.CONFLICT);
-        }
-      }
-
-      const updated = await Room.update(id, {
-        number: number || room.number,
-        room_type_id: room_type_id || room.room_type_id,
-        floor: floor ?? room.floor,
-        status: status || room.status
-      });
-
-      sendUpdated(res, updated, SUCCESS_MESSAGES.UPDATED_SUCCESS);
+      const room = await RoomService.update(req.params.id, req.body, { ...req.user, ip: req.ip });
+      sendUpdated(res, room, SUCCESS_MESSAGES.UPDATED_SUCCESS);
     } catch (error) {
       next(error);
     }
@@ -159,34 +129,8 @@ class RoomController {
    */
   static async updateStatus(req, res, next) {
     try {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      // Validar estado
-      const validStatuses = Object.values(ROOM_STATUS);
-      if (!validStatuses.includes(status)) {
-        return sendError(res, 'Estado de habitación inválido', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      const room = await Room.findById(id);
-      if (!room) {
-        return sendError(res, ERROR_MESSAGES.ROOM_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      const allowedTransitions = {
-        available: ['available', 'reserved', 'maintenance'],
-        reserved: ['reserved', 'occupied', 'available', 'maintenance'],
-        occupied: ['occupied', 'maintenance'],
-        maintenance: ['maintenance', 'available']
-      };
-
-      if (!allowedTransitions[room.status].includes(status)) {
-        return sendError(res, 'Transición de estado de habitación no permitida', HTTP_STATUS.CONFLICT);
-      }
-
-      const updated = await Room.updateStatus(id, status);
-
-      sendUpdated(res, updated, `Estado actualizado a ${status}`);
+      const room = await RoomService.update(req.params.id, { status: req.body.status }, { ...req.user, ip: req.ip });
+      sendUpdated(res, room, `Estado actualizado a ${req.body.status}`);
     } catch (error) {
       next(error);
     }

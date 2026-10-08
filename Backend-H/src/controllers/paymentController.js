@@ -1,7 +1,7 @@
+const PaymentService = require('../services/paymentService');
 const Payment = require('../models/Payment');
-const Reservation = require('../models/Reservation');
 const { sendSuccess, sendCreated, sendUpdated, sendError, sendPaginated } = require('../utils/response');
-const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, PAYMENT_STATUS } = require('../config/constants');
+const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
 class PaymentController {
@@ -10,51 +10,7 @@ class PaymentController {
    */
   static async create(req, res, next) {
     try {
-      const { reservation_id, amount, type, method, transaction_id, notes } = req.body;
-
-      // Validaciones
-      if (!reservation_id || !amount || !method) {
-        return sendError(res, 'Campos requeridos faltantes', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      if (amount <= 0) {
-        return sendError(res, ERROR_MESSAGES.INVALID_PAYMENT_AMOUNT, HTTP_STATUS.BAD_REQUEST);
-      }
-
-      // Verificar que reserva existe
-      const reservation = await Reservation.findById(reservation_id);
-      if (!reservation) {
-        return sendError(res, ERROR_MESSAGES.RESERVATION_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      // Validar que no exceda el monto de la reserva
-      const existingPayments = await Payment.findByReservationId(reservation_id);
-      const totalPaid = existingPayments.reduce(
-        (sum, payment) => sum + (
-          payment.status === PAYMENT_STATUS.COMPLETED
-            ? Number(payment.amount)
-            : 0
-        ),
-        0
-      );
-      const numericAmount = Number(amount);
-      const reservationTotal = Number(reservation.total_price);
-
-      if (totalPaid + numericAmount > reservationTotal) {
-        return sendError(res, ERROR_MESSAGES.INSUFFICIENT_AMOUNT, HTTP_STATUS.BAD_REQUEST);
-      }
-
-      // Crear pago
-      const payment = await Payment.create({
-        reservation_id,
-        amount: numericAmount,
-        type: type || 'full',
-        method,
-        status: PAYMENT_STATUS.PENDING,
-        transaction_id,
-        notes
-      });
-
+      const payment = await PaymentService.create(req.body, { ...req.user, ip: req.ip });
       sendCreated(res, payment, SUCCESS_MESSAGES.PAYMENT_CREATED);
     } catch (error) {
       next(error);
@@ -117,43 +73,8 @@ class PaymentController {
    */
   static async update(req, res, next) {
     try {
-      const { id } = req.params;
-      const payment = await Payment.findById(id);
-
-      if (!payment) {
-        return sendError(res, ERROR_MESSAGES.PAYMENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      if (payment.status !== PAYMENT_STATUS.PENDING) {
-        return sendError(res, 'Solo se pueden editar pagos pendientes', HTTP_STATUS.CONFLICT);
-      }
-
-      if (req.body.amount !== undefined) {
-        const reservation = await Reservation.findById(payment.reservation_id);
-        const reservationPayments = await Payment.findByReservationId(payment.reservation_id);
-        const totalPaid = reservationPayments.reduce(
-          (sum, item) => sum + (
-            item.status === PAYMENT_STATUS.COMPLETED ? Number(item.amount) : 0
-          ),
-          0
-        );
-
-        if (totalPaid + Number(req.body.amount) > Number(reservation.total_price)) {
-          return sendError(res, ERROR_MESSAGES.INSUFFICIENT_AMOUNT, HTTP_STATUS.BAD_REQUEST);
-        }
-      }
-
-      const updated = await Payment.update(id, {
-        amount: req.body.amount ?? payment.amount,
-        type: req.body.type ?? payment.type,
-        method: req.body.method ?? payment.method,
-        status: payment.status,
-        transaction_id: req.body.transaction_id !== undefined
-          ? req.body.transaction_id
-          : payment.transaction_id
-      });
-
-      sendUpdated(res, updated, SUCCESS_MESSAGES.PAYMENT_UPDATED);
+      const payment = await PaymentService.update(req.params.id, req.body, { ...req.user, ip: req.ip });
+      sendUpdated(res, payment, SUCCESS_MESSAGES.PAYMENT_UPDATED);
     } catch (error) {
       next(error);
     }
@@ -164,28 +85,8 @@ class PaymentController {
    */
   static async updateStatus(req, res, next) {
     try {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      const payment = await Payment.findById(id);
-      if (!payment) {
-        return sendError(res, ERROR_MESSAGES.PAYMENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      const allowedTransitions = {
-        pending: ['pending', 'completed', 'failed'],
-        completed: ['completed', 'refunded'],
-        failed: ['failed', 'pending'],
-        refunded: ['refunded']
-      };
-
-      if (!allowedTransitions[payment.status].includes(status)) {
-        return sendError(res, 'Transición de estado de pago no permitida', HTTP_STATUS.CONFLICT);
-      }
-
-      const updated = await Payment.updateStatus(id, status);
-
-      sendUpdated(res, updated, `Pago ${status} exitosamente`);
+      const payment = await PaymentService.changeStatus(req.params.id, req.body.status, { ...req.user, ip: req.ip });
+      sendUpdated(res, payment, 'Estado de pago actualizado');
     } catch (error) {
       next(error);
     }
@@ -196,20 +97,8 @@ class PaymentController {
    */
   static async complete(req, res, next) {
     try {
-      const { id } = req.params;
-
-      const payment = await Payment.findById(id);
-      if (!payment) {
-        return sendError(res, ERROR_MESSAGES.PAYMENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      if (payment.status !== PAYMENT_STATUS.PENDING) {
-        return sendError(res, 'Solo se pueden completar pagos pendientes', HTTP_STATUS.CONFLICT);
-      }
-
-      const completed = await Payment.updateStatus(id, PAYMENT_STATUS.COMPLETED);
-
-      sendSuccess(res, completed, HTTP_STATUS.OK, SUCCESS_MESSAGES.PAYMENT_COMPLETED);
+      const payment = await PaymentService.changeStatus(req.params.id, 'completed', { ...req.user, ip: req.ip }, 'pending');
+      sendSuccess(res, payment, HTTP_STATUS.OK, SUCCESS_MESSAGES.PAYMENT_COMPLETED);
     } catch (error) {
       next(error);
     }
@@ -220,21 +109,8 @@ class PaymentController {
    */
   static async refund(req, res, next) {
     try {
-      const { id } = req.params;
-      const { reason } = req.body;
-
-      const payment = await Payment.findById(id);
-      if (!payment) {
-        return sendError(res, ERROR_MESSAGES.PAYMENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      if (payment.status !== PAYMENT_STATUS.COMPLETED) {
-        return sendError(res, 'Solo se pueden reembolsar pagos completados', HTTP_STATUS.CONFLICT);
-      }
-
-      const refunded = await Payment.updateStatus(id, PAYMENT_STATUS.REFUNDED);
-
-      sendSuccess(res, refunded, HTTP_STATUS.OK, 'Pago reembolsado exitosamente');
+      const payment = await PaymentService.changeStatus(req.params.id, 'refunded', { ...req.user, ip: req.ip }, 'completed');
+      sendSuccess(res, payment, HTTP_STATUS.OK, 'Pago reembolsado exitosamente');
     } catch (error) {
       next(error);
     }

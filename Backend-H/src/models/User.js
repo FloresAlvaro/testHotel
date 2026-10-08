@@ -2,6 +2,11 @@ const pool = require('../config/database');
 const { hashPassword, comparePassword } = require('../utils/password');
 
 class User {
+  static async countActiveAdmins(client = pool) {
+    const result = await client.query(`SELECT COUNT(*)::int AS count FROM "user" WHERE role = 'admin' AND is_active = TRUE`);
+    return result.rows[0].count;
+  }
+
   /**
    * Crear nuevo usuario (empleado)
    */
@@ -21,7 +26,7 @@ class User {
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') { // Violación de unique
-        throw new Error('El email ya está registrado');
+        throw Object.assign(new Error('El email ya está registrado'), { statusCode: 409 });
       }
       throw error;
     }
@@ -30,14 +35,15 @@ class User {
   /**
    * Obtener usuario por ID
    */
-  static async findById(id) {
+  static async findById(id, client = pool, forUpdate = false) {
     const query = `
       SELECT id, name, email, role, is_active, created_at, updated_at
       FROM "user"
       WHERE id = $1
+      ${forUpdate ? 'FOR UPDATE' : ''}
     `;
     
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 
@@ -97,22 +103,22 @@ class User {
   /**
    * Actualizar usuario
    */
-  static async update(id, userData) {
+  static async update(id, userData, client = pool) {
     const { name, email, role, is_active } = userData;
     
     const query = `
       UPDATE "user"
-      SET name = $1, email = $2, role = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
+      SET name = $1, email = $2, role = $3, is_active = $4
       WHERE id = $5
       RETURNING id, name, email, role, is_active, updated_at
     `;
     
     try {
-      const result = await pool.query(query, [name, email, role, is_active, id]);
+      const result = await client.query(query, [name, email, role, is_active, id]);
       return result.rows[0] || null;
     } catch (error) {
       if (error.code === '23505') {
-        throw new Error('El email ya está registrado');
+        throw Object.assign(new Error('El email ya está registrado'), { statusCode: 409 });
       }
       throw error;
     }
@@ -126,7 +132,7 @@ class User {
     
     const query = `
       UPDATE "user"
-      SET password = $1, updated_at = CURRENT_TIMESTAMP
+      SET password = $1
       WHERE id = $2
       RETURNING id, name, email
     `;
@@ -162,7 +168,7 @@ class User {
   static async deactivate(id) {
     const query = `
       UPDATE "user"
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      SET is_active = false
       WHERE id = $1
       RETURNING id, name, is_active
     `;
@@ -177,7 +183,7 @@ class User {
   static async activate(id) {
     const query = `
       UPDATE "user"
-      SET is_active = true, updated_at = CURRENT_TIMESTAMP
+      SET is_active = true
       WHERE id = $1
       RETURNING id, name, is_active
     `;

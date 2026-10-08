@@ -23,7 +23,7 @@ class Client {
       `;
 
       const result = await pool.query(query, [
-        name, document, document_type, email, phone,
+        name, document, document_type || 'cedula', email || null, phone,
         address, city, country, nationality, date_of_birth,
         gender, emergency_contact, emergency_phone, notes
       ]);
@@ -31,7 +31,7 @@ class Client {
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') {
-        throw new Error('El documento o email ya está registrado');
+        throw Object.assign(new Error(error.constraint?.includes('email') ? 'El email ya está registrado' : 'El documento ya está registrado'), { statusCode: 409 });
       }
       throw error;
     }
@@ -40,12 +40,12 @@ class Client {
   /**
    * Obtener cliente por ID
    */
-  static async findById(id) {
+  static async findById(id, client = pool) {
     const query = `
       SELECT * FROM client WHERE id = $1 AND is_active = true
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 
@@ -111,22 +111,21 @@ class Client {
       SET name = $1, email = $2, phone = $3, address = $4,
           city = $5, country = $6, nationality = $7, date_of_birth = $8,
           gender = $9, emergency_contact = $10, emergency_phone = $11,
-          notes = $12,
-          updated_at = CURRENT_TIMESTAMP
+          notes = $12
       WHERE id = $13 AND is_active = true
       RETURNING *
     `;
 
     try {
       const result = await pool.query(query, [
-        name, email, phone, address, city, country, nationality,
+        name, email || null, phone, address, city, country, nationality,
         date_of_birth, gender, emergency_contact, emergency_phone, notes, id
       ]);
 
       return result.rows[0] || null;
     } catch (error) {
       if (error.code === '23505') {
-        throw new Error('El email ya está registrado');
+        throw Object.assign(new Error('El email ya está registrado'), { statusCode: 409 });
       }
       throw error;
     }
@@ -138,7 +137,7 @@ class Client {
   static async delete(id) {
     const query = `
       UPDATE client
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      SET is_active = false
       WHERE id = $1
       RETURNING id, name, is_active
     `;

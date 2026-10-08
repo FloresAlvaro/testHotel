@@ -3,7 +3,7 @@ const Joi = require('joi');
 const clientFields = {
 	name: Joi.string().trim().min(2).max(200).required(),
 	document: Joi.string().trim().min(3).max(50).required(),
-	document_type: Joi.string().valid('cedula', 'passport', 'license', 'other'),
+	document_type: Joi.string().valid('cedula', 'passport', 'license', 'other').default('cedula'),
 	email: Joi.string().trim().email().max(200).allow('', null),
 	phone: Joi.string().trim().max(20).allow('', null),
 	address: Joi.string().trim().max(300).allow('', null),
@@ -17,7 +17,8 @@ const clientFields = {
 	notes: Joi.string().trim().max(2000).allow('', null)
 };
 
-const createSchema = Joi.object(clientFields);
+const normalizeEmail = value => value.email === '' ? { ...value, email: null } : value;
+const createSchema = Joi.object(clientFields).custom(normalizeEmail);
 const updateSchema = Joi.object({
 	name: clientFields.name,
 	email: clientFields.email,
@@ -31,6 +32,6 @@ const updateSchema = Joi.object({
 	emergency_contact: clientFields.emergency_contact,
 	emergency_phone: clientFields.emergency_phone,
 	notes: clientFields.notes
-}).fork(['name'], field => field.optional()).min(1);
+}).fork(['name'], field => field.optional()).min(1).custom(normalizeEmail);
 
 module.exports = { createSchema, updateSchema };

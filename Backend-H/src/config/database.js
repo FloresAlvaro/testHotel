@@ -1,4 +1,6 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+// DATE representa un día de calendario, no un instante en la zona horaria del servidor.
+types.setTypeParser(1082, value => value);
 const {
   DATABASE_URL,
   NODE_ENV,
@@ -61,7 +63,7 @@ const testConnection = async () => {
 };
 
 // Intentar conectar al iniciar
-testConnection();
+if (NODE_ENV !== 'test') testConnection();
 
 // ============================================
 // MANEJADORES DE EVENTOS DEL POOL
@@ -69,7 +71,7 @@ testConnection();
 
 // Cuando se crea una nueva conexión
 pool.on('connect', (client) => {
-  console.log('📌 Nueva conexión creada en el pool');
+  if (NODE_ENV === 'development') console.log('📌 Nueva conexión creada en el pool');
 });
 
 // Cuando hay un error en el pool
@@ -84,7 +86,7 @@ pool.on('error', (err, client) => {
 
 // Cuando se cierra el pool
 pool.on('remove', () => {
-  console.log('📌 Conexión removida del pool');
+  if (NODE_ENV === 'development') console.log('📌 Conexión removida del pool');
 });
 
 // ============================================
@@ -108,9 +110,6 @@ const getPoolStats = () => {
  */
 const getConnection = async () => {
   try {
-    if (!isConnected) {
-      throw new Error('La base de datos no está disponible');
-    }
     const client = await pool.connect();
     return client;
   } catch (error) {
@@ -123,10 +122,6 @@ const getConnection = async () => {
  * Ejecutar una query
  */
 const query = async (text, params) => {
-  if (!isConnected) {
-    throw new Error('La base de datos no está disponible');
-  }
-
   const start = Date.now();
   
   try {
@@ -140,12 +135,7 @@ const query = async (text, params) => {
     
     return result;
   } catch (error) {
-    console.error('Error en query:', {
-      query: text,
-      params: params,
-      error: error.message,
-      code: error.code
-    });
+    console.error('Error en query:', { code: error.code });
     throw error;
   }
 };
@@ -162,7 +152,11 @@ const transaction = async (callback) => {
     await client.query('COMMIT');
     return result;
   } catch (error) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('Error haciendo rollback:', rollbackError.message);
+    }
     console.error('Error en transacción:', error.message);
     throw error;
   } finally {
@@ -196,6 +190,7 @@ const close = async () => {
     isConnected = false;
   } catch (error) {
     console.error('Error cerrando pool:', error.message);
+    throw error;
   }
 };
 
@@ -227,18 +222,6 @@ const healthCheckTimer = ENABLE_HEALTH_CHECK
 // ============================================
 // MANEJO DE CIERRE GRACEFUL
 // ============================================
-
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM recibido, cerrando pool...');
-  await close();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT recibido, cerrando pool...');
-  await close();
-  process.exit(0);
-});
 
 // ============================================
 // EXPORTAR

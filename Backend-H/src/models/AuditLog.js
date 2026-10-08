@@ -4,7 +4,7 @@ class AuditLog {
   /**
    * Crear registro de auditoría
    */
-  static async create(auditData) {
+  static async create(auditData, client = pool) {
     const { user_id, action, table_name, record_id, old_value, new_value, ip_address } = auditData;
 
     const query = `
@@ -13,7 +13,7 @@ class AuditLog {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [
+    const result = await client.query(query, [
       user_id, action, table_name, record_id, old_value, new_value, ip_address
     ]);
 
