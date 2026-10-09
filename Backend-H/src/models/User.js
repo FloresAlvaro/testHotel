@@ -1,7 +1,14 @@
 const pool = require('../config/database');
-const { hashPassword, comparePassword } = require('../utils/password');
+const { hashPassword } = require('../utils/password');
 
 class User {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async findWithPasswordById(id, client = pool) {
+    const result = await client.query('SELECT * FROM "user" WHERE id = $1 FOR UPDATE', [id]);
+    return result.rows[0] || null;
+  }
+
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async countActiveAdmins(client = pool) {
     const result = await client.query(
       `SELECT COUNT(*)::int AS count FROM "user" WHERE role = 'admin' AND is_active = TRUE`,
@@ -12,7 +19,8 @@ class User {
   /**
    * Crear nuevo usuario (empleado)
    */
-  static async create(userData) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async create(userData, client = pool) {
     const { name, email, password, role } = userData;
 
     try {
@@ -21,10 +29,10 @@ class User {
       const query = `
         INSERT INTO "user" (name, email, password, role, is_active)
         VALUES ($1, $2, $3, $4, true)
-        RETURNING id, name, email, role, is_active, created_at
+        RETURNING id, name, email, role, is_active, password_setup_required, created_at
       `;
 
-      const result = await pool.query(query, [name, email, hashedPassword, role]);
+      const result = await client.query(query, [name, email, hashedPassword, role]);
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') {
@@ -38,9 +46,10 @@ class User {
   /**
    * Obtener usuario por ID
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async findById(id, client = pool, forUpdate = false) {
     const query = `
-      SELECT id, name, email, role, is_active, created_at, updated_at
+      SELECT id, name, email, role, is_active, password_setup_required, created_at, updated_at
       FROM "user"
       WHERE id = $1
       ${forUpdate ? 'FOR UPDATE' : ''}
@@ -53,14 +62,16 @@ class User {
   /**
    * Obtener usuario por email
    */
-  static async findByEmail(email) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async findByEmail(email, client = pool, forUpdate = false) {
     const query = `
-      SELECT id, name, email, password, role, is_active, created_at, updated_at
+      SELECT id, name, email, password, role, is_active, password_setup_required, created_at, updated_at
       FROM "user"
-      WHERE email = $1
+      WHERE lower(email) = lower($1)
+      ${forUpdate ? 'FOR UPDATE' : ''}
     `;
 
-    const result = await pool.query(query, [email]);
+    const result = await client.query(query, [email]);
     return result.rows[0] || null;
   }
 
@@ -69,7 +80,7 @@ class User {
    */
   static async findAll(limit = 10, offset = 0, role = null) {
     let query = `
-      SELECT id, name, email, role, is_active, created_at, updated_at
+      SELECT id, name, email, role, is_active, password_setup_required, created_at, updated_at
       FROM "user"
     `;
 
@@ -106,6 +117,7 @@ class User {
   /**
    * Actualizar usuario
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async update(id, userData, client = pool) {
     const { name, email, role, is_active } = userData;
 
@@ -128,86 +140,11 @@ class User {
   }
 
   /**
-   * Cambiar contraseña
-   */
-  static async updatePassword(id, newPassword) {
-    const hashedPassword = await hashPassword(newPassword);
-
-    const query = `
-      UPDATE "user"
-      SET password = $1
-      WHERE id = $2
-      RETURNING id, name, email
-    `;
-
-    const result = await pool.query(query, [hashedPassword, id]);
-    return result.rows[0] || null;
-  }
-
-  /**
-   * Verificar contraseña
-   */
-  static async verifyPassword(id, password) {
-    const field = typeof id === 'number' || /^\d+$/.test(String(id)) ? 'id' : 'email';
-    const userWithPassword = await pool.query(
-      `
-        SELECT id, name, email, password, role, is_active, created_at, updated_at
-        FROM "user"
-        WHERE ${field} = $1
-      `,
-      [id],
-    );
-
-    const user = userWithPassword.rows[0];
-    if (!user) return null;
-
-    const isValid = await comparePassword(password, user.password);
-    return isValid ? user : null;
-  }
-
-  /**
-   * Desactivar usuario
-   */
-  static async deactivate(id) {
-    const query = `
-      UPDATE "user"
-      SET is_active = false
-      WHERE id = $1
-      RETURNING id, name, is_active
-    `;
-
-    const result = await pool.query(query, [id]);
-    return result.rows[0] || null;
-  }
-
-  /**
-   * Activar usuario
-   */
-  static async activate(id) {
-    const query = `
-      UPDATE "user"
-      SET is_active = true
-      WHERE id = $1
-      RETURNING id, name, is_active
-    `;
-
-    const result = await pool.query(query, [id]);
-    return result.rows[0] || null;
-  }
-
-  /**
-   * Eliminar usuario (soft delete)
-   */
-  static async delete(id) {
-    return await this.deactivate(id);
-  }
-
-  /**
    * Buscar usuarios por nombre o email
    */
   static async search(searchTerm, limit = 10, offset = 0) {
     const query = `
-      SELECT id, name, email, role, is_active, created_at
+      SELECT id, name, email, role, is_active, password_setup_required, created_at
       FROM "user"
       WHERE name ILIKE $1 OR email ILIKE $1
       ORDER BY name ASC

@@ -1,5 +1,8 @@
 import type {
   ApiResponse,
+  Invitation,
+  InviteRequest,
+  AccountSession,
   CheckInLogData,
   Client,
   ClientStats,
@@ -107,6 +110,14 @@ export const useApiClient = () => {
         body: data,
       }),
 
+    inviteUser: (data: InviteRequest) => api<ApiResponse<Invitation>>('/account/invitations', { method: 'POST', body: data, retry: 0 }),
+    acceptInvitation: (data: { token: string; password: string; confirmPassword: string }) => api<ApiResponse<null>>('/account/accept-invitation', { method: 'POST', body: data, retry: 0 }),
+    forgotPassword: (email: string) => api<ApiResponse<null>>('/account/forgot-password', { method: 'POST', body: { email }, retry: 0 }),
+    resetPassword: (data: { token: string; password: string; confirmPassword: string }) => api<ApiResponse<null>>('/account/reset-password', { method: 'POST', body: data, retry: 0 }),
+    logoutSession: () => api<ApiResponse<null>>('/account/logout', { method: 'POST', retry: 0 }),
+    logoutAllSessions: () => api<ApiResponse<null>>('/account/logout-all', { method: 'POST', retry: 0 }),
+    getSessions: () => api<ApiResponse<AccountSession[]>>('/account/sessions'),
+    revokeSession: (id: string) => api<ApiResponse<null>>(`/account/sessions/${id}`, { method: 'DELETE', retry: 0 }),
     getUsers: (page = 1, pageSize = 100) =>
       api<PaginatedApiResponse<User>>(
         `/users?page=${page}&pageSize=${pageSize}`,

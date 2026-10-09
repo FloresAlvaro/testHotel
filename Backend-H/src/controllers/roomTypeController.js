@@ -1,3 +1,4 @@
+const RoomTypeService = require('../services/roomTypeService');
 const RoomType = require('../models/RoomType');
 const {
   sendSuccess,
@@ -15,35 +16,9 @@ class RoomTypeController {
    */
   static async create(req, res, next) {
     try {
-      const { name, description, price, capacity, amenities, image } = req.body;
-
-      // Validaciones
-      if (!name || !price || !capacity) {
-        return sendError(res, 'Nombre, precio y capacidad son requeridos', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      if (price <= 0) {
-        return sendError(res, 'El precio debe ser mayor a 0', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      if (capacity <= 0) {
-        return sendError(res, 'La capacidad debe ser mayor a 0', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      const roomType = await RoomType.create({
-        name,
-        description,
-        price: parseFloat(price),
-        capacity: parseInt(capacity),
-        amenities,
-        image,
-      });
-
-      sendCreated(res, roomType, SUCCESS_MESSAGES.CREATED_SUCCESS);
+      const created = await RoomTypeService.create(req.body);
+      sendCreated(res, created, SUCCESS_MESSAGES.CREATED_SUCCESS);
     } catch (error) {
-      if (error.message.includes('ya existe')) {
-        return sendError(res, ERROR_MESSAGES.CONFLICT, HTTP_STATUS.CONFLICT);
-      }
       next(error);
     }
   }
@@ -89,14 +64,7 @@ class RoomTypeController {
    */
   static async update(req, res, next) {
     try {
-      const { id } = req.params;
-      const roomType = await RoomType.findById(id);
-      if (!roomType) {
-        return sendError(res, ERROR_MESSAGES.ROOM_TYPE_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      const updated = await RoomType.update(id, { ...roomType, ...req.body });
-
+      const updated = await RoomTypeService.update(req.params.id, req.body);
       sendUpdated(res, updated, SUCCESS_MESSAGES.UPDATED_SUCCESS);
     } catch (error) {
       next(error);
@@ -108,16 +76,8 @@ class RoomTypeController {
    */
   static async deactivate(req, res, next) {
     try {
-      const { id } = req.params;
-
-      const roomType = await RoomType.findById(id);
-      if (!roomType) {
-        return sendError(res, ERROR_MESSAGES.ROOM_TYPE_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      const deactivated = await RoomType.deactivate(id);
-
-      sendSuccess(res, deactivated, HTTP_STATUS.OK, 'Tipo de habitación desactivado');
+      const updated = await RoomTypeService.deactivate(req.params.id);
+      sendSuccess(res, updated, HTTP_STATUS.OK, 'Tipo de habitación desactivado');
     } catch (error) {
       next(error);
     }

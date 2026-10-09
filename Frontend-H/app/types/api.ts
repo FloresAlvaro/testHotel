@@ -1,3 +1,4 @@
+import type { components } from './generated/api';
 /**
  * Tipos de respuestas de la API
  */
@@ -8,14 +9,7 @@ import type { Payment } from "./payment";
 import type { Reservation } from "./reservation";
 import type { Room } from "./room";
 
-export interface ApiPagination {
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
+export type ApiPagination = components['schemas']['ApiPagination'];
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -24,6 +18,7 @@ export interface ApiResponse<T = unknown> {
   errors?: Record<string, string> | string[];
   pagination?: ApiPagination;
   timestamp?: string;
+  requestId?: string;
 }
 
 export interface ApiError {

@@ -2,6 +2,7 @@ const { transaction } = require('../config/database');
 const User = require('../models/User');
 const error = require('../utils/domainError');
 const audit = require('./auditService');
+const sessions = require('./sessionService');
 
 module.exports = {
   update: (id, data, actor) =>
@@ -16,7 +17,13 @@ module.exports = {
         if (count <= 1)
           throw error('No se puede desactivar ni degradar al último administrador activo');
       }
+      if (user.password_setup_required && next.is_active)
+        throw error('El empleado debe aceptar su invitación para activar la cuenta');
       const updated = await User.update(id, next, client);
+      if (user.role !== next.role || user.is_active !== next.is_active) {
+        await sessions.revokeAll(id, client);
+        await client.query('DELETE FROM auth_action_token WHERE user_id = $1', [id]);
+      }
       await audit(client, actor, 'update', 'user', user, updated);
       return updated;
     }),

@@ -1,11 +1,14 @@
 const Joi = require('joi');
 
 const password = Joi.string().min(8).max(128).required();
+const newPassword = password.custom((value, helpers) =>
+  Buffer.byteLength(value, 'utf8') <= 72 ? value : helpers.error('any.invalid'),
+);
 
 const registerSchema = Joi.object({
   name: Joi.string().trim().min(2).max(200).required(),
   email: Joi.string().trim().email().max(200).required(),
-  password,
+  password: newPassword,
 });
 
 const loginSchema = Joi.object({
@@ -22,7 +25,7 @@ const updateSchema = Joi.object({
 
 const changePasswordSchema = Joi.object({
   currentPassword: password,
-  newPassword: password,
+  newPassword,
   confirmPassword: Joi.any()
     .valid(Joi.ref('newPassword'))
     .required()

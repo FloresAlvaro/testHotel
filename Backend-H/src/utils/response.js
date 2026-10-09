@@ -86,8 +86,8 @@ const sendPaginated = (
   pageSize = 10,
   message = SUCCESS_MESSAGES.OPERATION_SUCCESS,
 ) => {
-  const currentPage = Math.max(Number.parseInt(page, 10) || 1, 1);
-  const currentPageSize = Math.min(Math.max(Number.parseInt(pageSize, 10) || 10, 1), 100);
+  const currentPage = Math.max(Number.parseInt(String(page), 10) || 1, 1);
+  const currentPageSize = Math.min(Math.max(Number.parseInt(String(pageSize), 10) || 10, 1), 100);
   const totalRecords = Number(total) || 0;
   const totalPages = Math.ceil(totalRecords / currentPageSize);
 

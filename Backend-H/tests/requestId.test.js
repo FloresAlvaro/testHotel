@@ -38,6 +38,7 @@ describe('Correlación de solicitudes HTTP', () => {
     expect(response.status).toBe(403);
     expect(body.requestId).toBe(response.headers.get('X-Request-ID'));
     expect(body.message).toBe('Sin permiso');
+    expect(body.success).toBe(false);
   });
   test('un error interno conserva el mismo ID en respuesta y log', async () => {
     const log = jest.spyOn(console, 'error').mockImplementation(() => {});

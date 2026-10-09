@@ -1,4 +1,5 @@
 const { Pool, types } = require('pg');
+const details = require('../utils/errorDetails');
 // DATE representa un día de calendario, no un instante en la zona horaria del servidor.
 types.setTypeParser(1082, (value) => value);
 const {
@@ -54,7 +55,7 @@ const testConnection = async () => {
     isConnected = true;
     return true;
   } catch (error) {
-    console.error('❌ Error conectando a PostgreSQL:', error.message);
+    console.error('❌ Error conectando a PostgreSQL:', details(error).message);
     isConnected = false;
     return false;
   } finally {
@@ -79,8 +80,8 @@ pool.on('error', (err) => {
   console.error('❌ Error inesperado en el pool de conexión:', err);
   console.error('Detalles:', {
     message: err.message,
-    code: err.code,
-    severity: err.severity,
+    code: details(err).code,
+    severity: details(err).severity,
   });
 });
 
@@ -113,13 +114,15 @@ const getConnection = async () => {
     const client = await pool.connect();
     return client;
   } catch (error) {
-    console.error('Error obteniendo conexión:', error.message);
+    console.error('Error obteniendo conexión:', details(error).message);
     throw error;
   }
 };
 
 /**
  * Ejecutar una query
+ * @param {string} text
+ * @param {unknown[]} [params]
  */
 const query = async (text, params) => {
   const start = Date.now();
@@ -135,13 +138,16 @@ const query = async (text, params) => {
 
     return result;
   } catch (error) {
-    console.error('Error en query:', { code: error.code });
+    console.error('Error en query:', { code: details(error).code });
     throw error;
   }
 };
 
 /**
  * Ejecutar una transacción
+ * @template T
+ * @param {(client: import('pg').PoolClient) => Promise<T>} callback
+ * @returns {Promise<T>}
  */
 const transaction = async (callback) => {
   const client = await getConnection();
@@ -155,9 +161,9 @@ const transaction = async (callback) => {
     try {
       await client.query('ROLLBACK');
     } catch (rollbackError) {
-      console.error('Error haciendo rollback:', rollbackError.message);
+      console.error('Error haciendo rollback:', details(rollbackError).message);
     }
-    console.error('Error en transacción:', error.message);
+    console.error('Error en transacción:', details(error).message);
     throw error;
   } finally {
     client.release();
@@ -184,18 +190,19 @@ const reconnect = async () => {
  */
 const close = async () => {
   try {
-    clearInterval(healthCheckTimer);
+    if (healthCheckTimer) clearInterval(healthCheckTimer);
     await pool.end();
     console.log('✓ Pool de conexiones cerrado correctamente');
     isConnected = false;
   } catch (error) {
-    console.error('Error cerrando pool:', error.message);
+    console.error('Error cerrando pool:', details(error).message);
     throw error;
   }
 };
 
 /**
  * Verificar estado de la BD periódicamente
+ * @param {number} interval
  */
 const startHealthCheck = (interval) => {
   return setInterval(async () => {
@@ -225,12 +232,13 @@ const healthCheckTimer = ENABLE_HEALTH_CHECK ? startHealthCheck(HEALTH_CHECK_INT
 // EXPORTAR
 // ============================================
 
-module.exports = pool;
-module.exports.getConnection = getConnection;
-module.exports.query = query;
-module.exports.transaction = transaction;
-module.exports.getPoolStats = getPoolStats;
-module.exports.isReady = isReady;
-module.exports.reconnect = reconnect;
-module.exports.close = close;
-module.exports.testConnection = testConnection;
+module.exports = Object.assign(pool, {
+  getConnection,
+  query,
+  transaction,
+  getPoolStats,
+  isReady,
+  reconnect,
+  close,
+  testConnection,
+});

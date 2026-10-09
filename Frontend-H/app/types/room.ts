@@ -1,70 +1,23 @@
+import type { components } from './generated/api';
 /**
  * Tipos de habitaciones
  */
 
-export type RoomStatus = "available" | "occupied" | "maintenance" | "reserved";
+export type RoomStatus = components['schemas']['RoomStatus'];
 
-export interface RoomType {
-  id: number;
-  name: string;
-  description: string | null;
-  price: string;
-  capacity: number;
-  amenities: string | null;
-  image: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type RoomType = components['schemas']['RoomType'];
 
-export interface CreateRoomTypeRequest {
-  name: string;
-  description?: string;
-  price: number;
-  capacity: number;
-  amenities?: string;
-  image?: string;
-}
+export type CreateRoomTypeRequest = components['schemas']['CreateRoomTypeRequest'];
 
-export interface UpdateRoomTypeRequest {
-  name?: string;
-  description?: string;
-  price?: number;
-  capacity?: number;
-  amenities?: string;
-  image?: string;
-  is_active?: boolean;
-}
+export type UpdateRoomTypeRequest = components['schemas']['UpdateRoomTypeRequest'];
 
-export interface Room {
-  id: number;
-  number: string;
-  room_type_id: number;
-  room_type_name?: string;
-  floor: number | null;
-  status: RoomStatus;
-  price?: string;
-  capacity?: number;
-  created_at: string;
-  updated_at: string;
-}
+export type Room = components['schemas']['Room'];
 
-export interface CreateRoomRequest {
-  number: string;
-  room_type_id: number;
-  floor?: number;
-}
+export type CreateRoomRequest = components['schemas']['CreateRoomRequest'];
 
-export interface UpdateRoomRequest {
-  number?: string;
-  room_type_id?: number;
-  floor?: number;
-  status?: RoomStatus;
-}
+export type UpdateRoomRequest = components['schemas']['UpdateRoomRequest'];
 
-export interface UpdateRoomStatusRequest {
-  status: RoomStatus;
-}
+export type UpdateRoomStatusRequest = components['schemas']['UpdateRoomStatusRequest'];
 
 export interface OccupancyStats {
   total_rooms: string;

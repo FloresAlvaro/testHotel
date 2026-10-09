@@ -36,7 +36,7 @@ export const useAuth = () => {
    * Cerrar sesión
    */
   const logout = () => {
-    authService.logout();
+    return authService.logout();
   };
 
   /**
@@ -116,7 +116,7 @@ export const useAuth = () => {
    * Verificar si la sesión es válida
    */
   const isSessionValid = () => {
-    return isAuthenticated.value && user.value && token.value;
+    return Boolean(isAuthenticated.value && user.value);
   };
 
   /**
@@ -134,9 +134,9 @@ export const useAuth = () => {
   /**
    * Cerrar sesión y redirigir
    */
-  const logoutAndRedirect = () => {
-    logout();
-    router.push("/auth/login");
+  const logoutAndRedirect = async () => {
+    await logout();
+
   };
 
   return {

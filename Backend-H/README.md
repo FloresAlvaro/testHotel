@@ -7,8 +7,9 @@ a la misma transacción.
 
 ## Comportamiento y permisos
 
-- `POST /api/users/register` requiere autenticación y rol `admin`. Las cuentas se crean desde la
-  administración de usuarios; el registro público ya no está permitido. El primer administrador
+- Las cuentas se invitan desde la administración de usuarios mediante `/api/account/invitations`.
+  `POST /api/users/register` requiere rol `admin` y se conserva por compatibilidad; el registro
+  público no está permitido. El primer administrador
   se provisiona mediante el procedimiento de instalación o el seed de desarrollo.
 - Las entradas y salidas se registran mediante `/api/check-in` y `/api/check-in/check-out`.
   Actualizar una reserva no permite sustituir esos procesos.
@@ -33,7 +34,7 @@ a la misma transacción.
   correcciones automáticas de ESLint.
 - `npm run format` formatea el backend con Prettier; `npm run format:check` verifica el formato
   sin modificar archivos.
-- `npm run check` ejecuta lint, comprobación de formato y pruebas. Requiere las variables
+- `npm run check` ejecuta lint, formato, tipos, contrato generado y pruebas. Requiere las variables
   `DATABASE_URL` y `JWT_SECRET`; para pruebas usa valores aislados, como los del ejemplo siguiente.
 - `.github/workflows/checks.yml` ejecuta las verificaciones en cada push y pull request.
   El backend se prueba con PostgreSQL temporal; el frontend ejecuta lint, tipos y pruebas de UI.
@@ -62,3 +63,7 @@ docker rm --force hotel-backend-review-db
 
 Espera a que PostgreSQL esté listo antes de ejecutar las pruebas. La suite crea y reinicia el
 esquema `backend_review_test` dentro de esa base. Nunca apuntes esta variable a una base real.
+
+## Nuevos flujos de cuenta y operaciones
+
+Consulta [OPERATIONS.md](OPERATIONS.md) para configurar cookies y correo, invitar empleados, generar el contrato compartido y crear copias PostgreSQL con restauración verificada.

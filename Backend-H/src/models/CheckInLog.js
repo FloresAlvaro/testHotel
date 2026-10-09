@@ -4,6 +4,7 @@ class CheckInLog {
   /**
    * Crear registro de check-in
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async create(checkInData, client = pool) {
     const { reservation_id, user_id, check_in_time, notes } = checkInData;
 
@@ -39,6 +40,7 @@ class CheckInLog {
   /**
    * Obtener log por reserva
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async findByReservationId(reservationId, client = pool, forUpdate = false) {
     const query = `
       SELECT * FROM check_in_log
@@ -71,6 +73,7 @@ class CheckInLog {
   /**
    * Registrar check-out
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async updateCheckOut(checkInLogId, checkOutTime, client = pool) {
     const query = `
       UPDATE check_in_log

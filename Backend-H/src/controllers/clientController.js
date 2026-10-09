@@ -1,3 +1,4 @@
+const ClientService = require('../services/clientService');
 const Client = require('../models/Client');
 const {
   sendSuccess,
@@ -16,57 +17,11 @@ class ClientController {
    */
   static async create(req, res, next) {
     try {
-      const {
-        name,
-        document,
-        document_type,
-        email,
-        phone,
-        address,
-        city,
-        country,
-        nationality,
-        date_of_birth,
-        gender,
-        emergency_contact,
-        emergency_phone,
-        notes,
-      } = req.body;
-
-      // Validaciones
-      if (!name || !document) {
-        return sendError(res, 'Nombre y documento son requeridos', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      // Verificar si documento ya existe
-      const existingClient = await Client.findByDocument(document);
-      if (existingClient) {
-        return sendError(res, ERROR_MESSAGES.DOCUMENT_ALREADY_EXISTS, HTTP_STATUS.CONFLICT);
-      }
-
-      // Crear cliente
-      const client = await Client.create({
-        name,
-        document,
-        document_type,
-        email,
-        phone,
-        address,
-        city,
-        country,
-        nationality,
-        date_of_birth,
-        gender,
-        emergency_contact,
-        emergency_phone,
-        notes,
-      });
-
-      sendCreated(res, client, SUCCESS_MESSAGES.CLIENT_CREATED);
+      const created = await ClientService.create(req.body);
+      sendCreated(res, created, SUCCESS_MESSAGES.CLIENT_CREATED);
     } catch (error) {
-      if (error.message.includes('documento')) {
-        return sendError(res, ERROR_MESSAGES.DOCUMENT_ALREADY_EXISTS, HTTP_STATUS.CONFLICT);
-      }
+      if (error.statusCode && error.statusCode < 500)
+        return sendError(res, error.message, error.statusCode);
       next(error);
     }
   }
@@ -112,18 +67,8 @@ class ClientController {
    */
   static async update(req, res, next) {
     try {
-      const { id } = req.params;
-
-      // Verificar que existe
-      const client = await Client.findById(id);
-      if (!client) {
-        return sendError(res, ERROR_MESSAGES.CLIENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      // Actualizar
-      const updatedClient = await Client.update(id, { ...client, ...req.body });
-
-      sendUpdated(res, updatedClient, SUCCESS_MESSAGES.CLIENT_UPDATED);
+      const updated = await ClientService.update(req.params.id, req.body);
+      sendUpdated(res, updated, SUCCESS_MESSAGES.CLIENT_UPDATED);
     } catch (error) {
       next(error);
     }
@@ -134,15 +79,7 @@ class ClientController {
    */
   static async delete(req, res, next) {
     try {
-      const { id } = req.params;
-
-      const client = await Client.findById(id);
-      if (!client) {
-        return sendError(res, ERROR_MESSAGES.CLIENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-      }
-
-      await Client.delete(id);
-
+      await ClientService.remove(req.params.id);
       sendDeleted(res, SUCCESS_MESSAGES.CLIENT_DELETED);
     } catch (error) {
       next(error);

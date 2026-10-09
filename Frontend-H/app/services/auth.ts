@@ -1,5 +1,5 @@
 import { useApiClient } from "./api";
-import type { RegisterRequest, UserRole } from "~/types";
+import type { UserRole } from "~/types";
 
 /**
  * Servicio de autenticación
@@ -46,32 +46,13 @@ export const useAuthService = () => {
     }
   };
 
-  const register = async (
-    data: Pick<RegisterRequest, "name" | "email" | "password">,
-  ) => {
+  const logout = async () => {
     try {
-      uiStore.setLoading(true);
-      const response = await api.register(data);
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "No se pudo crear la cuenta");
-      }
-      authStore.setAuth(response.data.user, response.data.token);
-      uiStore.success("Cuenta creada correctamente");
-      return response.data;
-    } catch (error: unknown) {
-      uiStore.error(
-        error instanceof Error ? error.message : "No se pudo crear la cuenta",
-      );
-      throw error;
-    } finally {
-      uiStore.setLoading(false);
-    }
-  };
-
-  const logout = () => {
-    authStore.logout();
-    router.push("/auth/login");
-    uiStore.success("Sesión cerrada");
+      await api.logoutSession();
+      authStore.logout();
+      await router.push('/auth/login');
+      uiStore.success('Sesión cerrada');
+    } catch { uiStore.error('No se pudo cerrar la sesión. Comprueba la conexión e inténtalo de nuevo.'); }
   };
 
   const getProfile = async () => {
@@ -99,7 +80,6 @@ export const useAuthService = () => {
 
   return {
     login,
-    register,
     logout,
     getProfile,
     hasRole,

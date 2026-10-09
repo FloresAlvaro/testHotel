@@ -12,7 +12,14 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test:ci": "jest --ci --runInBand",
-    "check": "npm run lint && npm run format:check && npm run test:ci"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run api:check && npm run test:ci",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.compat.json",
+    "api:generate": "node scripts/generate-api.cjs",
+    "api:check": "node scripts/generate-api.cjs --check",
+    "migrate": "node scripts/migrate.cjs",
+    "backup": "node scripts/backup.cjs create",
+    "backup:watch": "node scripts/backup-watch.cjs",
+    "backup:verify": "node scripts/backup.cjs verify"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -24,16 +31,24 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "nodemailer": "^10.0.16",
     "pg": "^8.10.0",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
     "jest": "^29.7.0",
     "nodemon": "^3.0.1",
-    "prettier": "^3.9.9"
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3"
   }
 }

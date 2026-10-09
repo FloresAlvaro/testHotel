@@ -1,5 +1,5 @@
 const express = require('express');
-const rateLimit = require('express-rate-limit');
+const { rateLimit } = require('express-rate-limit');
 const UserController = require('../controllers/userController');
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/authorization');

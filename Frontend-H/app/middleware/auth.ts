@@ -9,10 +9,13 @@ export default defineNuxtRouteMiddleware((to) => {
     "/auth/login",
     "/auth/register",
     "/auth/forgot-password",
+    "/auth/accept-invitation",
+    "/auth/reset-password",
   ];
 
   if (import.meta.server) return;
 
+  if (["/auth/accept-invitation", "/auth/reset-password"].includes(to.path)) return;
   const authStore = useAuthStore();
 
   // ==================== LÓGICA ====================
@@ -35,9 +38,4 @@ export default defineNuxtRouteMiddleware((to) => {
     });
   }
 
-  // Si está autenticado pero el token es inválido
-  if (authStore.isAuthenticated && !authStore.token) {
-    authStore.logout();
-    return navigateTo("/auth/login");
-  }
 });

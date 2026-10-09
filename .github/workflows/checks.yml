@@ -49,6 +49,7 @@ jobs:
           cache-dependency-path: Backend-H/package-lock.json
       - run: npm ci
       - run: npm run check
+      - run: npm run backup -- --container ${{ job.services.postgres.id }}
 
   frontend:
     name: Frontend - lint, tipos y pruebas de UI

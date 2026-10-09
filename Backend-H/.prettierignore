@@ -2,3 +2,5 @@ node_modules/
 coverage/
 package-lock.json
 *.log
+openapi.json
+src/types/api.d.ts

@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
+const { default: helmet } = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
+const { rateLimit } = require('express-rate-limit');
 const swaggerUi = require('swagger-ui-express');
 const errorHandler = require('./middleware/errorHandler');
 const routes = require('./routes');
@@ -15,9 +15,11 @@ const {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_REQUESTS,
   LOG_FORMAT,
+  TRUST_PROXY,
 } = require('./config/environment');
 
 const app = express();
+app.set('trust proxy', TRUST_PROXY);
 app.use(requestId);
 
 // Registrar también solicitudes rechazadas por CORS o por el límite de solicitudes.
@@ -59,6 +61,9 @@ const limiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
   max: RATE_LIMIT_MAX_REQUESTS,
   skip: (req) => req.path === '/users/login',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiadas solicitudes. Intenta nuevamente más tarde.' },
 });
 app.use('/api/', limiter);
 

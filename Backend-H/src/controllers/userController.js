@@ -1,3 +1,5 @@
+const AuthService = require('../services/authService');
+const { cookieName, cookieOptions } = require('../config/auth');
 const UserService = require('../services/userService');
 const User = require('../models/User');
 const {
@@ -5,12 +7,9 @@ const {
   sendCreated,
   sendUpdated,
   sendError,
-  sendLoginSuccess,
-  sendLoginFailed,
   sendPaginated,
 } = require('../utils/response');
 const { getPaginationParams } = require('../utils/helpers');
-const { createToken } = require('../utils/jwt');
 const {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
@@ -45,10 +44,7 @@ class UserController {
         role: USER_ROLES.RECEPTIONIST,
       });
 
-      // Generar token
-      const token = createToken({ id: user.id, email: user.email, role: user.role });
-
-      sendCreated(res, { user, token }, SUCCESS_MESSAGES.USER_CREATED);
+      sendCreated(res, { user }, SUCCESS_MESSAGES.USER_CREATED);
     } catch (error) {
       next(error);
     }
@@ -59,30 +55,12 @@ class UserController {
    */
   static async login(req, res, next) {
     try {
-      const { email, password } = req.body;
-
-      if (!email || !password) {
-        return sendError(res, 'Email y contraseña son requeridos', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      // Verificar credenciales
-      const user = await User.verifyPassword(email, password);
-      if (!user) {
-        return sendLoginFailed(res);
-      }
-
-      // Verificar si el usuario está activo
-      if (!user.is_active) {
-        return sendError(res, ERROR_MESSAGES.USER_INACTIVE, HTTP_STATUS.FORBIDDEN);
-      }
-
-      // Generar token
-      const token = createToken({ id: user.id, email: user.email, role: user.role });
-
-      // Remover contraseña de la respuesta
-      delete user.password;
-
-      sendLoginSuccess(res, user, token);
+      const result = await AuthService.login(req.body.email, req.body.password, {
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+      res.cookie(cookieName, result.token, { ...cookieOptions, expires: result.expires });
+      sendSuccess(res, { user: result.user }, HTTP_STATUS.OK, 'Sesión iniciada correctamente');
     } catch (error) {
       next(error);
     }
@@ -158,36 +136,13 @@ class UserController {
    */
   static async changePassword(req, res, next) {
     try {
-      const { id } = req.params;
-      const { currentPassword, newPassword, confirmPassword } = req.body;
-
-      // Validaciones
-      if (!currentPassword || !newPassword || !confirmPassword) {
-        return sendError(res, 'Todos los campos son requeridos', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      if (newPassword !== confirmPassword) {
-        return sendError(res, 'Las contraseñas no coinciden', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      if (newPassword.length < 8) {
-        return sendError(
-          res,
-          'La contraseña debe tener al menos 8 caracteres',
-          HTTP_STATUS.BAD_REQUEST,
-        );
-      }
-
-      // Verificar contraseña actual
-      const isValid = await User.verifyPassword(id, currentPassword);
-      if (!isValid) {
-        return sendError(res, 'Contraseña actual incorrecta', HTTP_STATUS.UNAUTHORIZED);
-      }
-
-      // Cambiar contraseña
-      const user = await User.updatePassword(id, newPassword);
-
-      sendSuccess(res, user, HTTP_STATUS.OK, 'Contraseña actualizada exitosamente');
+      await AuthService.changePassword(
+        req.params.id,
+        req.body.currentPassword,
+        req.body.newPassword,
+      );
+      if (Number(req.params.id) === req.user.id) res.clearCookie(cookieName, cookieOptions);
+      sendSuccess(res, null, HTTP_STATUS.OK, 'Contraseña actualizada. Inicia sesión nuevamente.');
     } catch (error) {
       next(error);
     }

@@ -15,6 +15,7 @@ const router = express.Router();
 
 // Rutas públicas
 router.use('/users', userRoutes);
+router.use('/account', require('./account').router);
 
 // Rutas protegidas
 router.use('/clients', auth, clientRoutes);

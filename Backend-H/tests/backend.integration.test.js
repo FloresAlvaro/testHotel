@@ -30,7 +30,8 @@ integration('Backend con PostgreSQL aislado', () => {
       method,
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Origin: 'http://localhost:3001',
+        ...(token ? { Cookie: token } : {}),
       },
       ...(body !== undefined
         ? { body: typeof body === 'string' ? body : JSON.stringify(body) }
@@ -38,6 +39,280 @@ integration('Backend con PostgreSQL aislado', () => {
     });
     return { status: response.status, headers: response.headers, body: await response.json() };
   };
+  test('HTTP: invitación solo administrativa, activación, validación y recuperación', async () => {
+    const mail = require('../src/services/mailService');
+    const configured = jest.spyOn(mail, 'configured').mockReturnValue(true);
+    const send = jest.spyOn(mail, 'sendLink').mockResolvedValue(true);
+    try {
+      const login = await request('/users/login', 'POST', {
+        email: 'admin@example.com',
+        password: 'Review123!',
+      });
+      const adminCookie = login.headers.get('set-cookie').split(';')[0];
+      const invitation = await request(
+        '/account/invitations',
+        'POST',
+        { name: 'Employee', email: 'http@example.com' },
+        adminCookie,
+      );
+      expect(invitation.status).toBe(201);
+      const actionToken = new URLSearchParams(
+        new URL(invitation.body.data.invitationUrl).hash.slice(1),
+      ).get('token');
+      expect(
+        (
+          await request('/account/accept-invitation', 'POST', {
+            token: actionToken,
+            password: 'Chosen123!',
+            confirmPassword: 'Mismatch123!',
+          })
+        ).status,
+      ).toBe(422);
+      expect(
+        (
+          await request('/account/accept-invitation', 'POST', {
+            token: actionToken,
+            password: 'Chosen123!',
+            confirmPassword: 'Chosen123!',
+          })
+        ).status,
+      ).toBe(200);
+      const employeeLogin = await request('/users/login', 'POST', {
+        email: 'http@example.com',
+        password: 'Chosen123!',
+      });
+      const employeeCookie = employeeLogin.headers.get('set-cookie').split(';')[0];
+      expect(
+        (
+          await request(
+            '/account/invitations',
+            'POST',
+            { name: 'Forbidden', email: 'forbidden@example.com' },
+            employeeCookie,
+          )
+        ).status,
+      ).toBe(403);
+      const known = await request('/account/forgot-password', 'POST', {
+        email: 'http@example.com',
+      });
+      const unknown = await request('/account/forgot-password', 'POST', {
+        email: 'unknown@example.com',
+      });
+      expect(known.status).toBe(200);
+      expect(unknown.body.message).toBe(known.body.message);
+      const link = send.mock.calls.find((call) => call[2] === 'reset')[1];
+      const token = new URLSearchParams(new URL(link).hash.slice(1)).get('token');
+      expect(
+        (
+          await request('/account/reset-password', 'POST', {
+            token,
+            password: 'Changed123!',
+            confirmPassword: 'Changed123!',
+          })
+        ).status,
+      ).toBe(200);
+      expect((await request('/users/profile', 'GET', undefined, employeeCookie)).status).toBe(401);
+      const denied = await fetch(`http://127.0.0.1:${server.address().port}/api/account/logout`, {
+        method: 'POST',
+        headers: { Cookie: adminCookie },
+      });
+      expect(denied.status).toBe(403);
+      expect(await denied.json()).toMatchObject({ success: false, requestId: expect.any(String) });
+      const missing = await request('/missing');
+      expect(missing.body).toMatchObject({ success: false, requestId: expect.any(String) });
+    } finally {
+      configured.mockRestore();
+      send.mockRestore();
+    }
+  });
+  test('limpieza elimina caducados antiguos y conserva sesiones activas', async () => {
+    const service = require('../src/services/authService');
+    const jwt = require('../src/utils/jwt');
+    const old = await service.login('admin@example.com', 'Review123!', actor());
+    const active = await service.login('admin@example.com', 'Review123!', actor());
+    await database.query(
+      "UPDATE auth_session SET expires_at = CURRENT_TIMESTAMP - INTERVAL '31 days' WHERE id = $1",
+      [jwt.verifyToken(old.token).sid],
+    );
+    await database.query(
+      "INSERT INTO auth_action_token(token_hash,user_id,purpose,expires_at) VALUES ($1,$2,'reset',CURRENT_TIMESTAMP - INTERVAL '1 minute')",
+      ['f'.repeat(64), fixture.admin.id],
+    );
+    expect(await require('../src/services/authMaintenanceService').cleanup()).toMatchObject({
+      tokens: 1,
+      sessions: 1,
+    });
+    expect(
+      await require('../src/services/sessionService').valid(
+        jwt.verifyToken(active.token).sid,
+        fixture.admin.id,
+      ),
+    ).toBe(true);
+  });
+  test('actualizaciones simultáneas conservan campos independientes', async () => {
+    const clients = require('../src/services/clientService');
+    const types = require('../src/services/roomTypeService');
+    await Promise.all([
+      clients.update(fixture.client.id, { nationality: 'Boliviana' }),
+      clients.update(fixture.client.id, { notes: 'Concurrent' }),
+    ]);
+    expect(await Client.findById(fixture.client.id)).toMatchObject({
+      nationality: 'Boliviana',
+      notes: 'Concurrent',
+    });
+    await Promise.all([
+      types.update(fixture.type.id, { capacity: 3 }),
+      types.update(fixture.type.id, { description: 'Concurrent' }),
+    ]);
+    expect(await require('../src/models/RoomType').findById(fixture.type.id)).toMatchObject({
+      capacity: 3,
+      description: 'Concurrent',
+    });
+  });
+  test('migraciones crean base vacía y son repetibles', async () => {
+    const { spawnSync } = require('node:child_process');
+    await database.query('CREATE SCHEMA backend_review_fresh');
+    try {
+      const url = new URL(integrationURL);
+      url.searchParams.set('options', '-c search_path=backend_review_fresh,public');
+      for (let i = 0; i < 2; i++) {
+        const child = spawnSync(
+          process.execPath,
+          [path.resolve(__dirname, '../scripts/migrate.cjs')],
+          {
+            env: { ...process.env, DATABASE_URL: url.toString() },
+            encoding: 'utf8',
+            timeout: 20000,
+          },
+        );
+        expect({ status: child.status, error: child.stderr }).toEqual({ status: 0, error: '' });
+      }
+      expect(
+        (
+          await database.query(
+            'SELECT count(*)::int AS count FROM backend_review_fresh.schema_migration',
+          )
+        ).rows[0].count,
+      ).toBe(4);
+    } finally {
+      await database.query('DROP SCHEMA backend_review_fresh CASCADE');
+    }
+  }, 45000);
+  test('migraciones reparan restricciones de instalaciones anteriores sin perder usuarios', async () => {
+    expect(
+      (
+        await database.query(
+          "SELECT count(*)::int AS count FROM pg_constraint WHERE conrelid = 'reservation'::regclass AND conname = 'reservation_no_room_overlap'",
+        )
+      ).rows[0].count,
+    ).toBe(1);
+    expect(await require('../src/models/User').findById(fixture.admin.id)).not.toBeNull();
+    expect(
+      (await database.query("SELECT to_regclass('idx_user_email') AS redundant")).rows[0].redundant,
+    ).toBeNull();
+  });
+  test('invitación: activación única y contraseña elegida por el empleado', async () => {
+    const service = require('../src/services/authService');
+    const invited = await service.invite(
+      { name: 'Nuevo empleado', email: 'invite@example.com', role: 'receptionist' },
+      actor(),
+    );
+    expect(invited.user.is_active).toBe(false);
+    const token = new URLSearchParams(new URL(invited.invitationUrl).hash.slice(1)).get('token');
+    await expect(service.login('invite@example.com', 'Invalid123!', actor())).rejects.toMatchObject(
+      { statusCode: 401 },
+    );
+    await service.consume(token, 'Chosen123!', 'invite');
+    await expect(service.consume(token, 'Chosen123!', 'invite')).rejects.toMatchObject({
+      statusCode: 400,
+    });
+    const login = await service.login('INVITE@example.com', 'Chosen123!', actor());
+    expect(login.user.is_active).toBe(true);
+    expect(login.user.password).toBeUndefined();
+  });
+  test('recuperación: token hash, caducidad, uso único y revocación de sesiones', async () => {
+    const service = require('../src/services/authService');
+    const sessions = require('../src/services/sessionService');
+    const jwt = require('../src/utils/jwt');
+    const mail = require('../src/services/mailService');
+    const configured = jest.spyOn(mail, 'configured').mockReturnValue(true);
+    const send = jest.spyOn(mail, 'sendLink').mockResolvedValue(true);
+    try {
+      const login = await service.login('admin@example.com', 'Review123!', actor());
+      const sid = jwt.verifyToken(login.token).sid;
+      await service.requestReset('unknown@example.com');
+      expect(send).not.toHaveBeenCalled();
+      await service.requestReset('admin@example.com');
+      const token = new URLSearchParams(new URL(send.mock.calls[0][1]).hash.slice(1)).get('token');
+      const stored = await database.query('SELECT token_hash FROM auth_action_token');
+      expect(stored.rows[0].token_hash).not.toBe(token);
+      await service.consume(token, 'Changed123!', 'reset');
+      expect(await sessions.valid(sid, fixture.admin.id)).toBe(false);
+      await expect(service.consume(token, 'Changed123!', 'reset')).rejects.toMatchObject({
+        statusCode: 400,
+      });
+      await service.login('admin@example.com', 'Changed123!', actor());
+      await service.requestReset('admin@example.com');
+      const expired = new URLSearchParams(new URL(send.mock.calls[1][1]).hash.slice(1)).get(
+        'token',
+      );
+      await database.query(
+        "UPDATE auth_action_token SET expires_at = CURRENT_TIMESTAMP - INTERVAL '1 minute'",
+      );
+      await expect(service.consume(expired, 'Changed123!', 'reset')).rejects.toMatchObject({
+        statusCode: 400,
+      });
+    } finally {
+      configured.mockRestore();
+      send.mockRestore();
+    }
+  });
+  test('sesiones: cookie HttpOnly, cierre remoto y aislamiento entre usuarios', async () => {
+    const login = await request('/users/login', 'POST', {
+      email: 'admin@example.com',
+      password: 'Review123!',
+    });
+    const cookie = login.headers.get('set-cookie');
+    expect(cookie).toContain('HttpOnly');
+    expect(login.body.data.token).toBeUndefined();
+    const token = cookie.split(';')[0];
+    const list = await request('/account/sessions', 'GET', undefined, token);
+    expect(list.status).toBe(200);
+    expect(list.body.data[0].current).toBe(true);
+    const User = require('../src/models/User');
+    const other = await User.create({
+      name: 'Other',
+      email: 'other@example.com',
+      password: 'Review123!',
+      role: 'receptionist',
+    });
+    const otherLogin = await require('../src/services/authService').login(
+      other.email,
+      'Review123!',
+      actor(),
+    );
+    const otherSid = require('../src/utils/jwt').verifyToken(otherLogin.token).sid;
+    expect(
+      (await request(`/account/sessions/${otherSid}`, 'DELETE', undefined, token)).status,
+    ).toBe(404);
+    expect(await require('../src/services/sessionService').valid(otherSid, other.id)).toBe(true);
+    expect((await request('/account/logout-all', 'POST', {}, token)).status).toBe(200);
+    expect((await request('/users/profile', 'GET', undefined, token)).status).toBe(401);
+  });
+  test('migraciones idempotentes y cambio de contraseña invalida sesiones anteriores', async () => {
+    await require('../src/config/migrate')();
+    const service = require('../src/services/authService');
+    const sessions = require('../src/services/sessionService');
+    const login = await service.login('admin@example.com', 'Review123!', actor());
+    await service.changePassword(fixture.admin.id, 'Review123!', 'Changed123!');
+    expect(
+      await sessions.valid(
+        require('../src/utils/jwt').verifyToken(login.token).sid,
+        fixture.admin.id,
+      ),
+    ).toBe(false);
+    await service.login('admin@example.com', 'Changed123!', actor());
+  });
   beforeAll(async () => {
     const url = new URL(integrationURL);
     if (url.pathname !== '/review')
@@ -51,6 +326,10 @@ integration('Backend con PostgreSQL aislado', () => {
       await setup.query(
         fs.readFileSync(path.resolve(__dirname, '../../database/init/01-schema.sql'), 'utf8'),
       );
+      // Simula una instalación anterior a las restricciones de concurrencia.
+      await setup.query('ALTER TABLE reservation DROP CONSTRAINT reservation_no_room_overlap');
+      await setup.query('ALTER TABLE check_in_log DROP CONSTRAINT check_checkout_after_checkin');
+      await setup.query('DROP INDEX idx_one_checkin_per_reservation');
     } finally {
       await setup.end();
     }
@@ -59,8 +338,11 @@ integration('Backend con PostgreSQL aislado', () => {
     process.env.JWT_SECRET = 'isolated-integration-test-secret-at-least-32';
     process.env.NODE_ENV = 'test';
     process.env.ENABLE_HEALTH_CHECK = 'false';
+    process.env.FRONTEND_URL = 'http://localhost:3001';
+    process.env.CORS_ORIGIN = 'http://localhost:3001';
     database = require('../src/config/database');
     await database.testConnection();
+    await require('../src/config/migrate')();
     ReservationService = require('../src/services/reservationService');
     PaymentService = require('../src/services/paymentService');
     UserService = require('../src/services/userService');
@@ -73,7 +355,7 @@ integration('Backend con PostgreSQL aislado', () => {
   }, 30000);
   beforeEach(async () => {
     await database.query(
-      'TRUNCATE audit_log, check_in_log, payment, reservation, room, room_type, client, "user" RESTART IDENTITY CASCADE',
+      'TRUNCATE auth_session, auth_action_token, audit_log, check_in_log, payment, reservation, room, room_type, client, "user" RESTART IDENTITY CASCADE',
     );
     const User = require('../src/models/User');
     const RoomType = require('../src/models/RoomType');
@@ -295,7 +577,7 @@ integration('Backend con PostgreSQL aislado', () => {
       password: 'Review123!',
     });
     expect(login.status).toBe(200);
-    const token = login.body.data.token;
+    const token = login.headers.get('set-cookie').split(';')[0];
     expect((await request('/clients/not-an-id', 'GET', undefined, token)).status).toBe(422);
     expect(
       (

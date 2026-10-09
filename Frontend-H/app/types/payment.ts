@@ -1,67 +1,25 @@
+import type { components } from './generated/api';
 /**
  * Tipos de pagos
  */
 
-export type PaymentType = "full" | "partial" | "advance";
-export type PaymentMethod =
-  | "cash"
-  | "credit_card"
-  | "debit_card"
-  | "transfer"
-  | "check";
-export type PaymentStatus = "pending" | "completed" | "failed" | "refunded";
+export type PaymentType = components['schemas']['PaymentType'];
+export type PaymentMethod = components['schemas']['PaymentMethod'];
+export type PaymentStatus = components['schemas']['PaymentStatus'];
 
-export interface Payment {
-  id: number;
-  reservation_id: number;
-  amount: string;
-  type: PaymentType;
-  method: PaymentMethod;
-  status: PaymentStatus;
-  transaction_id?: string | null;
-  notes?: string | null;
-  client_name?: string;
-  check_in?: string;
-  created_at: string;
-  updated_at: string;
-}
+export type Payment = components['schemas']['Payment'];
 
-export interface CreatePaymentRequest {
-  reservation_id: number;
-  amount: number;
-  type: PaymentType;
-  method: PaymentMethod;
-  transaction_id?: string;
-  notes?: string;
-}
+export type CreatePaymentRequest = components['schemas']['CreatePaymentRequest'];
 
-export interface UpdatePaymentRequest {
-  amount?: number;
-  type?: PaymentType;
-  method?: PaymentMethod;
-  transaction_id?: string | null;
-}
+export type UpdatePaymentRequest = components['schemas']['UpdatePaymentRequest'];
 
-export interface UpdatePaymentStatusRequest {
-  status: PaymentStatus;
-}
+export type UpdatePaymentStatusRequest = components['schemas']['UpdatePaymentStatusRequest'];
 
-export interface RefundPaymentRequest {
-  reason?: string;
-}
+export type RefundPaymentRequest = components['schemas']['RefundPaymentRequest'];
 
-export interface RevenueReport {
-  date: string;
-  total_payments: string;
-  total_amount: string | null;
-  completed_payments: string;
-}
+export type RevenueReport = components['schemas']['RevenueReport'];
 
-export interface RevenueByMethod {
-  method: PaymentMethod;
-  total_transactions: string;
-  total_amount: string;
-}
+export type RevenueByMethod = components['schemas']['RevenueByMethod'];
 
 export interface PaymentStats {
   total_payments: string;

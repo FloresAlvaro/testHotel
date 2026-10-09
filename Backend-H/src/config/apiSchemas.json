@@ -1,0 +1,568 @@
+{
+  "UserRole": {
+    "type": "string",
+    "enum": ["admin", "receptionist", "manager"]
+  },
+  "User": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number"
+      },
+      "name": {
+        "type": "string"
+      },
+      "email": {
+        "type": "string"
+      },
+      "role": {
+        "$ref": "#/components/schemas/UserRole"
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      },
+      "password_setup_required": {
+        "type": "boolean"
+      }
+    },
+    "required": ["id", "name", "email", "role", "is_active", "created_at", "updated_at"]
+  },
+  "DocumentType": {
+    "type": "string",
+    "enum": ["cedula", "passport", "license", "other"]
+  },
+  "Gender": {
+    "type": "string",
+    "enum": ["M", "F"]
+  },
+  "Client": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number"
+      },
+      "name": {
+        "type": "string"
+      },
+      "document": {
+        "type": "string"
+      },
+      "document_type": {
+        "$ref": "#/components/schemas/DocumentType"
+      },
+      "email": {
+        "type": "string",
+        "nullable": true
+      },
+      "phone": {
+        "type": "string",
+        "nullable": true
+      },
+      "address": {
+        "type": "string",
+        "nullable": true
+      },
+      "city": {
+        "type": "string",
+        "nullable": true
+      },
+      "country": {
+        "type": "string",
+        "nullable": true
+      },
+      "nationality": {
+        "type": "string",
+        "nullable": true
+      },
+      "date_of_birth": {
+        "type": "string",
+        "nullable": true
+      },
+      "gender": {
+        "$ref": "#/components/schemas/Gender",
+        "nullable": true
+      },
+      "emergency_contact": {
+        "type": "string",
+        "nullable": true
+      },
+      "emergency_phone": {
+        "type": "string",
+        "nullable": true
+      },
+      "notes": {
+        "type": "string",
+        "nullable": true
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "document",
+      "document_type",
+      "email",
+      "phone",
+      "address",
+      "city",
+      "country",
+      "nationality",
+      "date_of_birth",
+      "gender",
+      "emergency_contact",
+      "emergency_phone",
+      "notes",
+      "is_active",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "RoomStatus": {
+    "type": "string",
+    "enum": ["available", "occupied", "maintenance", "reserved"]
+  },
+  "RoomType": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number"
+      },
+      "name": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string",
+        "nullable": true
+      },
+      "price": {
+        "type": "string"
+      },
+      "capacity": {
+        "type": "number"
+      },
+      "amenities": {
+        "type": "string",
+        "nullable": true
+      },
+      "image": {
+        "type": "string",
+        "nullable": true
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "description",
+      "price",
+      "capacity",
+      "amenities",
+      "image",
+      "is_active",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "Room": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number"
+      },
+      "number": {
+        "type": "string"
+      },
+      "room_type_id": {
+        "type": "number"
+      },
+      "room_type_name": {
+        "type": "string"
+      },
+      "floor": {
+        "type": "number",
+        "nullable": true
+      },
+      "status": {
+        "$ref": "#/components/schemas/RoomStatus"
+      },
+      "price": {
+        "type": "string"
+      },
+      "capacity": {
+        "type": "number"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      }
+    },
+    "required": ["id", "number", "room_type_id", "floor", "status", "created_at", "updated_at"]
+  },
+  "UpdateRoomStatusRequest": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "$ref": "#/components/schemas/RoomStatus"
+      }
+    },
+    "required": ["status"]
+  },
+  "ReservationStatus": {
+    "type": "string",
+    "enum": ["confirmed", "checked_in", "checked_out", "cancelled"]
+  },
+  "Reservation": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number"
+      },
+      "check_in": {
+        "type": "string"
+      },
+      "check_out": {
+        "type": "string"
+      },
+      "client_id": {
+        "type": "number"
+      },
+      "client_name": {
+        "type": "string"
+      },
+      "client_document": {
+        "type": "string",
+        "nullable": true
+      },
+      "client_phone": {
+        "type": "string",
+        "nullable": true
+      },
+      "client_email": {
+        "type": "string",
+        "nullable": true
+      },
+      "room_id": {
+        "type": "number"
+      },
+      "room_number": {
+        "type": "string"
+      },
+      "room_type_name": {
+        "type": "string"
+      },
+      "user_id": {
+        "type": "number"
+      },
+      "receptionist_name": {
+        "type": "string"
+      },
+      "total_price": {
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/components/schemas/ReservationStatus"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "check_in",
+      "check_out",
+      "client_id",
+      "room_id",
+      "user_id",
+      "total_price",
+      "status",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "CheckInLogData": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number"
+      },
+      "reservation_id": {
+        "type": "number"
+      },
+      "user_id": {
+        "type": "number"
+      },
+      "check_in_time": {
+        "type": "string",
+        "nullable": true
+      },
+      "check_out_time": {
+        "type": "string",
+        "nullable": true
+      },
+      "notes": {
+        "type": "string",
+        "nullable": true
+      },
+      "client_name": {
+        "type": "string"
+      },
+      "room_number": {
+        "type": "string"
+      },
+      "room_type_name": {
+        "type": "string"
+      },
+      "scheduled_checkout_date": {
+        "type": "string"
+      },
+      "total_price": {
+        "type": "string"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "reservation_id",
+      "user_id",
+      "check_in_time",
+      "check_out_time",
+      "notes",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "PaymentType": {
+    "type": "string",
+    "enum": ["full", "partial", "advance"]
+  },
+  "PaymentMethod": {
+    "type": "string",
+    "enum": ["cash", "credit_card", "debit_card", "transfer", "check"]
+  },
+  "PaymentStatus": {
+    "type": "string",
+    "enum": ["pending", "completed", "failed", "refunded"]
+  },
+  "Payment": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number"
+      },
+      "reservation_id": {
+        "type": "number"
+      },
+      "amount": {
+        "type": "string"
+      },
+      "type": {
+        "$ref": "#/components/schemas/PaymentType"
+      },
+      "method": {
+        "$ref": "#/components/schemas/PaymentMethod"
+      },
+      "status": {
+        "$ref": "#/components/schemas/PaymentStatus"
+      },
+      "transaction_id": {
+        "type": "string",
+        "nullable": true
+      },
+      "notes": {
+        "type": "string",
+        "nullable": true
+      },
+      "client_name": {
+        "type": "string"
+      },
+      "check_in": {
+        "type": "string"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "reservation_id",
+      "amount",
+      "type",
+      "method",
+      "status",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "UpdatePaymentStatusRequest": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "$ref": "#/components/schemas/PaymentStatus"
+      }
+    },
+    "required": ["status"]
+  },
+  "RefundPaymentRequest": {
+    "type": "object",
+    "properties": {
+      "reason": {
+        "type": "string"
+      }
+    }
+  },
+  "RevenueReport": {
+    "type": "object",
+    "properties": {
+      "date": {
+        "type": "string"
+      },
+      "total_payments": {
+        "type": "string"
+      },
+      "total_amount": {
+        "type": "string",
+        "nullable": true
+      },
+      "completed_payments": {
+        "type": "string"
+      }
+    },
+    "required": ["date", "total_payments", "total_amount", "completed_payments"]
+  },
+  "RevenueByMethod": {
+    "type": "object",
+    "properties": {
+      "method": {
+        "$ref": "#/components/schemas/PaymentMethod"
+      },
+      "total_transactions": {
+        "type": "string"
+      },
+      "total_amount": {
+        "type": "string"
+      }
+    },
+    "required": ["method", "total_transactions", "total_amount"]
+  },
+  "ApiPagination": {
+    "type": "object",
+    "properties": {
+      "total": {
+        "type": "number"
+      },
+      "page": {
+        "type": "number"
+      },
+      "pageSize": {
+        "type": "number"
+      },
+      "totalPages": {
+        "type": "number"
+      },
+      "hasNextPage": {
+        "type": "boolean"
+      },
+      "hasPreviousPage": {
+        "type": "boolean"
+      }
+    },
+    "required": ["total", "page", "pageSize", "totalPages", "hasNextPage", "hasPreviousPage"]
+  },
+  "LoginResponse": {
+    "type": "object",
+    "required": ["user"],
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/User"
+      },
+      "token": {
+        "type": "string",
+        "description": "Solo clientes Bearer; la aplicación web usa cookie HttpOnly."
+      }
+    }
+  },
+  "Invitation": {
+    "type": "object",
+    "required": ["user", "invitationUrl", "delivery"],
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/User"
+      },
+      "invitationUrl": {
+        "type": "string",
+        "format": "uri"
+      },
+      "delivery": {
+        "type": "string",
+        "enum": ["email", "manual"]
+      }
+    }
+  },
+  "Session": {
+    "type": "object",
+    "required": ["id", "created_at", "expires_at", "current"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "created_at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "expires_at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "current": {
+        "type": "boolean"
+      },
+      "user_agent": {
+        "type": "string",
+        "nullable": true
+      },
+      "ip_address": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  }
+}

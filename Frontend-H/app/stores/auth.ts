@@ -9,19 +9,19 @@ export const useAuthStore = defineStore("auth", () => {
   const error = ref<string | null>(null);
 
   // Computed
-  const isAuthenticated = computed(() => !!token.value && !!user.value);
+  const isAuthenticated = computed(() => !!user.value);
   const userRole = computed(() => user.value?.role || null);
   const isAdmin = computed(() => user.value?.role === "admin");
   const isManager = computed(() => user.value?.role === "manager");
   const isReceptionist = computed(() => user.value?.role === "receptionist");
 
   // Actions
-  const setAuth = (userData: User, userToken: string) => {
+  const setAuth = (userData: User, userToken?: string) => {
     user.value = userData;
-    token.value = userToken;
+    token.value = userToken || null;
     if (import.meta.client) {
-      localStorage.setItem("auth_token", userToken);
-      localStorage.setItem("auth_user", JSON.stringify(userData));
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
     }
   };
 
@@ -35,21 +35,15 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
-  const loadFromStorage = () => {
+  const loadFromStorage = async () => {
     if (!import.meta.client) return;
-
-    const storedToken = localStorage.getItem("auth_token");
-    const storedUser = localStorage.getItem("auth_user");
-
-    if (storedToken && storedUser) {
-      try {
-        token.value = storedToken;
-        user.value = JSON.parse(storedUser);
-      } catch (err) {
-        console.error("Error cargando auth desde storage:", err);
-        logout();
-      }
-    }
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    try {
+      const config = useRuntimeConfig();
+      const response = await $fetch<{ data: User }>('/users/profile', { baseURL: config.public.apiBase, credentials: 'include', retry: 0 });
+      user.value = response.data;
+    } catch { logout(); }
   };
 
   const clearError = () => {

@@ -9,7 +9,7 @@ const transitions = {
   failed: ['failed', 'pending'],
   refunded: ['refunded'],
 };
-const cents = (value) => Math.round(Number(value) * 100);
+const { cents } = require('../utils/money');
 const assertBalance = async (reservation, amount, client) => {
   const payments = await Payment.findByReservationId(reservation.id, client);
   const paid = payments

@@ -4,6 +4,7 @@ class AuditLog {
   /**
    * Crear registro de auditoría
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async create(auditData, client = pool) {
     const { user_id, action, table_name, record_id, old_value, new_value, ip_address } = auditData;
 

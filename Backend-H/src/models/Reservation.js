@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 
 class Reservation {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async getRoomState(roomId, client = pool) {
     const result = await client.query(
       `
@@ -11,9 +12,11 @@ class Reservation {
     );
     return result.rows[0];
   }
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async hasActiveStay(roomId, client = pool) {
     return (await this.getRoomState(roomId, client)).occupied;
   }
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async hasOverlap(roomId, start, end, excludeId, client = pool) {
     const result = await client.query(
       `
@@ -28,6 +31,7 @@ class Reservation {
   /**
    * Crear reserva
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async create(reservationData, client = pool) {
     const { check_in, check_out, client_id, room_id, user_id, total_price } = reservationData;
 
@@ -44,6 +48,7 @@ class Reservation {
   /**
    * Obtener reserva por ID
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async findById(id, client = pool, forUpdate = false) {
     const query = `
             SELECT r.*, c.name as client_name,
@@ -167,6 +172,7 @@ class Reservation {
   /**
    * Actualizar reserva
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async update(id, reservationData, client = pool) {
     const { check_in, check_out, total_price, status, notes } = reservationData;
 
@@ -186,6 +192,7 @@ class Reservation {
   /**
    * Cambiar estado de reserva
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async updateStatus(id, status, client = pool) {
     const query = `
       UPDATE reservation
@@ -201,6 +208,7 @@ class Reservation {
   /**
    * Cancelar reserva
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async cancel(id, client = pool) {
     return await this.updateStatus(id, 'cancelled', client);
   }

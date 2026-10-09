@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "types": ["node", "express"]
+  },
+  "include": [
+    "src/types/**/*.d.ts",
+    "src/utils/authTokens.js",
+    "src/utils/domainError.js",
+    "src/utils/money.js",
+    "src/config/auth.js",
+    "src/config/runtimeSettings.js",
+    "src/config/database.js",
+    "src/config/environment.js",
+    "src/services/sessionService.js",
+    "src/services/mailService.js",
+    "src/services/authMaintenanceService.js",
+    "src/middleware/authorization.js",
+    "src/utils/jwt.js",
+    "src/utils/errorDetails.js",
+    "src/middleware/requestId.js"
+  ]
+}

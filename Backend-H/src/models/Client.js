@@ -69,9 +69,10 @@ class Client {
   /**
    * Obtener cliente por ID
    */
-  static async findById(id, client = pool) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async findById(id, client = pool, forUpdate = false) {
     const query = `
-      SELECT * FROM client WHERE id = $1 AND is_active = true
+      SELECT * FROM client WHERE id = $1 AND is_active = true ${forUpdate ? 'FOR UPDATE' : ''}
     `;
 
     const result = await client.query(query, [id]);
@@ -129,7 +130,8 @@ class Client {
   /**
    * Actualizar cliente
    */
-  static async update(id, clientData) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async update(id, clientData, client = pool) {
     const {
       name,
       email,
@@ -156,7 +158,7 @@ class Client {
     `;
 
     try {
-      const result = await pool.query(query, [
+      const result = await client.query(query, [
         name,
         email || null,
         phone,
@@ -184,7 +186,8 @@ class Client {
   /**
    * Eliminar cliente (soft delete)
    */
-  static async delete(id) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async delete(id, client = pool) {
     const query = `
       UPDATE client
       SET is_active = false
@@ -192,7 +195,7 @@ class Client {
       RETURNING id, name, is_active
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 

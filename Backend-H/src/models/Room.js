@@ -27,6 +27,7 @@ class Room {
   /**
    * Obtener habitación por ID
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async findById(id, client = pool, forUpdate = false) {
     const query = `
       SELECT r.*, rt.name as room_type_name, rt.price
@@ -109,6 +110,7 @@ class Room {
   /**
    * Obtener habitaciones disponibles para fechas específicas
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async findAvailableForDates(checkIn, checkOut, roomTypeId = null, client = pool) {
     let query = `
       SELECT DISTINCT r.id, r.number, r.floor, r.status, 
@@ -140,6 +142,7 @@ class Room {
   /**
    * Actualizar habitación
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async update(id, roomData, client = pool) {
     const { number, room_type_id, floor, status } = roomData;
 
@@ -164,6 +167,7 @@ class Room {
   /**
    * Cambiar estado de habitación
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async updateStatus(id, status, client = pool) {
     const query = `
       UPDATE room

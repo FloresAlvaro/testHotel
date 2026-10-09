@@ -34,9 +34,10 @@ class RoomType {
   /**
    * Obtener tipo de habitación por ID
    */
-  static async findById(id, client = pool) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async findById(id, client = pool, forUpdate = false) {
     const query = `
-      SELECT * FROM room_type WHERE id = $1 AND is_active = true
+      SELECT * FROM room_type WHERE id = $1 AND is_active = true ${forUpdate ? 'FOR UPDATE' : ''}
     `;
 
     const result = await client.query(query, [id]);
@@ -84,7 +85,8 @@ class RoomType {
   /**
    * Actualizar tipo de habitación
    */
-  static async update(id, roomTypeData) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async update(id, roomTypeData, client = pool) {
     const { name, description, price, capacity, amenities, image } = roomTypeData;
 
     const query = `
@@ -96,7 +98,7 @@ class RoomType {
     `;
 
     try {
-      const result = await pool.query(query, [
+      const result = await client.query(query, [
         name,
         description,
         price,
@@ -117,7 +119,8 @@ class RoomType {
   /**
    * Desactivar tipo de habitación
    */
-  static async deactivate(id) {
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
+  static async deactivate(id, client = pool) {
     const query = `
       UPDATE room_type
       SET is_active = false
@@ -125,7 +128,7 @@ class RoomType {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 

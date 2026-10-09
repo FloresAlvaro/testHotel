@@ -1,3 +1,4 @@
+/** @type {import('../types/openapi').Document} */
 const swaggerSpec = {
   openapi: '3.0.3',
   info: {
@@ -695,4 +696,252 @@ const swaggerSpec = {
   },
 };
 
+const { components, paths } = swaggerSpec;
+const schemas = require('./apiSchemas.json');
+Object.assign(components.schemas, schemas);
+const fromJoi = require('./joiSchema');
+const requestModels = [
+  ['user', 'registerSchema', 'RegisterRequest'],
+  ['user', 'loginSchema', 'LoginRequest'],
+  ['user', 'changePasswordSchema', 'ChangePasswordRequest'],
+  ['user', 'updateSchema', 'UpdateUserRequest'],
+  ['client', 'createSchema', 'CreateClientRequest'],
+  ['client', 'updateSchema', 'UpdateClientRequest'],
+  ['room', 'createSchema', 'CreateRoomRequest'],
+  ['room', 'updateSchema', 'UpdateRoomRequest'],
+  ['roomType', 'createSchema', 'CreateRoomTypeRequest'],
+  ['roomType', 'updateSchema', 'UpdateRoomTypeRequest'],
+  ['reservation', 'createSchema', 'CreateReservationRequest'],
+  ['reservation', 'updateSchema', 'UpdateReservationRequest'],
+  ['payment', 'createSchema', 'CreatePaymentRequest'],
+  ['payment', 'updateSchema', 'UpdatePaymentRequest'],
+  ['payment', 'updateStatusSchema', 'PaymentStatusRequest'],
+  ['account', 'inviteSchema', 'InviteRequest'],
+  ['account', 'consumeSchema', 'PasswordTokenRequest'],
+  ['account', 'resetSchema', 'ForgotPasswordRequest'],
+];
+for (const [module, field, name] of requestModels)
+  components.schemas[name] = fromJoi(require(`../validators/${module}Validator`)[field]);
+const ref = (name) => ({ $ref: '#/components/schemas/' + name });
+/** @param {string} name @returns {import('../types/openapi').Response} */
+const response = (name) => ({
+  description: 'Operación exitosa',
+  content: {
+    'application/json': {
+      schema: {
+        type: 'object',
+        required: ['success', 'message', 'data'],
+        properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: ref(name) },
+      },
+    },
+  },
+});
+const account = (method, summary, requestSchema, dataSchema, secured = false) => ({
+  [method]: {
+    tags: ['Users'],
+    summary,
+    ...(secured ? { security: [{ bearerAuth: [] }, { cookieAuth: [] }] } : {}),
+    ...(requestSchema
+      ? {
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: ref(requestSchema) } },
+          },
+        }
+      : {}),
+    responses: {
+      200: dataSchema ? response(dataSchema) : { description: 'Operación exitosa' },
+      401: { description: 'Sesión inválida' },
+      422: { description: 'Datos inválidos' },
+    },
+  },
+});
+components.securitySchemes.cookieAuth = {
+  type: 'apiKey',
+  in: 'cookie',
+  name: 'hotel_session',
+};
+Object.assign(paths, {
+  '/api/account/invitations': account(
+    'post',
+    'Invitar empleado (solo admin)',
+    'InviteRequest',
+    'Invitation',
+    true,
+  ),
+  '/api/account/accept-invitation': account(
+    'post',
+    'Activar cuenta con enlace de un solo uso',
+    'PasswordTokenRequest',
+  ),
+  '/api/account/forgot-password': account(
+    'post',
+    'Solicitar recuperación por correo',
+    'ForgotPasswordRequest',
+  ),
+  '/api/account/reset-password': account('post', 'Restablecer contraseña', 'PasswordTokenRequest'),
+  '/api/account/sessions': account('get', 'Listar sesiones propias', null, null, true),
+  '/api/account/sessions/{sessionId}': {
+    ...account('delete', 'Revocar una sesión propia', null, null, true),
+    parameters: [
+      { name: 'sessionId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+    ],
+  },
+  '/api/account/logout': account('post', 'Cerrar sesión actual', null, null, true),
+  '/api/account/logout-all': account('post', 'Cerrar todas las sesiones propias', null, null, true),
+});
+paths['/api/users/login'].post.responses[200] = response('LoginResponse');
+paths['/api/users/login'].post.requestBody.content['application/json'].schema = ref('LoginRequest');
+paths['/api/users/register'].post.requestBody.content['application/json'].schema =
+  ref('RegisterRequest');
+paths['/api/account/invitations'].post.responses[201] = response('Invitation');
+delete paths['/api/account/invitations'].post.responses[200];
+paths['/api/account/sessions'].get.responses[200] = response('Session');
+paths['/api/account/sessions'].get.responses[200].content[
+  'application/json'
+].schema.properties.data = { type: 'array', items: ref('Session') };
+paths['/api/users/register'].post.deprecated = true;
+/** @type {Array<'get' | 'post' | 'put' | 'patch' | 'delete'>} */
+const methods = ['get', 'post', 'put', 'patch', 'delete'];
+for (const item of Object.values(paths))
+  for (const method of methods) {
+    const op = item[method];
+    if (!op || typeof op !== 'object') continue;
+    if (op.security) op.security = [{ bearerAuth: [] }, { cookieAuth: [] }];
+    const schema = op.requestBody?.content?.['application/json']?.schema;
+    if (schema?.$ref) {
+      const map = {
+        Client: 'CreateClientRequest',
+        Reservation: 'CreateReservationRequest',
+        Payment: 'CreatePaymentRequest',
+      };
+      const name = schema.$ref.split('/').pop();
+      if (map[name]) schema.$ref = '#/components/schemas/' + map[name];
+    }
+  }
+components.schemas.Error.properties.requestId = { type: 'string', format: 'uuid' };
+components.schemas.Error.required = ['success', 'message', 'requestId'];
+paths['/api/payments/{id}'] = {
+  parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+  get: {
+    tags: ['Payments'],
+    summary: 'Obtener pago',
+    security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+    responses: { 200: response('Payment') },
+  },
+  put: {
+    tags: ['Payments'],
+    summary: 'Actualizar pago pendiente',
+    security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+    responses: { 200: response('Payment') },
+  },
+};
+for (const [path, method, name] of [
+  ['/api/users/{id}', 'put', 'UpdateUserRequest'],
+  ['/api/users/{id}/password', 'patch', 'ChangePasswordRequest'],
+  ['/api/clients', 'post', 'CreateClientRequest'],
+  ['/api/clients/{id}', 'put', 'UpdateClientRequest'],
+  ['/api/rooms', 'post', 'CreateRoomRequest'],
+  ['/api/rooms/{id}', 'put', 'UpdateRoomRequest'],
+  ['/api/room-types', 'post', 'CreateRoomTypeRequest'],
+  ['/api/room-types/{id}', 'put', 'UpdateRoomTypeRequest'],
+  ['/api/reservations', 'post', 'CreateReservationRequest'],
+  ['/api/reservations/{id}', 'put', 'UpdateReservationRequest'],
+  ['/api/payments', 'post', 'CreatePaymentRequest'],
+  ['/api/payments/{id}', 'put', 'UpdatePaymentRequest'],
+  ['/api/payments/{id}/status', 'patch', 'PaymentStatusRequest'],
+]) {
+  const operation = paths[path]?.[method];
+  if (!operation) throw new Error(`Falta documentación para ${method} ${path}`);
+  operation.requestBody = {
+    required: true,
+    content: { 'application/json': { schema: ref(name) } },
+  };
+}
+const readEndpoints = /** @type {Array<[string, string, (string | null)?, boolean?]>} */ ([
+  ['/api/users', 'Listar empleados (solo admin)', 'User', true],
+  ['/api/users/search', 'Buscar empleados (solo admin)', 'User', true],
+  ['/api/clients/search', 'Buscar huéspedes', 'Client', true],
+  ['/api/clients/{id}', 'Obtener huésped', 'Client'],
+  ['/api/clients/{id}/reservations', 'Historial de reservas del huésped', 'Reservation', true],
+  ['/api/clients/{id}/stats', 'Estadísticas del huésped'],
+  ['/api/rooms/available', 'Habitaciones disponibles', 'Room', true],
+  ['/api/rooms/occupancy', 'Estado de ocupación'],
+  ['/api/rooms/floor/{floor}', 'Habitaciones por piso', 'Room', true],
+  ['/api/rooms/{id}', 'Obtener habitación', 'Room'],
+  ['/api/room-types/{id}/availability', 'Disponibilidad por tipo de habitación'],
+  ['/api/reservations/active', 'Reservas activas', 'Reservation', true],
+  ['/api/reservations/upcoming', 'Próximas reservas', 'Reservation', true],
+  ['/api/reservations/client/{clientId}', 'Reservas del huésped', 'Reservation', true],
+  ['/api/reservations/{id}', 'Obtener reserva', 'Reservation'],
+  ['/api/payments/pending', 'Pagos pendientes', 'Payment', true],
+  ['/api/payments/revenue/period', 'Ingresos por período', null, true],
+  ['/api/payments/revenue/method', 'Ingresos por método de pago', null, true],
+  ['/api/payments/reservation/{reservationId}', 'Pagos de la reserva', 'Payment', true],
+  ['/api/check-in/today', 'Ingresos de hoy', 'CheckInLogData', true],
+  ['/api/check-in/pending-check-outs', 'Salidas pendientes', 'CheckInLogData', true],
+  [
+    '/api/check-in/reservation/{reservationId}',
+    'Registro de ingreso de la reserva',
+    'CheckInLogData',
+  ],
+  [
+    '/api/check-in/client/{clientId}/history',
+    'Historial de ingresos del huésped',
+    'CheckInLogData',
+    true,
+  ],
+]);
+for (const [path, summary, model, list] of readEndpoints) {
+  const result = response(model || 'User');
+  result.content['application/json'].schema.properties.data = model
+    ? list
+      ? { type: 'array', items: ref(model) }
+      : ref(model)
+    : {
+        type: 'object',
+        additionalProperties: true,
+        description: 'Estadísticas agregadas específicas del endpoint.',
+      };
+  if (!model && list)
+    result.content['application/json'].schema.properties.data = {
+      type: 'array',
+      items: { type: 'object', additionalProperties: true },
+    };
+  if (path === '/api/users')
+    result.content['application/json'].schema.properties.pagination = ref('ApiPagination');
+  const item = paths[path] || (paths[path] = {});
+  item.get = {
+    summary,
+    tags: [path.split('/')[2]],
+    security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+    parameters: [...path.matchAll(/\{(\w+)\}/g)].map(([, name]) => ({
+      name,
+      in: 'path',
+      required: true,
+      schema: { type: 'integer', minimum: name === 'floor' ? 0 : 1 },
+    })),
+    responses: {
+      200: result,
+      401: { description: 'Sesión inválida' },
+      403: { description: 'Sin permisos' },
+      404: { description: 'Registro no encontrado' },
+    },
+  };
+}
+const errorResponse = {
+  description: 'Error de la solicitud',
+  content: { 'application/json': { schema: ref('Error') } },
+};
+for (const item of Object.values(paths))
+  for (const method of methods) {
+    const operation = item[method];
+    if (!operation) continue;
+    operation.responses = {
+      ...operation.responses,
+      429: { ...errorResponse, description: 'Límite de solicitudes excedido' },
+    };
+    for (const code of [400, 401, 403, 404, 409, 422, 500])
+      operation.responses[code] = { ...errorResponse, ...operation.responses[code] };
+  }
 module.exports = swaggerSpec;

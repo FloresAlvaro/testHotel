@@ -1,4 +1,5 @@
 jest.mock('../src/models/RoomType', () => ({}));
+jest.mock('../src/config/database', () => ({ transaction: (fn) => fn({}) }));
 jest.mock('../src/models/Payment', () => ({}));
 jest.mock('../src/models/Room', () => ({ findAll: jest.fn(), countAll: jest.fn() }));
 jest.mock('../src/models/Client', () => ({
@@ -139,6 +140,7 @@ describe('ClientController.update', () => {
         nationality: 'Boliviana',
         notes: 'VIP',
       }),
+      expect.any(Object),
     );
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: updatedClient }));
   });

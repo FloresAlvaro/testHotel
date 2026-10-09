@@ -188,7 +188,7 @@ const validatePassword = (password) => {
 const calculateNights = (checkIn, checkOut) => {
   const start = new Date(checkIn);
   const end = new Date(checkOut);
-  const diffTime = Math.abs(end - start);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 };
@@ -258,7 +258,7 @@ const addDays = (date, days) => {
 const getDaysDifference = (date1, date2) => {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
-  const diffTime = Math.abs(d2 - d1);
+  const diffTime = Math.abs(d2.getTime() - d1.getTime());
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
@@ -277,8 +277,11 @@ const getPaginationParams = (
   pageSize = DEFAULTS.ITEMS_PER_PAGE,
   defaultPageSize = DEFAULTS.ITEMS_PER_PAGE,
 ) => {
-  const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
-  const parsedPageSize = Math.min(Math.max(parseInt(pageSize, 10) || defaultPageSize, 1), 100);
+  const parsedPage = Math.max(parseInt(String(page), 10) || 1, 1);
+  const parsedPageSize = Math.min(
+    Math.max(parseInt(String(pageSize), 10) || defaultPageSize, 1),
+    100,
+  );
 
   const offset = (parsedPage - 1) * parsedPageSize;
 
@@ -500,9 +503,7 @@ const groupByField = (data, field) => {
  * @returns {Error} Error personalizado
  */
 const createError = (message, statusCode = 400, errors = null) => {
-  const error = new Error(message);
-  error.statusCode = statusCode;
-  if (errors) error.errors = errors;
+  const error = Object.assign(new Error(message), { statusCode, ...(errors ? { errors } : {}) });
   return error;
 };
 
@@ -603,7 +604,7 @@ const sleep = (ms) => {
  * @param {function} fn - Función a reintentar
  * @param {number} maxRetries - Máximo de intentos
  * @param {number} delay - Delay entre intentos
- * @returns {*} Resultado de la función
+ * @returns {Promise<*>} Resultado de la función
  */
 const retry = async (fn, maxRetries = 3, delay = 1000) => {
   for (let i = 0; i < maxRetries; i++) {

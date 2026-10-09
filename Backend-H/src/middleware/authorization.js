@@ -1,3 +1,4 @@
+/** @param {...import('../types/api').components['schemas']['UserRole']} allowedRoles @returns {import('express').RequestHandler} */
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {

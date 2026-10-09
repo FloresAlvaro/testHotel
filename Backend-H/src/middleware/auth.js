@@ -1,15 +1,34 @@
 const User = require('../models/User');
 const { verifyToken } = require('../utils/jwt');
+const sessions = require('../services/sessionService');
+const { cookieName, frontendURL } = require('../config/auth');
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const bearer = req.headers.authorization?.match(/^Bearer (\S+)$/i)?.[1];
+    const cookies = Object.fromEntries(
+      (req.headers.cookie || '').split(';').map((part) => {
+        const index = part.indexOf('=');
+        return index < 0 ? ['', ''] : [part.slice(0, index).trim(), part.slice(index + 1)];
+      }),
+    );
+    const token = bearer || cookies[cookieName];
 
     if (!token) {
       return res.status(401).json({ message: 'Token no proporcionado' });
     }
 
     const decoded = verifyToken(token);
+    if (!decoded.sid || !(await sessions.valid(decoded.sid, decoded.id))) {
+      return res.status(401).json({ message: 'La sesión expiró o fue cerrada' });
+    }
+    if (
+      !bearer &&
+      !['GET', 'HEAD', 'OPTIONS'].includes(req.method) &&
+      req.headers.origin !== frontendURL
+    ) {
+      return res.status(403).json({ message: 'Origen de la solicitud no permitido' });
+    }
     const user = await User.findById(decoded.id);
 
     if (!user) {

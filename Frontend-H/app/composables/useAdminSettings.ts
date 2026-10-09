@@ -18,9 +18,10 @@ export const useAdminSettings = () => {
   const isUserModalOpen = ref(false)
   const isLoadingUsers = ref(false)
   const users = ref<User[]>([])
+  const invitationUrl = ref('')
   const passwordForm = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
-  const userForm = reactive<{ id: number | null; name: string; email: string; password: string; role: UserRole; is_active: boolean }>({
-    id: null, name: '', email: '', password: '', role: 'receptionist', is_active: true
+  const userForm = reactive<{ id: number | null; name: string; email: string; role: UserRole; is_active: boolean }>({
+    id: null, name: '', email: '', role: 'receptionist', is_active: true
   })
 
   const defaultSettings = {
@@ -148,7 +149,9 @@ export const useAdminSettings = () => {
       passwordForm.currentPassword = ''
       passwordForm.newPassword = ''
       passwordForm.confirmPassword = ''
-      uiStore.success('Contraseña actualizada')
+      authStore.logout()
+      await navigateTo('/auth/login')
+      uiStore.success('Contraseña actualizada. Inicia sesión nuevamente.')
     } catch (error) {
       uiStore.error(error instanceof Error ? error.message : 'No se pudo cambiar la contraseña')
     } finally {
@@ -157,12 +160,13 @@ export const useAdminSettings = () => {
   }
 
   const openCreateUser = () => {
-    Object.assign(userForm, { id: null, name: '', email: '', password: '', role: 'receptionist', is_active: true })
+    invitationUrl.value = ''
+    Object.assign(userForm, { id: null, name: '', email: '', role: 'receptionist', is_active: true })
     isUserModalOpen.value = true
   }
 
   const openEditUser = (user: User) => {
-    Object.assign(userForm, { id: user.id, name: user.name, email: user.email, password: '', role: user.role, is_active: user.is_active })
+    Object.assign(userForm, { id: user.id, name: user.name, email: user.email, role: user.role, is_active: user.is_active })
     isUserModalOpen.value = true
   }
 
@@ -177,17 +181,15 @@ export const useAdminSettings = () => {
       uiStore.error('El correo electrónico no puede superar los 200 caracteres')
       return
     }
-    if (!userForm.id && (userForm.password.length < 8 || userForm.password.length > 128)) {
-      uiStore.error('La contraseña inicial debe tener entre 8 y 128 caracteres')
-      return
-    }
 
     isSavingUser.value = true
     try {
       if (userForm.id) {
         await api.updateUser(userForm.id, { name: normalizedName, email: normalizedEmail, role: userForm.role, is_active: userForm.is_active })
       } else {
-        await api.register({ name: normalizedName, email: normalizedEmail, password: userForm.password })
+        const response = await api.inviteUser({ name: normalizedName, email: normalizedEmail, role: userForm.role })
+        invitationUrl.value = response.data?.invitationUrl || ''
+        uiStore.success(response.data?.delivery === 'email' ? 'Invitación enviada por correo' : 'Invitación creada. Copia el enlace y compártelo con el empleado.')
       }
       await loadUsers()
       isUserModalOpen.value = false
@@ -199,6 +201,16 @@ export const useAdminSettings = () => {
     }
   }
 
+  const resendInvitation = async (user: User) => {
+    isSavingUser.value = true
+    try {
+      const response = await api.inviteUser({ name: user.name, email: user.email, role: user.role })
+      invitationUrl.value = response.data?.invitationUrl || ''
+      uiStore.success(response.data?.delivery === 'email' ? 'Invitación enviada por correo' : 'Invitación renovada. Comparte el nuevo enlace.')
+    } catch {
+      uiStore.error('No se pudo reenviar la invitación')
+    } finally { isSavingUser.value = false }
+  }
   const toggleUserActive = async (user: User) => {
     try {
       await api.setUserActive(user.id, !user.is_active)
@@ -216,7 +228,7 @@ export const useAdminSettings = () => {
     loadUsers().catch(() => uiStore.error('No se pudo cargar la lista de usuarios'))
   })
 
-  return { roleLabels, uiStore, api, authStore, route, activeTab, isSaving, isBackingUp, isSavingPassword, isSavingUser, isUserModalOpen, isLoadingUsers, users, passwordForm, userForm, defaultSettings, defaultNotifications, tabs, settings, notificationSettings, backupHistory, lastBackup, loadUsers, saveSettings, resetChanges, createBackup, downloadBackup, removeBackup, saveNotifications, resetNotifications, changePassword, openCreateUser, openEditUser, saveUser, toggleUserActive };
+  return { invitationUrl, roleLabels, uiStore, api, authStore, route, activeTab, isSaving, isBackingUp, isSavingPassword, isSavingUser, isUserModalOpen, isLoadingUsers, users, passwordForm, userForm, defaultSettings, defaultNotifications, tabs, settings, notificationSettings, backupHistory, lastBackup, loadUsers, saveSettings, resetChanges, createBackup, downloadBackup, removeBackup, saveNotifications, resetNotifications, changePassword, openCreateUser, openEditUser, saveUser, toggleUserActive, resendInvitation };
 };
 
 export const useAdminSettingsContext = () => {

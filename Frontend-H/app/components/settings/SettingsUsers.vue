@@ -8,7 +8,7 @@
           </h2>
           <CButton variant="primary" size="sm" @click="openCreateUser">
             <Icon name="system-uicons:user-add" size="16" class="mr-2" />
-            Crear usuario
+            Invitar empleado
           </CButton>
         </div>
 
@@ -66,7 +66,7 @@
                       :class="user.is_active ? 'text-green-600' : 'text-red-600'"
                       class="font-medium"
                     >
-                      {{ user.is_active ? 'Activo' : 'Inactivo' }}
+                      {{ user.password_setup_required ? 'Invitación pendiente' : user.is_active ? 'Activo' : 'Inactivo' }}
                     </span>
                   </td>
                   <td class="py-3 px-4 text-center">
@@ -75,10 +75,13 @@
                         <Icon name="system-uicons:edit" size="16" />
                         <span>Editar</span>
                       </CButton>
+                      <CButton v-if="user.password_setup_required" variant="ghost" size="sm" :disabled="isSavingUser" @click="resendInvitation(user)">
+                        Reenviar invitación
+                      </CButton>
                       <CButton
                         variant="ghost"
                         size="sm"
-                        :disabled="user.id === authStore.user?.id || isSavingUser"
+                        :disabled="user.password_setup_required || user.id === authStore.user?.id || isSavingUser"
                         :class="user.is_active ? 'text-red-500 hover:text-red-600' : 'text-green-600 hover:text-green-700'"
                         :aria-label="`${user.is_active ? 'Desactivar' : 'Activar'} usuario ${user.name}`"
                         @click="toggleUserActive(user)"
@@ -95,20 +98,16 @@
         </div>
       </div>
     </CCard>
-<CModal :is-open="isUserModalOpen" :title="userForm.id ? 'Editar usuario' : 'Crear usuario'" size="md" @close="isUserModalOpen = false">
+<div v-if="invitationUrl" class="my-4 space-y-2 rounded border border-blue-300 p-4" role="status">
+      <p>Comparte este enlace de invitación con el empleado. Caduca en 24 horas.</p>
+      <CInput v-model="invitationUrl" label="Enlace de invitación" readonly />
+      <CButton @click="copyInvitation">Copiar enlace</CButton>
+    </div>
+<CModal :is-open="isUserModalOpen" :title="userForm.id ? 'Editar usuario' : 'Invitar empleado'" size="md" @close="isUserModalOpen = false">
       <form class="space-y-4" @submit.prevent="saveUser">
         <CInput v-model="userForm.name" label="Nombre completo" placeholder="Ej. Ana Pérez" required hint="Debe tener al menos 2 caracteres." />
         <CInput v-model="userForm.email" type="email" label="Correo electrónico" placeholder="nombre@hotel.com" required />
-        <CInput
-          v-if="!userForm.id"
-          v-model="userForm.password"
-          type="password"
-          label="Contraseña inicial"
-          placeholder="Mínimo 8 caracteres"
-          required
-          hint="Comparte esta contraseña inicial de forma segura con el usuario."
-        />
-        <label v-if="userForm.id" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Rol
           <select v-model="userForm.role" class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-800">
             <option value="admin">Administrador</option>
@@ -116,15 +115,19 @@
             <option value="receptionist">Recepcionista</option>
           </select>
         </label>
-        <p v-else class="text-sm text-slate-600 dark:text-slate-400">Las cuentas nuevas se crean con el rol de Recepcionista. Puedes cambiar el rol después de crear la cuenta.</p>
+
         <div class="flex justify-end gap-2 pt-3">
           <CButton type="button" variant="secondary" @click="isUserModalOpen = false">Cancelar</CButton>
-          <CButton type="submit" variant="primary" :loading="isSavingUser">{{ userForm.id ? 'Guardar cambios' : 'Crear usuario' }}</CButton>
+          <CButton type="submit" variant="primary" :loading="isSavingUser">{{ userForm.id ? 'Guardar cambios' : 'Invitar empleado' }}</CButton>
         </div>
       </form>
     </CModal>
 </template>
 
 <script setup lang="ts">
-const { roleLabels, authStore, isSavingUser, isUserModalOpen, isLoadingUsers, users, userForm, openCreateUser, openEditUser, saveUser, toggleUserActive } = useAdminSettingsContext();
+const { invitationUrl, roleLabels, authStore, isSavingUser, isUserModalOpen, isLoadingUsers, users, userForm, openCreateUser, openEditUser, saveUser, toggleUserActive, resendInvitation } = useAdminSettingsContext();
+const copyInvitation = async () => {
+  try { await navigator.clipboard.writeText(invitationUrl.value); }
+  catch { /* El enlace también puede seleccionarse y copiarse manualmente. */ }
+};
 </script>

@@ -39,6 +39,7 @@
               </div>
             </div>
 
+            <AccountSessions />
             <!-- Autenticación de Dos Factores -->
             <div class="p-4 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-r-lg">
               <div class="flex items-start justify-between">

@@ -1,43 +1,19 @@
+import type { components } from './generated/api';
 /**
  * Tipos de autenticación
  */
 
-export type UserRole = 'admin' | 'receptionist' | 'manager';
+export type UserRole = components['schemas']['UserRole'];
 
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type User = components['schemas']['User'];
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+export type LoginRequest = components['schemas']['LoginRequest'];
 
-export interface LoginResponse {
-  user: User;
-  token: string;
-  tokenType?: string;
-}
+export type LoginResponse = components['schemas']['LoginResponse'];
 
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword?: string;
-  role?: UserRole;
-}
+export type RegisterRequest = components['schemas']['RegisterRequest'];
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
+export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
 
 export interface AuthState {
   user: User | null;
@@ -54,3 +30,6 @@ export interface JWTPayload {
   iat?: number;
   exp?: number;
 }
+export type InviteRequest = components['schemas']['InviteRequest'];
+export type Invitation = components['schemas']['Invitation'];
+export type AccountSession = components['schemas']['Session'];

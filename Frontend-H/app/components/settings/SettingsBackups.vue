@@ -6,7 +6,7 @@
           Exportaciones locales
         </h2>
         <p class="text-sm text-amber-800 dark:text-amber-200">
-          No hay endpoint de respaldo/restauración de base de datos. Estas exportaciones contienen solo preferencias de este navegador.
+          Estas exportaciones contienen solo preferencias del navegador. Los respaldos de PostgreSQL se gestionan desde los comandos del servidor, con verificación de restauración en una base aislada.
         </p>
 
         <div class="space-y-4">

@@ -4,6 +4,7 @@ class Payment {
   /**
    * Crear pago
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async create(paymentData, client = pool) {
     const { reservation_id, amount, type, method, status, transaction_id, notes } = paymentData;
 
@@ -31,6 +32,7 @@ class Payment {
   /**
    * Obtener pago por ID
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async findById(id, client = pool, forUpdate = false) {
     const query = `
       SELECT p.*, r.check_in, r.check_out, c.name as client_name
@@ -48,6 +50,7 @@ class Payment {
   /**
    * Obtener pagos de una reserva
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async findByReservationId(reservationId, client = pool) {
     const query = `
       SELECT * FROM payment
@@ -103,6 +106,7 @@ class Payment {
   /**
    * Actualizar pago
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async update(id, paymentData, client = pool) {
     const { amount, type, method, status, transaction_id } = paymentData;
 
@@ -122,6 +126,7 @@ class Payment {
   /**
    * Cambiar estado de pago
    */
+  /** @param {import('pg').Pool | import('pg').PoolClient} [client] */
   static async updateStatus(id, status, client = pool) {
     const query = `
       UPDATE payment

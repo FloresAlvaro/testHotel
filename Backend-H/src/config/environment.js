@@ -1,4 +1,5 @@
 require('dotenv').config();
+const runtimeSettings = require('./runtimeSettings')(process.env);
 
 // ============================================
 // VALIDAR VARIABLES REQUERIDAS
@@ -20,24 +21,29 @@ if (missingEnvVars.length > 0) {
 // VALIDAR FORMATO DE DATABASE_URL
 // ============================================
 
+/** @param {string} url */
 const validateDatabaseURL = (url) => {
   try {
     if (!url.startsWith('postgresql://') && !url.startsWith('postgres://')) {
       throw new Error('DATABASE_URL debe comenzar con postgresql:// o postgres://');
     }
+    const parsed = new URL(url);
+    if (!parsed.hostname || parsed.pathname.length < 2)
+      throw new Error('DATABASE_URL requiere host y nombre de base');
     return true;
   } catch (error) {
-    console.error('❌ ERROR:', error.message);
+    console.error('❌ ERROR:', require('../utils/errorDetails')(error).message);
     process.exit(1);
   }
 };
 
-validateDatabaseURL(process.env.DATABASE_URL);
+validateDatabaseURL(process.env.DATABASE_URL || '');
 
 // ============================================
 // VALIDAR PUERTO
 // ============================================
 
+/** @param {string | number} port */
 const validatePort = (port) => {
   const parsedPort = Number(port);
   if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
@@ -51,6 +57,7 @@ const validatePort = (port) => {
 // VALIDAR NODE_ENV
 // ============================================
 
+/** @param {string} env */
 const validateNodeEnv = (env) => {
   const validEnvs = ['development', 'production', 'testing', 'test'];
   if (!validEnvs.includes(env)) {
@@ -64,6 +71,7 @@ const validateNodeEnv = (env) => {
 // VALIDAR JWT_SECRET
 // ============================================
 
+/** @param {string} secret */
 const validateJWTSecret = (secret) => {
   if (secret === 'your-secret-key') {
     console.warn(
@@ -80,6 +88,7 @@ const validateJWTSecret = (secret) => {
 // VALIDAR BCRYPT_ROUNDS
 // ============================================
 
+/** @param {string | number} rounds */
 const validateBcryptRounds = (rounds) => {
   const parsedRounds = Number(rounds);
   if (!Number.isInteger(parsedRounds) || parsedRounds < 8 || parsedRounds > 15) {
@@ -95,9 +104,11 @@ const validateBcryptRounds = (rounds) => {
 
 const NODE_ENV = validateNodeEnv(process.env.NODE_ENV || 'development');
 const PORT = validatePort(process.env.PORT || 3000);
-const DATABASE_URL = process.env.DATABASE_URL;
-const JWT_SECRET = validateJWTSecret(process.env.JWT_SECRET);
-const JWT_EXPIRE = process.env.JWT_EXPIRE || '24h';
+const DATABASE_URL = process.env.DATABASE_URL || '';
+const JWT_SECRET = validateJWTSecret(process.env.JWT_SECRET || '');
+const JWT_EXPIRE = /** @type {import('jsonwebtoken').SignOptions['expiresIn']} */ (
+  process.env.JWT_EXPIRE || '24h'
+);
 const BCRYPT_ROUNDS = validateBcryptRounds(process.env.BCRYPT_ROUNDS || 10);
 
 // ============================================
@@ -150,7 +161,7 @@ const ALLOWED_MIME_TYPES = process.env.ALLOWED_MIME_TYPES || 'image/jpeg,image/p
 // ============================================
 
 const SMTP_HOST = process.env.SMTP_HOST || null;
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_PORT = runtimeSettings.SMTP_PORT;
 const SMTP_USER = process.env.SMTP_USER || null;
 const SMTP_PASSWORD = process.env.SMTP_PASSWORD || null;
 const SMTP_FROM = process.env.SMTP_FROM || 'noreply@hotel.com';
@@ -168,7 +179,7 @@ const PAYMENT_API_URL = process.env.PAYMENT_API_URL || null;
 
 const SESSION_SECRET =
   process.env.SESSION_SECRET || (isDevelopment ? 'session-secret' : process.env.JWT_SECRET);
-const SESSION_MAX_AGE = Number(process.env.SESSION_MAX_AGE || 86400000); // 24 horas
+const SESSION_MAX_AGE = runtimeSettings.SESSION_MAX_AGE;
 
 // ============================================
 // CONFIGURACIÓN DE MONITOREO
@@ -230,7 +241,8 @@ if (isDevelopment) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`NODE_ENV: ${NODE_ENV}`);
   console.log(`PORT: ${PORT}`);
-  console.log(`DATABASE: ${DATABASE_URL.split('@')[1]}`); // Solo mostrar host
+  const databaseURL = new URL(DATABASE_URL);
+  console.log(`DATABASE: ${databaseURL.host}${databaseURL.pathname}`);
   console.log(`JWT_EXPIRE: ${JWT_EXPIRE}`);
   console.log(`BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}`);
   console.log(`LOG_LEVEL: ${LOG_LEVEL}`);
@@ -242,6 +254,7 @@ if (isDevelopment) {
 // ============================================
 
 module.exports = {
+  ...runtimeSettings,
   // Básico
   PORT,
   NODE_ENV,
