@@ -1,8 +1,13 @@
 const ReservationService = require('../services/reservationService');
 const Reservation = require('../models/Reservation');
 const Client = require('../models/Client');
-const { sendSuccess, sendCreated, sendUpdated, sendError, 
-        sendPaginated } = require('../utils/response');
+const {
+  sendSuccess,
+  sendCreated,
+  sendUpdated,
+  sendError,
+  sendPaginated,
+} = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
@@ -112,7 +117,10 @@ class ReservationController {
    */
   static async update(req, res, next) {
     try {
-      const reservation = await ReservationService.update(req.params.id, req.body, { ...req.user, ip: req.ip });
+      const reservation = await ReservationService.update(req.params.id, req.body, {
+        ...req.user,
+        ip: req.ip,
+      });
       sendUpdated(res, reservation, SUCCESS_MESSAGES.UPDATED_SUCCESS);
     } catch (error) {
       next(error);
@@ -124,13 +132,15 @@ class ReservationController {
    */
   static async cancel(req, res, next) {
     try {
-      const reservation = await ReservationService.cancel(req.params.id, { ...req.user, ip: req.ip });
+      const reservation = await ReservationService.cancel(req.params.id, {
+        ...req.user,
+        ip: req.ip,
+      });
       sendSuccess(res, reservation, HTTP_STATUS.OK, SUCCESS_MESSAGES.RESERVATION_CANCELLED);
     } catch (error) {
       next(error);
     }
   }
-
 }
 
 module.exports = ReservationController;

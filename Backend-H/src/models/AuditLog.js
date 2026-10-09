@@ -14,7 +14,13 @@ class AuditLog {
     `;
 
     const result = await client.query(query, [
-      user_id, action, table_name, record_id, old_value, new_value, ip_address
+      user_id,
+      action,
+      table_name,
+      record_id,
+      old_value,
+      new_value,
+      ip_address,
     ]);
 
     return result.rows[0];

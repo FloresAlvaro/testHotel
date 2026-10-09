@@ -16,7 +16,13 @@ class Payment {
     `;
 
     const result = await client.query(query, [
-      reservation_id, amount, type, method, status || 'pending', transaction_id, notes
+      reservation_id,
+      amount,
+      type,
+      method,
+      status || 'pending',
+      transaction_id,
+      notes,
     ]);
 
     return result.rows[0];
@@ -108,9 +114,7 @@ class Payment {
       RETURNING *
     `;
 
-    const result = await client.query(query, [
-      amount, type, method, status, transaction_id, id
-    ]);
+    const result = await client.query(query, [amount, type, method, status, transaction_id, id]);
 
     return result.rows[0] || null;
   }

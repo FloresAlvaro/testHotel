@@ -1,0 +1,70 @@
+name: Verificaciones del proyecto
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend - calidad y pruebas con PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Backend-H
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://review:review-test-only@127.0.0.1:5432/review
+      BACKEND_INTEGRATION_DATABASE_URL: postgresql://review:review-test-only@127.0.0.1:5432/review
+      JWT_SECRET: isolated-ci-test-secret-of-at-least-32-characters
+      ENABLE_HEALTH_CHECK: 'false'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: review
+          POSTGRES_PASSWORD: review-test-only
+          POSTGRES_DB: review
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U review -d review"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: Backend-H/package-lock.json
+      - run: npm ci
+      - run: npm run check
+
+  frontend:
+    name: Frontend - lint, tipos y pruebas de UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Frontend-H
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: Frontend-H/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:ui

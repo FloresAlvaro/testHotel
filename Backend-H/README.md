@@ -27,7 +27,22 @@ a la misma transacción.
   guardan estados e importes, sin contraseñas ni los datos personales completos del huésped.
 - Las columnas `updated_at` se mantienen mediante los triggers del esquema de PostgreSQL.
 
-## Pruebas
+## Calidad y diagnóstico
+
+- `npm run lint` detecta errores habituales y código sin uso; `npm run lint:fix` aplica las
+  correcciones automáticas de ESLint.
+- `npm run format` formatea el backend con Prettier; `npm run format:check` verifica el formato
+  sin modificar archivos.
+- `npm run check` ejecuta lint, comprobación de formato y pruebas. Requiere las variables
+  `DATABASE_URL` y `JWT_SECRET`; para pruebas usa valores aislados, como los del ejemplo siguiente.
+- `.github/workflows/checks.yml` ejecuta las verificaciones en cada push y pull request.
+  El backend se prueba con PostgreSQL temporal; el frontend ejecuta lint, tipos y pruebas de UI.
+- Cada petición recibe `X-Request-ID`. El identificador aparece en los logs HTTP y en las
+  respuestas de error como `requestId`; el frontend también lo imprime en la consola.
+  Los logs de errores internos incluyen ese mismo identificador. Para investigar un error,
+  busca el ID de la respuesta en los logs del backend.
+
+## Ejecución de pruebas
 
 `npm test -- --runInBand` ejecuta las pruebas unitarias. Las pruebas de integración se omiten
 cuando no existe `BACKEND_INTEGRATION_DATABASE_URL`.

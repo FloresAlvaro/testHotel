@@ -1,6 +1,11 @@
 const ReservationService = require('../services/reservationService');
 const CheckInLog = require('../models/CheckInLog');
-const { sendSuccess, sendError, sendCheckInSuccess, sendCheckOutSuccess } = require('../utils/response');
+const {
+  sendSuccess,
+  sendError,
+  sendCheckInSuccess,
+  sendCheckOutSuccess,
+} = require('../utils/response');
 const { ERROR_MESSAGES, HTTP_STATUS } = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
@@ -10,7 +15,10 @@ class CheckInController {
    */
   static async checkIn(req, res, next) {
     try {
-      const log = await ReservationService.checkIn(req.body.reservation_id, req.body.notes, { ...req.user, ip: req.ip });
+      const log = await ReservationService.checkIn(req.body.reservation_id, req.body.notes, {
+        ...req.user,
+        ip: req.ip,
+      });
       sendCheckInSuccess(res, log);
     } catch (error) {
       next(error);
@@ -22,7 +30,10 @@ class CheckInController {
    */
   static async checkOut(req, res, next) {
     try {
-      const log = await ReservationService.checkOut(req.body.reservation_id, { ...req.user, ip: req.ip });
+      const log = await ReservationService.checkOut(req.body.reservation_id, {
+        ...req.user,
+        ip: req.ip,
+      });
       sendCheckOutSuccess(res, log);
     } catch (error) {
       next(error);

@@ -8,7 +8,7 @@
 const USER_ROLES = {
   ADMIN: 'admin',
   RECEPTIONIST: 'receptionist',
-  MANAGER: 'manager'
+  MANAGER: 'manager',
 };
 
 // ============================================
@@ -18,7 +18,7 @@ const ROOM_STATUS = {
   AVAILABLE: 'available',
   OCCUPIED: 'occupied',
   MAINTENANCE: 'maintenance',
-  RESERVED: 'reserved'
+  RESERVED: 'reserved',
 };
 
 // ============================================
@@ -28,7 +28,7 @@ const RESERVATION_STATUS = {
   CONFIRMED: 'confirmed',
   CHECKED_IN: 'checked_in',
   CHECKED_OUT: 'checked_out',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
 };
 
 // ============================================
@@ -37,7 +37,7 @@ const RESERVATION_STATUS = {
 const PAYMENT_TYPES = {
   FULL: 'full',
   PARTIAL: 'partial',
-  ADVANCE: 'advance'
+  ADVANCE: 'advance',
 };
 
 // ============================================
@@ -48,7 +48,7 @@ const PAYMENT_METHODS = {
   CREDIT_CARD: 'credit_card',
   DEBIT_CARD: 'debit_card',
   TRANSFER: 'transfer',
-  CHECK: 'check'
+  CHECK: 'check',
 };
 
 // ============================================
@@ -58,7 +58,7 @@ const PAYMENT_STATUS = {
   PENDING: 'pending',
   COMPLETED: 'completed',
   FAILED: 'failed',
-  REFUNDED: 'refunded'
+  REFUNDED: 'refunded',
 };
 
 // ============================================
@@ -68,7 +68,7 @@ const DOCUMENT_TYPES = {
   CEDULA: 'cedula',
   PASSPORT: 'passport',
   LICENSE: 'license',
-  OTHER: 'other'
+  OTHER: 'other',
 };
 
 // ============================================
@@ -123,7 +123,7 @@ const ERROR_MESSAGES = {
   // Check-in/Check-out
   CHECKIN_LOG_NOT_FOUND: 'Registro de check-in no encontrado',
   CHECKIN_ALREADY_EXISTS: 'Ya existe un check-in para esta reserva',
-  CHECKOUT_ALREADY_RECORDED: 'El check-out ya ha sido registrado'
+  CHECKOUT_ALREADY_RECORDED: 'El check-out ya ha sido registrado',
 };
 
 // ============================================
@@ -165,7 +165,7 @@ const SUCCESS_MESSAGES = {
   // Pagos
   PAYMENT_CREATED: 'Pago registrado exitosamente',
   PAYMENT_UPDATED: 'Pago actualizado',
-  PAYMENT_COMPLETED: 'Pago completado exitosamente'
+  PAYMENT_COMPLETED: 'Pago completado exitosamente',
 };
 
 // ============================================
@@ -182,7 +182,7 @@ const HTTP_STATUS = {
   CONFLICT: 409,
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_ERROR: 500,
-  SERVICE_UNAVAILABLE: 503
+  SERVICE_UNAVAILABLE: 503,
 };
 
 // ============================================
@@ -223,7 +223,7 @@ const LIMITS = {
 
   // Rate limiting
   API_RATE_LIMIT: 100, // requests
-  API_RATE_WINDOW_MS: 15 * 60 * 1000 // 15 minutos
+  API_RATE_WINDOW_MS: 15 * 60 * 1000, // 15 minutos
 };
 
 // ============================================
@@ -233,7 +233,7 @@ const AUTH_CONFIG = {
   JWT_ALGORITHM: 'HS256',
   TOKEN_TYPE: 'Bearer',
   REFRESH_TOKEN_DAYS: 7,
-  PASSWORD_SALT_ROUNDS: 10
+  PASSWORD_SALT_ROUNDS: 10,
 };
 
 // ============================================
@@ -248,7 +248,7 @@ const AUDIT_ACTIONS = {
   CHECKIN: 'CHECKIN',
   CHECKOUT: 'CHECKOUT',
   PAYMENT: 'PAYMENT',
-  CANCEL: 'CANCEL'
+  CANCEL: 'CANCEL',
 };
 
 // ============================================
@@ -262,7 +262,7 @@ const TABLES = {
   RESERVATIONS: 'reservation',
   CHECK_IN_LOG: 'check_in_log',
   PAYMENTS: 'payment',
-  AUDIT_LOG: 'audit_log'
+  AUDIT_LOG: 'audit_log',
 };
 
 // ============================================
@@ -274,7 +274,7 @@ const VIEWS = {
   CURRENT_OCCUPANCY: 'current_occupancy',
   MONTHLY_REVENUE: 'monthly_revenue',
   GUEST_CHECKIN_HISTORY: 'guest_checkin_history',
-  RECEPTIONIST_ACTIVITY: 'receptionist_activity'
+  RECEPTIONIST_ACTIVITY: 'receptionist_activity',
 };
 
 // ============================================
@@ -285,7 +285,7 @@ const EMAIL_SUBJECTS = {
   RESERVATION_CANCELLED: 'Reserva Cancelada',
   PAYMENT_RECEIVED: 'Pago Recibido',
   WELCOME: 'Bienvenido al Hotel',
-  PASSWORD_RESET: 'Resetear Contraseña'
+  PASSWORD_RESET: 'Resetear Contraseña',
 };
 
 // ============================================
@@ -296,7 +296,7 @@ const DATE_TIME = {
   DATETIME_FORMAT: 'YYYY-MM-DD HH:mm:ss',
   TIMEZONE: 'America/La_Paz',
   CHECK_IN_TIME: '14:00', // 2:00 PM
-  CHECK_OUT_TIME: '11:00'  // 11:00 AM
+  CHECK_OUT_TIME: '11:00', // 11:00 AM
 };
 
 // ============================================
@@ -305,7 +305,7 @@ const DATE_TIME = {
 const GENDERS = {
   MALE: 'M',
   FEMALE: 'F',
-  OTHER: 'O'
+  OTHER: 'O',
 };
 
 // ============================================
@@ -316,7 +316,7 @@ const REGEX_PATTERNS = {
   PHONE: /^(\+|0)\d{9,}$/,
   DOCUMENT: /^\d{5,}$/,
   PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
-  URL: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+  URL: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
 };
 
 // ============================================
@@ -325,7 +325,7 @@ const REGEX_PATTERNS = {
 const REPORT_CONFIG = {
   MAX_ROWS_EXCEL: 10000,
   MAX_ROWS_CSV: 50000,
-  DATE_FORMAT_REPORT: 'DD/MM/YYYY'
+  DATE_FORMAT_REPORT: 'DD/MM/YYYY',
 };
 
 // ============================================
@@ -337,7 +337,7 @@ const DEFAULTS = {
   TIMEZONE: 'America/La_Paz',
   ITEMS_PER_PAGE: 15,
   SORT_BY: 'created_at',
-  SORT_ORDER: 'DESC'
+  SORT_ORDER: 'DESC',
 };
 
 // ============================================
@@ -364,5 +364,5 @@ module.exports = {
   DATE_TIME,
   REGEX_PATTERNS,
   REPORT_CONFIG,
-  DEFAULTS
+  DEFAULTS,
 };

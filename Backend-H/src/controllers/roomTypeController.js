@@ -1,6 +1,11 @@
 const RoomType = require('../models/RoomType');
-const { sendSuccess, sendCreated, sendUpdated, sendError, 
-        sendPaginated } = require('../utils/response');
+const {
+  sendSuccess,
+  sendCreated,
+  sendUpdated,
+  sendError,
+  sendPaginated,
+} = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
@@ -26,7 +31,12 @@ class RoomTypeController {
       }
 
       const roomType = await RoomType.create({
-        name, description, price: parseFloat(price), capacity: parseInt(capacity), amenities, image
+        name,
+        description,
+        price: parseFloat(price),
+        capacity: parseInt(capacity),
+        amenities,
+        image,
       });
 
       sendCreated(res, roomType, SUCCESS_MESSAGES.CREATED_SUCCESS);

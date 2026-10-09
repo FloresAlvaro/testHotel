@@ -1,6 +1,6 @@
 const { Pool, types } = require('pg');
 // DATE representa un día de calendario, no un instante en la zona horaria del servidor.
-types.setTypeParser(1082, value => value);
+types.setTypeParser(1082, (value) => value);
 const {
   DATABASE_URL,
   NODE_ENV,
@@ -9,7 +9,7 @@ const {
   DB_IDLE_TIMEOUT,
   DB_CONNECT_TIMEOUT,
   ENABLE_HEALTH_CHECK,
-  HEALTH_CHECK_INTERVAL
+  HEALTH_CHECK_INTERVAL,
 } = require('./environment');
 
 // ============================================
@@ -32,7 +32,7 @@ const poolConfig = {
   idleTimeoutMillis: DB_IDLE_TIMEOUT,
   connectionTimeoutMillis: DB_CONNECT_TIMEOUT,
   allowExitOnIdle: false, // no cerrar pool automáticamente
-  application_name: 'hotel-system' // nombre de la aplicación en la BD
+  application_name: 'hotel-system', // nombre de la aplicación en la BD
 };
 
 const pool = new Pool(poolConfig);
@@ -49,7 +49,7 @@ const testConnection = async () => {
   try {
     client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    
+
     console.log(`✅ Conexión a PostgreSQL establecida: ${result.rows[0].now}`);
     isConnected = true;
     return true;
@@ -70,17 +70,17 @@ if (NODE_ENV !== 'test') testConnection();
 // ============================================
 
 // Cuando se crea una nueva conexión
-pool.on('connect', (client) => {
+pool.on('connect', () => {
   if (NODE_ENV === 'development') console.log('📌 Nueva conexión creada en el pool');
 });
 
 // Cuando hay un error en el pool
-pool.on('error', (err, client) => {
+pool.on('error', (err) => {
   console.error('❌ Error inesperado en el pool de conexión:', err);
   console.error('Detalles:', {
     message: err.message,
     code: err.code,
-    severity: err.severity
+    severity: err.severity,
   });
 });
 
@@ -101,7 +101,7 @@ const getPoolStats = () => {
     total: pool.totalCount,
     idle: pool.idleCount,
     active: pool.totalCount - pool.idleCount,
-    waiting: pool.waitingCount
+    waiting: pool.waitingCount,
   };
 };
 
@@ -123,16 +123,16 @@ const getConnection = async () => {
  */
 const query = async (text, params) => {
   const start = Date.now();
-  
+
   try {
     const result = await queryPool(text, params);
     const duration = Date.now() - start;
-    
+
     // Log de queries en desarrollo
     if (NODE_ENV === 'development') {
       console.log(`✓ Query ejecutada en ${duration}ms`);
     }
-    
+
     return result;
   } catch (error) {
     console.error('Error en query:', { code: error.code });
@@ -200,12 +200,12 @@ const close = async () => {
 const startHealthCheck = (interval) => {
   return setInterval(async () => {
     try {
-      const result = await queryPool('SELECT 1');
+      await queryPool('SELECT 1');
       if (!isConnected) {
         isConnected = true;
         console.log('✅ Conexión a BD restaurada');
       }
-    } catch (error) {
+    } catch {
       if (isConnected) {
         isConnected = false;
         console.error('⚠️ Conexión a BD perdida');
@@ -215,9 +215,7 @@ const startHealthCheck = (interval) => {
 };
 
 // Iniciar health check
-const healthCheckTimer = ENABLE_HEALTH_CHECK
-  ? startHealthCheck(HEALTH_CHECK_INTERVAL)
-  : null;
+const healthCheckTimer = ENABLE_HEALTH_CHECK ? startHealthCheck(HEALTH_CHECK_INTERVAL) : null;
 
 // ============================================
 // MANEJO DE CIERRE GRACEFUL

@@ -5,8 +5,8 @@ const authorize = (...allowedRoles) => {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'No tiene permiso para acceder a este recurso' 
+      return res.status(403).json({
+        message: 'No tiene permiso para acceder a este recurso',
       });
     }
 

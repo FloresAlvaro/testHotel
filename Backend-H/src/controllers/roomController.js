@@ -1,9 +1,19 @@
 const RoomService = require('../services/roomService');
 const Room = require('../models/Room');
 const RoomType = require('../models/RoomType');
-const { sendSuccess, sendCreated, sendUpdated, sendError, 
-        sendPaginated } = require('../utils/response');
-const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, ROOM_STATUS } = require('../config/constants');
+const {
+  sendSuccess,
+  sendCreated,
+  sendUpdated,
+  sendError,
+  sendPaginated,
+} = require('../utils/response');
+const {
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  HTTP_STATUS,
+  ROOM_STATUS,
+} = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
 class RoomController {
@@ -16,7 +26,11 @@ class RoomController {
 
       // Validaciones
       if (!number || !room_type_id) {
-        return sendError(res, 'Número de habitación y tipo son requeridos', HTTP_STATUS.BAD_REQUEST);
+        return sendError(
+          res,
+          'Número de habitación y tipo son requeridos',
+          HTTP_STATUS.BAD_REQUEST,
+        );
       }
 
       // Verificar que tipo de habitación existe
@@ -129,7 +143,11 @@ class RoomController {
    */
   static async updateStatus(req, res, next) {
     try {
-      const room = await RoomService.update(req.params.id, { status: req.body.status }, { ...req.user, ip: req.ip });
+      const room = await RoomService.update(
+        req.params.id,
+        { status: req.body.status },
+        { ...req.user, ip: req.ip },
+      );
       sendUpdated(res, room, `Estado actualizado a ${req.body.status}`);
     } catch (error) {
       next(error);

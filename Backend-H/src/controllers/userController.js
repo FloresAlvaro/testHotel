@@ -1,10 +1,22 @@
 const UserService = require('../services/userService');
 const User = require('../models/User');
-const { sendSuccess, sendCreated, sendUpdated, sendError,
-        sendLoginSuccess, sendLoginFailed, sendPaginated } = require('../utils/response');
+const {
+  sendSuccess,
+  sendCreated,
+  sendUpdated,
+  sendError,
+  sendLoginSuccess,
+  sendLoginFailed,
+  sendPaginated,
+} = require('../utils/response');
 const { getPaginationParams } = require('../utils/helpers');
 const { createToken } = require('../utils/jwt');
-const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS, USER_ROLES } = require('../config/constants');
+const {
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  HTTP_STATUS,
+  USER_ROLES,
+} = require('../config/constants');
 
 class UserController {
   /**
@@ -30,13 +42,11 @@ class UserController {
         name,
         email,
         password,
-        role: USER_ROLES.RECEPTIONIST
+        role: USER_ROLES.RECEPTIONIST,
       });
 
       // Generar token
-      const token = createToken(
-        { id: user.id, email: user.email, role: user.role },
-      );
+      const token = createToken({ id: user.id, email: user.email, role: user.role });
 
       sendCreated(res, { user, token }, SUCCESS_MESSAGES.USER_CREATED);
     } catch (error) {
@@ -67,9 +77,7 @@ class UserController {
       }
 
       // Generar token
-      const token = createToken(
-        { id: user.id, email: user.email, role: user.role },
-      );
+      const token = createToken({ id: user.id, email: user.email, role: user.role });
 
       // Remover contraseña de la respuesta
       delete user.password;
@@ -86,7 +94,7 @@ class UserController {
   static async getProfile(req, res, next) {
     try {
       const user = await User.findById(req.user.id);
-      
+
       if (!user) {
         return sendError(res, ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
       }
@@ -103,7 +111,7 @@ class UserController {
   static async getAll(req, res, next) {
     try {
       const { page = 1, pageSize = 10, role } = req.query;
-      
+
       const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
 
       const users = await User.findAll(limit, offset, role);
@@ -163,7 +171,11 @@ class UserController {
       }
 
       if (newPassword.length < 8) {
-        return sendError(res, 'La contraseña debe tener al menos 8 caracteres', HTTP_STATUS.BAD_REQUEST);
+        return sendError(
+          res,
+          'La contraseña debe tener al menos 8 caracteres',
+          HTTP_STATUS.BAD_REQUEST,
+        );
       }
 
       // Verificar contraseña actual
@@ -186,7 +198,11 @@ class UserController {
    */
   static async deactivate(req, res, next) {
     try {
-      const user = await UserService.update(req.params.id, { is_active: false }, { ...req.user, ip: req.ip });
+      const user = await UserService.update(
+        req.params.id,
+        { is_active: false },
+        { ...req.user, ip: req.ip },
+      );
       sendSuccess(res, user, HTTP_STATUS.OK, 'Usuario desactivado');
     } catch (error) {
       next(error);
@@ -198,7 +214,11 @@ class UserController {
    */
   static async activate(req, res, next) {
     try {
-      const user = await UserService.update(req.params.id, { is_active: true }, { ...req.user, ip: req.ip });
+      const user = await UserService.update(
+        req.params.id,
+        { is_active: true },
+        { ...req.user, ip: req.ip },
+      );
       sendSuccess(res, user, HTTP_STATUS.OK, 'Usuario activado');
     } catch (error) {
       next(error);

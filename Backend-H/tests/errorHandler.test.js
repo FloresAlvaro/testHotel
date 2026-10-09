@@ -7,7 +7,12 @@ test('respeta errores HTTP que usan status', () => {
 });
 test('traduce conflictos PostgreSQL sin exponer la consulta', () => {
   const res = response();
-  errorHandler(Object.assign(new Error('SQL y valores internos'), { code: '23505' }), {}, res, jest.fn());
+  errorHandler(
+    Object.assign(new Error('SQL y valores internos'), { code: '23505' }),
+    {},
+    res,
+    jest.fn(),
+  );
   expect(res.status).toHaveBeenCalledWith(409);
   expect(res.json).toHaveBeenCalledWith({ success: false, message: 'El registro ya existe' });
 });
@@ -17,6 +22,11 @@ test('oculta detalles de fallos internos', () => {
     const res = response();
     errorHandler(new Error('password y detalles privados'), {}, res, jest.fn());
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Error interno del servidor' });
-  } finally { log.mockRestore(); }
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Error interno del servidor',
+    });
+  } finally {
+    log.mockRestore();
+  }
 });

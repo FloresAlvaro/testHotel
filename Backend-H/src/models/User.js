@@ -3,7 +3,9 @@ const { hashPassword, comparePassword } = require('../utils/password');
 
 class User {
   static async countActiveAdmins(client = pool) {
-    const result = await client.query(`SELECT COUNT(*)::int AS count FROM "user" WHERE role = 'admin' AND is_active = TRUE`);
+    const result = await client.query(
+      `SELECT COUNT(*)::int AS count FROM "user" WHERE role = 'admin' AND is_active = TRUE`,
+    );
     return result.rows[0].count;
   }
 
@@ -12,20 +14,21 @@ class User {
    */
   static async create(userData) {
     const { name, email, password, role } = userData;
-    
+
     try {
       const hashedPassword = await hashPassword(password);
-      
+
       const query = `
         INSERT INTO "user" (name, email, password, role, is_active)
         VALUES ($1, $2, $3, $4, true)
         RETURNING id, name, email, role, is_active, created_at
       `;
-      
+
       const result = await pool.query(query, [name, email, hashedPassword, role]);
       return result.rows[0];
     } catch (error) {
-      if (error.code === '23505') { // Violación de unique
+      if (error.code === '23505') {
+        // Violación de unique
         throw Object.assign(new Error('El email ya está registrado'), { statusCode: 409 });
       }
       throw error;
@@ -42,7 +45,7 @@ class User {
       WHERE id = $1
       ${forUpdate ? 'FOR UPDATE' : ''}
     `;
-    
+
     const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
@@ -56,7 +59,7 @@ class User {
       FROM "user"
       WHERE email = $1
     `;
-    
+
     const result = await pool.query(query, [email]);
     return result.rows[0] || null;
   }
@@ -69,17 +72,17 @@ class User {
       SELECT id, name, email, role, is_active, created_at, updated_at
       FROM "user"
     `;
-    
+
     const params = [];
-    
+
     if (role) {
       query += ` WHERE role = $1`;
       params.push(role);
     }
-    
+
     query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
-    
+
     const result = await pool.query(query, params);
     return result.rows;
   }
@@ -90,12 +93,12 @@ class User {
   static async countAll(role = null) {
     let query = 'SELECT COUNT(*) FROM "user"';
     const params = [];
-    
+
     if (role) {
       query += ` WHERE role = $1`;
       params.push(role);
     }
-    
+
     const result = await pool.query(query, params);
     return parseInt(result.rows[0].count);
   }
@@ -105,14 +108,14 @@ class User {
    */
   static async update(id, userData, client = pool) {
     const { name, email, role, is_active } = userData;
-    
+
     const query = `
       UPDATE "user"
       SET name = $1, email = $2, role = $3, is_active = $4
       WHERE id = $5
       RETURNING id, name, email, role, is_active, updated_at
     `;
-    
+
     try {
       const result = await client.query(query, [name, email, role, is_active, id]);
       return result.rows[0] || null;
@@ -129,14 +132,14 @@ class User {
    */
   static async updatePassword(id, newPassword) {
     const hashedPassword = await hashPassword(newPassword);
-    
+
     const query = `
       UPDATE "user"
       SET password = $1
       WHERE id = $2
       RETURNING id, name, email
     `;
-    
+
     const result = await pool.query(query, [hashedPassword, id]);
     return result.rows[0] || null;
   }
@@ -152,12 +155,12 @@ class User {
         FROM "user"
         WHERE ${field} = $1
       `,
-      [id]
+      [id],
     );
 
     const user = userWithPassword.rows[0];
     if (!user) return null;
-    
+
     const isValid = await comparePassword(password, user.password);
     return isValid ? user : null;
   }
@@ -172,7 +175,7 @@ class User {
       WHERE id = $1
       RETURNING id, name, is_active
     `;
-    
+
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
   }
@@ -187,7 +190,7 @@ class User {
       WHERE id = $1
       RETURNING id, name, is_active
     `;
-    
+
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
   }
@@ -210,7 +213,7 @@ class User {
       ORDER BY name ASC
       LIMIT $2 OFFSET $3
     `;
-    
+
     const result = await pool.query(query, [`%${searchTerm}%`, limit, offset]);
     return result.rows;
   }

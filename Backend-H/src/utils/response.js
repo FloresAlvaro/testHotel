@@ -11,12 +11,17 @@ const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../config/con
  * @param {number} statusCode - Código HTTP (default: 200)
  * @param {string} message - Mensaje de éxito
  */
-const sendSuccess = (res, data = null, statusCode = HTTP_STATUS.OK, message = SUCCESS_MESSAGES.OPERATION_SUCCESS) => {
+const sendSuccess = (
+  res,
+  data = null,
+  statusCode = HTTP_STATUS.OK,
+  message = SUCCESS_MESSAGES.OPERATION_SUCCESS,
+) => {
   res.status(statusCode).json({
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -31,7 +36,7 @@ const sendCreated = (res, data, message = SUCCESS_MESSAGES.CREATED_SUCCESS) => {
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -46,7 +51,7 @@ const sendUpdated = (res, data, message = SUCCESS_MESSAGES.UPDATED_SUCCESS) => {
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -60,7 +65,7 @@ const sendDeleted = (res, message = SUCCESS_MESSAGES.DELETED_SUCCESS) => {
     success: true,
     message,
     data: null,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -73,12 +78,19 @@ const sendDeleted = (res, message = SUCCESS_MESSAGES.DELETED_SUCCESS) => {
  * @param {number} pageSize - Tamaño de página
  * @param {string} message - Mensaje personalizado
  */
-const sendPaginated = (res, data, total, page = 1, pageSize = 10, message = SUCCESS_MESSAGES.OPERATION_SUCCESS) => {
+const sendPaginated = (
+  res,
+  data,
+  total,
+  page = 1,
+  pageSize = 10,
+  message = SUCCESS_MESSAGES.OPERATION_SUCCESS,
+) => {
   const currentPage = Math.max(Number.parseInt(page, 10) || 1, 1);
   const currentPageSize = Math.min(Math.max(Number.parseInt(pageSize, 10) || 10, 1), 100);
   const totalRecords = Number(total) || 0;
   const totalPages = Math.ceil(totalRecords / currentPageSize);
-  
+
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message,
@@ -89,9 +101,9 @@ const sendPaginated = (res, data, total, page = 1, pageSize = 10, message = SUCC
       pageSize: currentPageSize,
       totalPages,
       hasNextPage: currentPage < totalPages,
-      hasPreviousPage: currentPage > 1
+      hasPreviousPage: currentPage > 1,
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -106,7 +118,7 @@ const sendMultiple = (res, data, message = SUCCESS_MESSAGES.OPERATION_SUCCESS) =
     success: true,
     message,
     ...data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -120,7 +132,7 @@ const sendMessage = (res, message, statusCode = HTTP_STATUS.OK) => {
   res.status(statusCode).json({
     success: true,
     message,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -135,11 +147,16 @@ const sendMessage = (res, message, statusCode = HTTP_STATUS.OK) => {
  * @param {number} statusCode - Código HTTP (default: 400)
  * @param {*} errors - Errores adicionales (validaciones, etc)
  */
-const sendError = (res, message = ERROR_MESSAGES.BAD_REQUEST, statusCode = HTTP_STATUS.BAD_REQUEST, errors = null) => {
+const sendError = (
+  res,
+  message = ERROR_MESSAGES.BAD_REQUEST,
+  statusCode = HTTP_STATUS.BAD_REQUEST,
+  errors = null,
+) => {
   const response = {
     success: false,
     message,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   if (errors) {
@@ -240,9 +257,9 @@ const sendLoginSuccess = (res, user, token) => {
     data: {
       user,
       token,
-      tokenType: 'Bearer'
+      tokenType: 'Bearer',
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -268,7 +285,11 @@ const sendNotAuthenticated = (res) => {
  * @param {string} resourceName - Nombre del recurso
  */
 const sendResourceNotAvailable = (res, resourceName = 'Recurso') => {
-  sendError(res, `${resourceName} no disponible para las fechas seleccionadas`, HTTP_STATUS.CONFLICT);
+  sendError(
+    res,
+    `${resourceName} no disponible para las fechas seleccionadas`,
+    HTTP_STATUS.CONFLICT,
+  );
 };
 
 /**
@@ -281,7 +302,7 @@ const sendCheckInSuccess = (res, checkInData) => {
     success: true,
     message: SUCCESS_MESSAGES.CHECKIN_SUCCESS,
     data: checkInData,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -295,7 +316,7 @@ const sendCheckOutSuccess = (res, checkOutData) => {
     success: true,
     message: SUCCESS_MESSAGES.CHECKOUT_SUCCESS,
     data: checkOutData,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -309,7 +330,7 @@ const sendPaymentSuccess = (res, paymentData) => {
     success: true,
     message: SUCCESS_MESSAGES.PAYMENT_COMPLETED,
     data: paymentData,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -326,8 +347,8 @@ const sendReport = (res, reportData, reportName = 'Reporte') => {
     report: {
       name: reportName,
       generatedAt: new Date().toISOString(),
-      data: reportData
-    }
+      data: reportData,
+    },
   });
 };
 
@@ -342,8 +363,8 @@ const sendReport = (res, reportData, reportName = 'Reporte') => {
  */
 const sendValidationErrors = (res, validationErrors) => {
   const errors = {};
-  
-  validationErrors.forEach(error => {
+
+  validationErrors.forEach((error) => {
     errors[error.path[0]] = error.message;
   });
 
@@ -373,7 +394,7 @@ const sendAccepted = (res, data) => {
     success: true,
     message: 'Operación aceptada y en proceso',
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };
 
@@ -395,7 +416,7 @@ const getErrorMessageByStatus = (statusCode) => {
     409: ERROR_MESSAGES.CONFLICT,
     422: 'Errores de validación',
     500: ERROR_MESSAGES.INTERNAL_ERROR,
-    503: 'Servicio no disponible'
+    503: 'Servicio no disponible',
   };
 
   return statusMessages[statusCode] || ERROR_MESSAGES.INTERNAL_ERROR;
@@ -414,7 +435,7 @@ const createErrorResponse = (message, statusCode = 400, errors = null) => {
     message,
     statusCode,
     ...(errors && { errors }),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 };
 
@@ -425,13 +446,17 @@ const createErrorResponse = (message, statusCode = 400, errors = null) => {
  * @param {number} statusCode - Código HTTP
  * @returns {object} Objeto de respuesta
  */
-const createSuccessResponse = (data = null, message = SUCCESS_MESSAGES.OPERATION_SUCCESS, statusCode = 200) => {
+const createSuccessResponse = (
+  data = null,
+  message = SUCCESS_MESSAGES.OPERATION_SUCCESS,
+  statusCode = 200,
+) => {
   return {
     success: true,
     message,
     data,
     statusCode,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 };
 
@@ -480,5 +505,5 @@ module.exports = {
   // Utilidades
   getErrorMessageByStatus,
   createErrorResponse,
-  createSuccessResponse
+  createSuccessResponse,
 };

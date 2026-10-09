@@ -25,6 +25,27 @@ function component(path, globals) {
 }
 const render = (view, props) => renderToString(Vue.createSSRApp(view, props));
 
+test('API errors include the backend request ID in console diagnostics', () => {
+  let options;
+  const errors = [];
+  const api = evaluate(source('services/api.ts').replaceAll('import.meta.server', 'false'), {
+    useRuntimeConfig: () => ({ public: { apiBase: 'http://localhost:3000/api' } }),
+    useAuthStore: () => ({ token: null }),
+    $fetch: { create: value => { options = value; return () => {}; } },
+    console: { error: (...args) => errors.push(args), log: () => {} },
+  });
+  api.useApiClient();
+  options.onResponseError({ response: {
+    status: 500, headers: { get: () => 'request-123' }, _data: { message: 'Error interno' },
+  } });
+  assert.match(errors[0][0], /\[request-123\]/);
+  assert.equal(errors[0][1], 'Error interno');
+  options.onResponseError({ response: {
+    status: 500, headers: { get: () => null }, _data: { requestId: 'request-456', message: 'Error interno' },
+  } });
+  assert.match(errors[2][0], /\[request-456\]/);
+});
+
 // A small Vue renderer exercises events without requiring a browser or a database.
 const renderer = Vue.createRenderer({
   createElement: tag => ({ tag, props: {}, children: [], parent: null }),

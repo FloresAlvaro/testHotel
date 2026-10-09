@@ -14,7 +14,14 @@ class RoomType {
         RETURNING *
       `;
 
-      const result = await pool.query(query, [name, description, price, capacity, amenities, image]);
+      const result = await pool.query(query, [
+        name,
+        description,
+        price,
+        capacity,
+        amenities,
+        image,
+      ]);
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') {
@@ -89,7 +96,15 @@ class RoomType {
     `;
 
     try {
-      const result = await pool.query(query, [name, description, price, capacity, amenities, image, id]);
+      const result = await pool.query(query, [
+        name,
+        description,
+        price,
+        capacity,
+        amenities,
+        image,
+        id,
+      ]);
       return result.rows[0] || null;
     } catch (error) {
       if (error.code === '23505') {

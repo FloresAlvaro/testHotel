@@ -9,7 +9,7 @@ const responseMock = () => ({
   },
   json(body) {
     this.body = body;
-  }
+  },
 });
 
 describe('Validacion Joi', () => {
@@ -24,13 +24,17 @@ describe('Validacion Joi', () => {
   });
   test('normaliza correo vacío para poder borrarlo y usa documento predeterminado', () => {
     const { createSchema, updateSchema } = require('../src/validators/clientValidator');
-    expect(createSchema.validate({ name: 'Ana', document: '123456' }).value.document_type).toBe('cedula');
+    expect(createSchema.validate({ name: 'Ana', document: '123456' }).value.document_type).toBe(
+      'cedula',
+    );
     expect(updateSchema.validate({ email: '' }).value.email).toBeNull();
   });
   test('rechaza capacidad fraccionaria, NaN y piso negativo', () => {
     const types = require('../src/validators/roomTypeValidator');
     const rooms = require('../src/validators/roomValidator');
-    expect(types.createSchema.validate({ name: 'Simple', price: 100, capacity: 1.5 }).error).toBeDefined();
+    expect(
+      types.createSchema.validate({ name: 'Simple', price: 100, capacity: 1.5 }).error,
+    ).toBeDefined();
     expect(types.updateSchema.validate({ price: 'abc' }).error).toBeDefined();
     expect(rooms.updateSchema.validate({ floor: -1 }).error).toBeDefined();
   });
@@ -40,8 +44,8 @@ describe('Validacion Joi', () => {
         check_in: '2026-10-01',
         check_out: '2026-10-03',
         client_id: '4',
-        room_id: '8'
-      }
+        room_id: '8',
+      },
     };
     const res = responseMock();
     const next = jest.fn();
@@ -59,8 +63,8 @@ describe('Validacion Joi', () => {
         check_in: '2026-10-03',
         check_out: '2026-10-01',
         client_id: 4,
-        room_id: 8
-      }
+        room_id: 8,
+      },
     };
     const res = responseMock();
     const next = jest.fn();
@@ -76,7 +80,7 @@ describe('Validacion Joi', () => {
     const result = paymentSchema.validate({
       reservation_id: 1,
       amount: 100,
-      method: 'bitcoin'
+      method: 'bitcoin',
     });
 
     expect(result.error).toBeDefined();

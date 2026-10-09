@@ -6,9 +6,20 @@ class Client {
    */
   static async create(clientData) {
     const {
-      name, document, document_type, email, phone,
-      address, city, country, nationality, date_of_birth,
-      gender, emergency_contact, emergency_phone, notes
+      name,
+      document,
+      document_type,
+      email,
+      phone,
+      address,
+      city,
+      country,
+      nationality,
+      date_of_birth,
+      gender,
+      emergency_contact,
+      emergency_phone,
+      notes,
     } = clientData;
 
     try {
@@ -23,15 +34,33 @@ class Client {
       `;
 
       const result = await pool.query(query, [
-        name, document, document_type || 'cedula', email || null, phone,
-        address, city, country, nationality, date_of_birth,
-        gender, emergency_contact, emergency_phone, notes
+        name,
+        document,
+        document_type || 'cedula',
+        email || null,
+        phone,
+        address,
+        city,
+        country,
+        nationality,
+        date_of_birth,
+        gender,
+        emergency_contact,
+        emergency_phone,
+        notes,
       ]);
 
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') {
-        throw Object.assign(new Error(error.constraint?.includes('email') ? 'El email ya está registrado' : 'El documento ya está registrado'), { statusCode: 409 });
+        throw Object.assign(
+          new Error(
+            error.constraint?.includes('email')
+              ? 'El email ya está registrado'
+              : 'El documento ya está registrado',
+          ),
+          { statusCode: 409 },
+        );
       }
       throw error;
     }
@@ -102,8 +131,18 @@ class Client {
    */
   static async update(id, clientData) {
     const {
-      name, email, phone, address, city, country, nationality,
-      date_of_birth, gender, emergency_contact, emergency_phone, notes
+      name,
+      email,
+      phone,
+      address,
+      city,
+      country,
+      nationality,
+      date_of_birth,
+      gender,
+      emergency_contact,
+      emergency_phone,
+      notes,
     } = clientData;
 
     const query = `
@@ -118,8 +157,19 @@ class Client {
 
     try {
       const result = await pool.query(query, [
-        name, email || null, phone, address, city, country, nationality,
-        date_of_birth, gender, emergency_contact, emergency_phone, notes, id
+        name,
+        email || null,
+        phone,
+        address,
+        city,
+        country,
+        nationality,
+        date_of_birth,
+        gender,
+        emergency_contact,
+        emergency_phone,
+        notes,
+        id,
       ]);
 
       return result.rows[0] || null;

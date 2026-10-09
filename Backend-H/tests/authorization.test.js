@@ -2,7 +2,7 @@ const authorize = require('../src/middleware/authorization');
 
 const responseMock = () => ({
   status: jest.fn().mockReturnThis(),
-  json: jest.fn()
+  json: jest.fn(),
 });
 
 describe('Autorizacion por roles', () => {

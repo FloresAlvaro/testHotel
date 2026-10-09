@@ -11,25 +11,37 @@ const date = Joi.string().custom((value, helpers) => {
   return value;
 }, 'fecha de calendario');
 const periodSchema = Joi.object({
-  startDate: date.required(), endDate: date.required()
-}).custom((value, helpers) => value.startDate <= value.endDate ? value : helpers.error('any.invalid'));
+  startDate: date.required(),
+  endDate: date.required(),
+}).custom((value, helpers) =>
+  value.startDate <= value.endDate ? value : helpers.error('any.invalid'),
+);
 
 const configureRouter = (router) => {
   for (const name of ['id', 'clientId', 'reservationId']) {
-    router.param(name, (req, res, next, value) => validate(Joi.object({ [name]: id.required() }))(
-      { body: { [name]: value } }, res, next
-    ));
+    router.param(name, (req, res, next, value) =>
+      validate(Joi.object({ [name]: id.required() }))({ body: { [name]: value } }, res, next),
+    );
   }
-  router.param('floor', (req, res, next, value) => validate(Joi.object({
-    floor: Joi.number().integer().min(0).max(2147483647).required()
-  }))({ body: { floor: value } }, res, next));
-  router.use(validate(Joi.object({
-    page: Joi.number().integer().positive().max(1000000),
-    pageSize: Joi.number().integer().positive().max(100),
-    days: Joi.number().integer().min(0).max(365),
-    roomTypeId: id,
-    q: Joi.string().trim().min(1).max(200)
-  }).unknown(true), 'query'));
+  router.param('floor', (req, res, next, value) =>
+    validate(
+      Joi.object({
+        floor: Joi.number().integer().min(0).max(2147483647).required(),
+      }),
+    )({ body: { floor: value } }, res, next),
+  );
+  router.use(
+    validate(
+      Joi.object({
+        page: Joi.number().integer().positive().max(1000000),
+        pageSize: Joi.number().integer().positive().max(100),
+        days: Joi.number().integer().min(0).max(365),
+        roomTypeId: id,
+        q: Joi.string().trim().min(1).max(200),
+      }).unknown(true),
+      'query',
+    ),
+  );
 };
 
 module.exports = { id, date, periodSchema, configureRouter };

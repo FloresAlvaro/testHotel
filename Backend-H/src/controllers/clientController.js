@@ -1,6 +1,12 @@
 const Client = require('../models/Client');
-const { sendSuccess, sendCreated, sendUpdated, sendDeleted, sendError, 
-        sendPaginated } = require('../utils/response');
+const {
+  sendSuccess,
+  sendCreated,
+  sendUpdated,
+  sendDeleted,
+  sendError,
+  sendPaginated,
+} = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
@@ -11,9 +17,20 @@ class ClientController {
   static async create(req, res, next) {
     try {
       const {
-        name, document, document_type, email, phone,
-        address, city, country, nationality, date_of_birth,
-        gender, emergency_contact, emergency_phone, notes
+        name,
+        document,
+        document_type,
+        email,
+        phone,
+        address,
+        city,
+        country,
+        nationality,
+        date_of_birth,
+        gender,
+        emergency_contact,
+        emergency_phone,
+        notes,
       } = req.body;
 
       // Validaciones
@@ -29,9 +46,20 @@ class ClientController {
 
       // Crear cliente
       const client = await Client.create({
-        name, document, document_type, email, phone,
-        address, city, country, nationality, date_of_birth,
-        gender, emergency_contact, emergency_phone, notes
+        name,
+        document,
+        document_type,
+        email,
+        phone,
+        address,
+        city,
+        country,
+        nationality,
+        date_of_birth,
+        gender,
+        emergency_contact,
+        emergency_phone,
+        notes,
       });
 
       sendCreated(res, client, SUCCESS_MESSAGES.CLIENT_CREATED);
@@ -182,7 +210,7 @@ class ClientController {
 
       sendSuccess(res, {
         client,
-        stats
+        stats,
       });
     } catch (error) {
       next(error);

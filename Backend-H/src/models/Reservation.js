@@ -2,20 +2,26 @@ const pool = require('../config/database');
 
 class Reservation {
   static async getRoomState(roomId, client = pool) {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT EXISTS(SELECT 1 FROM reservation WHERE room_id = $1 AND status = 'checked_in') AS occupied,
         EXISTS(SELECT 1 FROM reservation WHERE room_id = $1 AND status = 'confirmed') AS reserved
-    `, [roomId]);
+    `,
+      [roomId],
+    );
     return result.rows[0];
   }
   static async hasActiveStay(roomId, client = pool) {
     return (await this.getRoomState(roomId, client)).occupied;
   }
   static async hasOverlap(roomId, start, end, excludeId, client = pool) {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT EXISTS(SELECT 1 FROM reservation WHERE room_id = $1 AND id <> $4
         AND status != 'cancelled' AND check_in < $3::date AND check_out > $2::date) AS overlap
-    `, [roomId, start, end, excludeId]);
+    `,
+      [roomId, start, end, excludeId],
+    );
     return result.rows[0].overlap;
   }
 
@@ -25,10 +31,13 @@ class Reservation {
   static async create(reservationData, client = pool) {
     const { check_in, check_out, client_id, room_id, user_id, total_price } = reservationData;
 
-    const result = await client.query(`
+    const result = await client.query(
+      `
       INSERT INTO reservation (check_in, check_out, client_id, room_id, user_id, total_price, status, notes)
       VALUES ($1, $2, $3, $4, $5, $6, 'confirmed', $7) RETURNING *
-    `, [check_in, check_out, client_id, room_id, user_id, total_price, reservationData.notes]);
+    `,
+      [check_in, check_out, client_id, room_id, user_id, total_price, reservationData.notes],
+    );
     return result.rows[0];
   }
 
@@ -169,9 +178,7 @@ class Reservation {
       RETURNING *
     `;
 
-    const result = await client.query(query, [
-      check_in, check_out, total_price, status, notes, id
-    ]);
+    const result = await client.query(query, [check_in, check_out, total_price, status, notes, id]);
 
     return result.rows[0] || null;
   }

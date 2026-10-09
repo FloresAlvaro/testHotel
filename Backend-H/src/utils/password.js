@@ -5,6 +5,6 @@ const hashPassword = (password) => bcrypt.hash(password, BCRYPT_ROUNDS);
 const comparePassword = (password, hashedPassword) => bcrypt.compare(password, hashedPassword);
 
 module.exports = {
-	hashPassword,
-	comparePassword
+  hashPassword,
+  comparePassword,
 };

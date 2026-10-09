@@ -4,7 +4,7 @@ const { verifyToken } = require('../utils/jwt');
 const auth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
       return res.status(401).json({ message: 'Token no proporcionado' });
     }
@@ -25,7 +25,7 @@ const auth = async (req, res, next) => {
       id: user.id,
       email: user.email,
       role: user.role,
-      is_active: user.is_active
+      is_active: user.is_active,
     };
     next();
   } catch (error) {

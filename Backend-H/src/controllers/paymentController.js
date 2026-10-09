@@ -1,6 +1,12 @@
 const PaymentService = require('../services/paymentService');
 const Payment = require('../models/Payment');
-const { sendSuccess, sendCreated, sendUpdated, sendError, sendPaginated } = require('../utils/response');
+const {
+  sendSuccess,
+  sendCreated,
+  sendUpdated,
+  sendError,
+  sendPaginated,
+} = require('../utils/response');
 const { ERROR_MESSAGES, SUCCESS_MESSAGES, HTTP_STATUS } = require('../config/constants');
 const { getPaginationParams } = require('../utils/helpers');
 
@@ -73,7 +79,10 @@ class PaymentController {
    */
   static async update(req, res, next) {
     try {
-      const payment = await PaymentService.update(req.params.id, req.body, { ...req.user, ip: req.ip });
+      const payment = await PaymentService.update(req.params.id, req.body, {
+        ...req.user,
+        ip: req.ip,
+      });
       sendUpdated(res, payment, SUCCESS_MESSAGES.PAYMENT_UPDATED);
     } catch (error) {
       next(error);
@@ -85,7 +94,10 @@ class PaymentController {
    */
   static async updateStatus(req, res, next) {
     try {
-      const payment = await PaymentService.changeStatus(req.params.id, req.body.status, { ...req.user, ip: req.ip });
+      const payment = await PaymentService.changeStatus(req.params.id, req.body.status, {
+        ...req.user,
+        ip: req.ip,
+      });
       sendUpdated(res, payment, 'Estado de pago actualizado');
     } catch (error) {
       next(error);
@@ -97,7 +109,12 @@ class PaymentController {
    */
   static async complete(req, res, next) {
     try {
-      const payment = await PaymentService.changeStatus(req.params.id, 'completed', { ...req.user, ip: req.ip }, 'pending');
+      const payment = await PaymentService.changeStatus(
+        req.params.id,
+        'completed',
+        { ...req.user, ip: req.ip },
+        'pending',
+      );
       sendSuccess(res, payment, HTTP_STATUS.OK, SUCCESS_MESSAGES.PAYMENT_COMPLETED);
     } catch (error) {
       next(error);
@@ -109,7 +126,12 @@ class PaymentController {
    */
   static async refund(req, res, next) {
     try {
-      const payment = await PaymentService.changeStatus(req.params.id, 'refunded', { ...req.user, ip: req.ip }, 'completed');
+      const payment = await PaymentService.changeStatus(
+        req.params.id,
+        'refunded',
+        { ...req.user, ip: req.ip },
+        'completed',
+      );
       sendSuccess(res, payment, HTTP_STATUS.OK, 'Pago reembolsado exitosamente');
     } catch (error) {
       next(error);

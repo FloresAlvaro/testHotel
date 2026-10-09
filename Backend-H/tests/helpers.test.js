@@ -18,7 +18,7 @@ const {
   toJSON,
   toQueryString,
   truncate,
-  validatePassword
+  validatePassword,
 } = require('../src/utils/helpers');
 
 describe('Utilidades de validacion y formato', () => {
@@ -67,19 +67,19 @@ describe('Utilidades de fechas y paginacion', () => {
       offset: 50,
       limit: 25,
       page: 3,
-      pageSize: 25
+      pageSize: 25,
     });
     expect(getPaginationParams('invalida', 'invalido')).toEqual({
       offset: 0,
       limit: 15,
       page: 1,
-      pageSize: 15
+      pageSize: 15,
     });
     expect(getPaginationParams('-2', '-5', 10)).toEqual({
       offset: 0,
       limit: 1,
       page: 1,
-      pageSize: 1
+      pageSize: 1,
     });
     expect(getPaginationParams(2, 500).limit).toBe(100);
   });
@@ -93,8 +93,8 @@ describe('Utilidades de fechas y paginacion', () => {
         pageSize: 10,
         totalPages: 3,
         hasNextPage: true,
-        hasPreviousPage: true
-      }
+        hasPreviousPage: true,
+      },
     });
     expect(createPaginatedResponse([], 0, 1, 10).pagination.hasNextPage).toBe(false);
   });
@@ -117,13 +117,13 @@ describe('Utilidades de conversion y colecciones', () => {
     const rooms = [
       { number: 202, type: 'Suite' },
       { number: 101, type: 'Simple' },
-      { number: 303, type: 'Suite' }
+      { number: 303, type: 'Suite' },
     ];
 
     expect(searchInArray(rooms, 'suite', ['type'])).toEqual([rooms[0], rooms[2]]);
     expect(Object.keys(groupByField(rooms, 'type'))).toEqual(['Suite', 'Simple']);
-    expect(sortByField(rooms, 'number').map(room => room.number)).toEqual([101, 202, 303]);
-    expect(rooms.map(room => room.number)).toEqual([202, 101, 303]);
+    expect(sortByField(rooms, 'number').map((room) => room.number)).toEqual([101, 202, 303]);
+    expect(rooms.map((room) => room.number)).toEqual([202, 101, 303]);
   });
 
   test('obtiene valores anidados y devuelve undefined si falta una ruta', () => {

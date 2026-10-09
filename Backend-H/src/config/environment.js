@@ -4,16 +4,13 @@ require('dotenv').config();
 // VALIDAR VARIABLES REQUERIDAS
 // ============================================
 
-const requiredEnvVars = [
-  'DATABASE_URL',
-  'JWT_SECRET'
-];
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
 
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
   console.error('❌ ERROR: Faltan las siguientes variables de entorno:');
-  missingEnvVars.forEach(envVar => {
+  missingEnvVars.forEach((envVar) => {
     console.error(`   - ${envVar}`);
   });
   process.exit(1);
@@ -69,7 +66,9 @@ const validateNodeEnv = (env) => {
 
 const validateJWTSecret = (secret) => {
   if (secret === 'your-secret-key') {
-    console.warn('⚠️ ADVERTENCIA: Estás usando el JWT_SECRET por defecto. Cambia esto en producción.');
+    console.warn(
+      '⚠️ ADVERTENCIA: Estás usando el JWT_SECRET por defecto. Cambia esto en producción.',
+    );
   }
   if (secret.length < 32) {
     console.warn('⚠️ ADVERTENCIA: JWT_SECRET debería tener al menos 32 caracteres.');
@@ -167,7 +166,8 @@ const PAYMENT_API_URL = process.env.PAYMENT_API_URL || null;
 // CONFIGURACIÓN DE SESIÓN
 // ============================================
 
-const SESSION_SECRET = process.env.SESSION_SECRET || (isDevelopment ? 'session-secret' : process.env.JWT_SECRET);
+const SESSION_SECRET =
+  process.env.SESSION_SECRET || (isDevelopment ? 'session-secret' : process.env.JWT_SECRET);
 const SESSION_MAX_AGE = Number(process.env.SESSION_MAX_AGE || 86400000); // 24 horas
 
 // ============================================
@@ -177,7 +177,14 @@ const SESSION_MAX_AGE = Number(process.env.SESSION_MAX_AGE || 86400000); // 24 h
 const ENABLE_HEALTH_CHECK = process.env.ENABLE_HEALTH_CHECK !== 'false';
 const HEALTH_CHECK_INTERVAL = Number(process.env.HEALTH_CHECK_INTERVAL || 60000); // 1 minuto
 
-for (const [name, value] of Object.entries({ RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, HEALTH_CHECK_INTERVAL, DB_POOL_MAX, DB_IDLE_TIMEOUT, DB_CONNECT_TIMEOUT })) {
+for (const [name, value] of Object.entries({
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_REQUESTS,
+  HEALTH_CHECK_INTERVAL,
+  DB_POOL_MAX,
+  DB_IDLE_TIMEOUT,
+  DB_CONNECT_TIMEOUT,
+})) {
   if (!Number.isSafeInteger(value) || value < 1) {
     console.error(`ERROR: ${name} debe ser un entero positivo`);
     process.exit(1);
@@ -239,55 +246,55 @@ module.exports = {
   PORT,
   NODE_ENV,
   DATABASE_URL,
-  
+
   // JWT
   JWT_SECRET,
   JWT_EXPIRE,
-  
+
   // Seguridad
   BCRYPT_ROUNDS,
   SESSION_SECRET,
   SESSION_MAX_AGE,
-  
+
   // CORS
   CORS_ORIGIN,
   CORS_CREDENTIALS,
-  
+
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_REQUESTS,
-  
+
   // Logging
   LOG_LEVEL,
   LOG_FORMAT,
-  
+
   // Base de Datos
   DB_POOL_MIN,
   DB_POOL_MAX,
   DB_IDLE_TIMEOUT,
   DB_CONNECT_TIMEOUT,
-  
+
   // Archivos
   MAX_FILE_SIZE,
   ALLOWED_MIME_TYPES,
-  
+
   // Email
   SMTP_HOST,
   SMTP_PORT,
   SMTP_USER,
   SMTP_PASSWORD,
   SMTP_FROM,
-  
+
   // API
   PAYMENT_API_KEY,
   PAYMENT_API_URL,
-  
+
   // Monitoreo
   ENABLE_HEALTH_CHECK,
   HEALTH_CHECK_INTERVAL,
-  
+
   // Banderas de entorno
   isDevelopment,
   isProduction,
-  isTesting
+  isTesting,
 };

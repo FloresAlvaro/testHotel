@@ -1,5 +1,5 @@
 jest.mock('../src/config/database', () => ({
-  query: jest.fn()
+  query: jest.fn(),
 }));
 
 const pool = require('../src/config/database');

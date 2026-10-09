@@ -1,4 +1,4 @@
-const { DEFAULTS, DATE_TIME } = require('../config/constants');
+const { DEFAULTS } = require('../config/constants');
 
 // ============================================
 // FUNCIONES DE FORMATEO
@@ -15,7 +15,7 @@ const formatCurrency = (amount, currency = DEFAULTS.CURRENCY) => {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(amount);
 };
 
@@ -27,19 +27,19 @@ const formatCurrency = (amount, currency = DEFAULTS.CURRENCY) => {
  */
 const formatDate = (date, format = 'DD/MM/YYYY') => {
   const d = new Date(date);
-  
+
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  
+
   if (format === 'DD/MM/YYYY') {
     return `${day}/${month}/${year}`;
   }
-  
+
   if (format === 'YYYY-MM-DD') {
     return `${year}-${month}-${day}`;
   }
-  
+
   return d.toLocaleDateString('es-BO');
 };
 
@@ -50,14 +50,14 @@ const formatDate = (date, format = 'DD/MM/YYYY') => {
  */
 const formatDateTime = (datetime) => {
   const d = new Date(datetime);
-  
+
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
   const seconds = String(d.getSeconds()).padStart(2, '0');
-  
+
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 };
 
@@ -84,7 +84,7 @@ const capitalize = (str) => {
   return str
     .toLowerCase()
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
 
@@ -152,26 +152,26 @@ const isValidURL = (url) => {
  */
 const validatePassword = (password) => {
   const errors = [];
-  
+
   if (password.length < 8) {
     errors.push('La contraseña debe tener al menos 8 caracteres');
   }
-  
+
   if (!/[A-Z]/.test(password)) {
     errors.push('La contraseña debe contener al menos una mayúscula');
   }
-  
+
   if (!/[a-z]/.test(password)) {
     errors.push('La contraseña debe contener al menos una minúscula');
   }
-  
+
   if (!/\d/.test(password)) {
     errors.push('La contraseña debe contener al menos un número');
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -272,17 +272,21 @@ const getDaysDifference = (date1, date2) => {
  * @param {number} pageSize - Tamaño de página
  * @returns {object} { offset, limit }
  */
-const getPaginationParams = (page = 1, pageSize = DEFAULTS.ITEMS_PER_PAGE, defaultPageSize = DEFAULTS.ITEMS_PER_PAGE) => {
+const getPaginationParams = (
+  page = 1,
+  pageSize = DEFAULTS.ITEMS_PER_PAGE,
+  defaultPageSize = DEFAULTS.ITEMS_PER_PAGE,
+) => {
   const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
   const parsedPageSize = Math.min(Math.max(parseInt(pageSize, 10) || defaultPageSize, 1), 100);
-  
+
   const offset = (parsedPage - 1) * parsedPageSize;
-  
+
   return {
     offset,
     limit: parsedPageSize,
     page: parsedPage,
-    pageSize: parsedPageSize
+    pageSize: parsedPageSize,
   };
 };
 
@@ -296,7 +300,7 @@ const getPaginationParams = (page = 1, pageSize = DEFAULTS.ITEMS_PER_PAGE, defau
  */
 const createPaginatedResponse = (data, total, page = 1, pageSize = DEFAULTS.ITEMS_PER_PAGE) => {
   const totalPages = Math.ceil(total / pageSize);
-  
+
   return {
     data,
     pagination: {
@@ -305,8 +309,8 @@ const createPaginatedResponse = (data, total, page = 1, pageSize = DEFAULTS.ITEM
       pageSize,
       totalPages,
       hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1
-    }
+      hasPreviousPage: page > 1,
+    },
   };
 };
 
@@ -408,11 +412,11 @@ const toQueryString = (obj) => {
 const parseQueryString = (queryStr) => {
   const params = new URLSearchParams(queryStr);
   const obj = {};
-  
+
   for (const [key, value] of params) {
     obj[key] = value;
   }
-  
+
   return obj;
 };
 
@@ -439,13 +443,11 @@ const deepEqual = (obj1, obj2) => {
  */
 const searchInArray = (data, searchTerm, fields = []) => {
   if (!searchTerm || fields.length === 0) return data;
-  
+
   const term = searchTerm.toLowerCase();
-  
-  return data.filter(item =>
-    fields.some(field =>
-      String(item[field]).toLowerCase().includes(term)
-    )
+
+  return data.filter((item) =>
+    fields.some((field) => String(item[field]).toLowerCase().includes(term)),
   );
 };
 
@@ -460,7 +462,7 @@ const sortByField = (data, field, order = 'ASC') => {
   return [...data].sort((a, b) => {
     const aVal = a[field];
     const bVal = b[field];
-    
+
     if (order === 'ASC') {
       return aVal > bVal ? 1 : -1;
     } else {
@@ -513,44 +515,44 @@ const createError = (message, statusCode = 400, errors = null) => {
 const validateObject = (data, schema) => {
   const errors = {};
   let valid = true;
-  
+
   Object.entries(schema).forEach(([field, validation]) => {
     if (validation.required && !data[field]) {
       errors[field] = `${field} es requerido`;
       valid = false;
     }
-    
+
     if (validation.type && data[field] && typeof data[field] !== validation.type) {
       errors[field] = `${field} debe ser de tipo ${validation.type}`;
       valid = false;
     }
-    
+
     if (validation.minLength && data[field]?.length < validation.minLength) {
       errors[field] = `${field} debe tener al menos ${validation.minLength} caracteres`;
       valid = false;
     }
-    
+
     if (validation.maxLength && data[field]?.length > validation.maxLength) {
       errors[field] = `${field} no puede tener más de ${validation.maxLength} caracteres`;
       valid = false;
     }
-    
+
     if (validation.min && data[field] < validation.min) {
       errors[field] = `${field} debe ser mayor o igual a ${validation.min}`;
       valid = false;
     }
-    
+
     if (validation.max && data[field] > validation.max) {
       errors[field] = `${field} debe ser menor o igual a ${validation.max}`;
       valid = false;
     }
-    
+
     if (validation.pattern && !validation.pattern.test(data[field])) {
       errors[field] = `${field} tiene un formato inválido`;
       valid = false;
     }
   });
-  
+
   return { valid, errors };
 };
 
@@ -593,7 +595,7 @@ const getNestedValue = (obj, path) => {
  * @returns {Promise}
  */
 const sleep = (ms) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
 /**
@@ -626,7 +628,7 @@ module.exports = {
   slugify,
   capitalize,
   truncate,
-  
+
   // Validación
   isValidEmail,
   isValidDocument,
@@ -634,7 +636,7 @@ module.exports = {
   isValidURL,
   validatePassword,
   validateObject,
-  
+
   // Fechas
   calculateNights,
   calculateTotalPrice,
@@ -643,36 +645,36 @@ module.exports = {
   getCurrentDate,
   addDays,
   getDaysDifference,
-  
+
   // Paginación
   getPaginationParams,
   createPaginatedResponse,
-  
+
   // Generación
   generateUUID,
   generateConfirmationNumber,
   generateTransactionNumber,
   generateVerificationCode,
-  
+
   // Conversión
   toJSON,
   parseJSON,
   toQueryString,
   parseQueryString,
-  
+
   // Comparación/Búsqueda
   deepEqual,
   searchInArray,
   sortByField,
   groupByField,
-  
+
   // Errores
   createError,
-  
+
   // Utilidades generales
   deepClone,
   mergeObjects,
   getNestedValue,
   sleep,
-  retry
+  retry,
 };
