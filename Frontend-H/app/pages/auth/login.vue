@@ -21,7 +21,7 @@
             autocapitalize="none"
             spellcheck="false"
             required
-            :disabled="loading"
+            :disabled="loading || !ready"
             :aria-invalid="Boolean(errors.email)"
             :aria-describedby="errors.email ? 'login-email-error' : undefined"
             @blur="validateField('email')"
@@ -49,7 +49,7 @@
             placeholder="Escribe tu contraseña"
             autocomplete="current-password"
             required
-            :disabled="loading"
+            :disabled="loading || !ready"
             :aria-invalid="Boolean(errors.password)"
             :aria-describedby="errors.password ? 'login-password-error' : undefined"
             @blur="validateField('password')"
@@ -72,7 +72,7 @@
       <button
         class="login-submit"
         type="submit"
-        :disabled="loading || !isFormValid"
+        :disabled="loading || !isFormValid || !ready"
       >
         <span>{{ loading ? 'Validando acceso…' : 'Iniciar sesión' }}</span>
         <span v-if="loading" class="submit-spinner" aria-hidden="true" />
@@ -81,19 +81,20 @@
 
       <p class="security-note">
         <Icon name="system-uicons:lock" size="16" aria-hidden="true" />
-        Acceso privado para el equipo del hotel
+        Acceso seguro para huéspedes y equipo del hotel
       </p>
     </form>
 
     <div class="register-prompt">
-      <span>¿Primera vez aquí?</span>
-      <NuxtLink to="/auth/register">Crear una cuenta</NuxtLink>
+      <span>¿Necesitas acceso?</span>
+      <NuxtLink to="/auth/register">Contacta al hotel</NuxtLink>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { postLoginPath } from "~/utils/authNavigation";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "~/stores/auth";
 import { useUIStore } from "~/stores/ui";
@@ -112,6 +113,7 @@ const uiStore = useUIStore();
 const authService = useAuthService();
 
 const loading = ref(false);
+const ready = ref(false);
 const passwordVisible = ref(false);
 const form = ref({ email: "", password: "" });
 const errors = ref({ email: "", password: "" });
@@ -142,6 +144,9 @@ const isFormValid = computed(() =>
   ),
 );
 
+watch(() => form.value.email, () => { if (errors.value.email) validateField('email'); });
+watch(() => form.value.password, () => { if (errors.value.password) validateField('password'); });
+
 const handleLogin = async () => {
   validateField("email");
   validateField("password");
@@ -159,7 +164,7 @@ const handleLogin = async () => {
       sessionStorage.getItem("redirectUrl") ||
       "/dashboard";
     sessionStorage.removeItem("redirectUrl");
-    await router.push(redirectUrl);
+    await router.push(postLoginPath(authStore.user?.role, redirectUrl));
   } catch (error: unknown) {
     if (!authStore.error) {
       uiStore.error(
@@ -172,242 +177,38 @@ const handleLogin = async () => {
 };
 
 onMounted(() => {
+  ready.value = true;
   if (authStore.isAuthenticated) {
     const queryRedirect = route.query.redirect;
     router.replace(
-      typeof queryRedirect === "string" ? queryRedirect : "/dashboard",
+      postLoginPath(authStore.user?.role, queryRedirect),
     );
   }
 });
 </script>
 
+
 <style scoped>
-.login-page {
-  width: 100%;
-}
-
-.login-heading {
-  margin-bottom: 25px;
-
-  h1 {
-    margin: 0 0 6px;
-    color: var(--panel-text);
-    font-family: "Alata", sans-serif;
-    font-size: 26px;
-    font-weight: 600;
-    line-height: 1.2;
-  }
-
-  > p:last-child {
-    margin: 0;
-    color: var(--panel-muted);
-    font-size: 13px;
-    line-height: 1.6;
-  }
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-
-  label {
-    color: var(--panel-text);
-    font-size: 13px;
-    font-weight: 600;
-  }
-}
-
-.field-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.input-shell {
-  display: flex;
-  min-width: 0;
-  min-height: 48px;
-  align-items: center;
-  gap: 12px;
-  padding: 0 15px;
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  background: var(--field-bg);
-  color: #8189a4;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-
-  &:focus-within {
-    border-color: #7168ef;
-    box-shadow: 0 0 0 3px rgba(81, 72, 232, 0.12);
-  }
-
-  input {
-    width: 100%;
-    min-width: 0;
-    height: 46px;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--panel-text);
-    font: inherit;
-    font-size: 14px;
-
-    &::placeholder {
-      color: #9aa59e;
-      opacity: 1;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 0.65;
-    }
-  }
-}
-
-.password-toggle {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: #8189a4;
-  cursor: pointer;
-
-  &:hover {
-    background: rgba(81, 72, 232, 0.1);
-    color: #5148e8;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #5148e8;
-    outline-offset: 2px;
-  }
-}
-
-.forgot-link,
-.register-prompt a {
-  color: #5148e8;
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-
-  &:hover {
-    color: #3931c6;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-}
-
-.field-error {
-  margin: 0;
-  color: #b8443c;
-  font-size: 12px;
-}
-
-.has-error .input-shell {
-  border-color: #c45b51;
-}
-
-.login-submit {
-  display: flex;
-  min-height: 48px;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 2px;
-  padding: 0 20px;
-  border: 1px solid #5148e8;
-  border-radius: 6px;
-  background: #5148e8;
-  color: #ffffff;
-  cursor: pointer;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  transition: background-color 160ms ease, transform 160ms ease;
-
-  &:hover:not(:disabled) {
-    background: #4037d2;
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-
-  &:focus-visible {
-    outline: 3px solid rgba(81, 72, 232, 0.28);
-    outline-offset: 3px;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-}
-
-.submit-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: spin 650ms linear infinite;
-}
-
-.security-note {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin: -8px 0 0;
-  color: var(--panel-muted);
-  font-size: 11px;
-}
-
-.register-prompt {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 5px;
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid var(--panel-border);
-  color: var(--panel-muted);
-  font-size: 12px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 900px) {
-  .login-heading h1 { font-size: 26px; }
-}
-
-@media (max-width: 390px) {
-  .login-heading {
-    margin-bottom: 28px;
-
-    h1 {
-      font-size: 25px;
-    }
-  }
-
-  .login-form {
-    gap: 19px;
-  }
-}
+.login-heading { margin-bottom:32px; }
+.login-heading h1 { margin:0 0 9px; font-size:26px; line-height:1.2; font-weight:600; letter-spacing:-.8px; color:var(--text-primary); }
+.login-heading p { font-size:13px; color:var(--text-secondary); margin:0; }
+.login-form { display:flex; flex-direction:column; gap:22px; }
+.form-field label { display:block; color:var(--text-primary); font-size:12px; font-weight:500; margin-bottom:8px; }
+.field-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.forgot-link { font-size:11px; color:var(--text-secondary); text-decoration:none; }
+.input-shell { display:flex; align-items:center; gap:10px; min-height:44px; border:1px solid var(--border-color); border-radius:7px; padding:0 12px; color:var(--text-tertiary); background:var(--bg-secondary); }
+.input-shell:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.input-shell input { flex:1; min-width:0; padding:12px 0; border:0; outline:none; background:transparent; color:var(--text-primary); font-size:12px; }
+.input-shell input::placeholder { color:var(--text-tertiary); }
+.password-toggle { display:flex; align-items:center; justify-content:center; border:0; background:transparent; color:var(--text-tertiary); padding:4px; }
+.field-error { font-size:11px; color:var(--danger); margin-top:7px; }
+.has-error .input-shell { border-color:var(--danger); }
+.login-submit { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:43px; border-radius:7px; background:#535ed6; color:white; border:0; font-size:12px; font-weight:500; margin-top:2px; }
+.login-submit:hover:not(:disabled) { background:#424ebf; }
+.login-submit:disabled { opacity:.5; }
+.security-note { display:flex; justify-content:center; gap:6px; font-size:10px; color:var(--text-tertiary); margin:-4px 0 0; }
+.register-prompt { margin-top:28px; padding-top:24px; border-top:1px solid var(--border-color); display:flex; justify-content:center; flex-wrap:wrap; gap:5px; color:var(--text-secondary); font-size:11px; }
+.register-prompt a { color:var(--accent); text-decoration:none; }
+.submit-spinner { width:13px; height:13px; border:2px solid #ffffff60; border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
 </style>

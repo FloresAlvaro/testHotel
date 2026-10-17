@@ -121,8 +121,8 @@ const CORS_CREDENTIALS = process.env.CORS_CREDENTIALS === 'true';
 // ============================================
 
 const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || 900000, 10); // 15 minutos
-const configuredRateLimitMax = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || 100, 10);
-const RATE_LIMIT_MAX_REQUESTS = isProduction ? 50 : configuredRateLimitMax;
+const configuredRateLimitMax = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 1000);
+const RATE_LIMIT_MAX_REQUESTS = Number.isInteger(configuredRateLimitMax) && configuredRateLimitMax > 0 ? configuredRateLimitMax : 1000;
 
 // ============================================
 // CONFIGURACIÓN DE LOGGING

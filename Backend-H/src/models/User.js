@@ -5,19 +5,19 @@ class User {
   /**
    * Crear nuevo usuario (empleado)
    */
-  static async create(userData) {
-    const { name, email, password, role } = userData;
+  static async create(userData, connection = pool) {
+    const { name, email, password, role, client_id = null } = userData;
     
     try {
       const hashedPassword = await hashPassword(password);
       
       const query = `
-        INSERT INTO "user" (name, email, password, role, is_active)
-        VALUES ($1, $2, $3, $4, true)
-        RETURNING id, name, email, role, is_active, created_at
+        INSERT INTO "user" (name, email, password, role, is_active, client_id)
+        VALUES ($1, $2, $3, $4, true, $5)
+        RETURNING id, name, email, role, is_active, client_id, created_at
       `;
       
-      const result = await pool.query(query, [name, email, hashedPassword, role]);
+      const result = await connection.query(query, [name, email, hashedPassword, role, client_id]);
       return result.rows[0];
     } catch (error) {
       if (error.code === '23505') { // Violación de unique
@@ -32,9 +32,10 @@ class User {
    */
   static async findById(id) {
     const query = `
-      SELECT id, name, email, role, is_active, created_at, updated_at
-      FROM "user"
-      WHERE id = $1
+      SELECT u.id, u.name, u.email, u.role, u.is_active, u.client_id, u.created_at, u.updated_at, u.auth_version,
+             c.is_active AS client_active
+      FROM "user" u LEFT JOIN client c ON c.id=u.client_id
+      WHERE u.id = $1
     `;
     
     const result = await pool.query(query, [id]);
@@ -46,7 +47,7 @@ class User {
    */
   static async findByEmail(email) {
     const query = `
-      SELECT id, name, email, password, role, is_active, created_at, updated_at
+      SELECT id, name, email, password, role, is_active, client_id, auth_version, created_at, updated_at
       FROM "user"
       WHERE email = $1
     `;
@@ -61,13 +62,13 @@ class User {
   static async findAll(limit = 10, offset = 0, role = null) {
     let query = `
       SELECT id, name, email, role, is_active, created_at, updated_at
-      FROM "user"
+      FROM "user" WHERE role <> 'customer'
     `;
     
     const params = [];
     
     if (role) {
-      query += ` WHERE role = $1`;
+      query += ` AND role = $1`;
       params.push(role);
     }
     
@@ -82,11 +83,11 @@ class User {
    * Contar total de usuarios
    */
   static async countAll(role = null) {
-    let query = 'SELECT COUNT(*) FROM "user"';
+    let query = 'SELECT COUNT(*) FROM "user" WHERE role <> \'customer\'';
     const params = [];
     
     if (role) {
-      query += ` WHERE role = $1`;
+      query += ` AND role = $1`;
       params.push(role);
     }
     
@@ -126,7 +127,7 @@ class User {
     
     const query = `
       UPDATE "user"
-      SET password = $1, updated_at = CURRENT_TIMESTAMP
+      SET password = $1, auth_version=auth_version+1, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
       RETURNING id, name, email
     `;
@@ -142,7 +143,7 @@ class User {
     const field = typeof id === 'number' || /^\d+$/.test(String(id)) ? 'id' : 'email';
     const userWithPassword = await pool.query(
       `
-        SELECT id, name, email, password, role, is_active, created_at, updated_at
+        SELECT id, name, email, password, role, is_active, client_id, auth_version, created_at, updated_at
         FROM "user"
         WHERE ${field} = $1
       `,
@@ -200,7 +201,7 @@ class User {
     const query = `
       SELECT id, name, email, role, is_active, created_at
       FROM "user"
-      WHERE name ILIKE $1 OR email ILIKE $1
+      WHERE role <> 'customer' AND (name ILIKE $1 OR email ILIKE $1)
       ORDER BY name ASC
       LIMIT $2 OFFSET $3
     `;

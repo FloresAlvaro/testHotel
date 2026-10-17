@@ -4,14 +4,15 @@
       <slot name="toolbar" />
     </div>
 
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Tabla de resultados">
     <table class="table">
       <thead>
         <tr>
           <th v-for="col in columns" :key="col.key" :style="{ width: col.width }">
             <div class="th-content">
               <span>{{ col.label }}</span>
-              <button v-if="col.sortable" class="sort-btn" @click="handleSort(col.key)">
-                📊
+              <button v-if="col.sortable" :aria-label="`Ordenar por ${col.label}`" class="sort-btn" @click="handleSort(col.key)">
+                <Icon name="system-uicons:sort" aria-hidden="true" />
               </button>
             </div>
           </th>
@@ -40,10 +41,11 @@
         </tr>
       </tbody>
     </table>
+    </div>
 
     <div v-if="showPagination && pagination" class="table-pagination">
       <span class="pagination-info">
-        Mostrando {{ pagination.page * pagination.pageSize - pagination.pageSize + 1 }}
+        Mostrando {{ pagination.total === 0 ? 0 : pagination.page * pagination.pageSize - pagination.pageSize + 1 }}
         -
         {{ Math.min(pagination.page * pagination.pageSize, pagination.total) }}
         de {{ pagination.total }}
@@ -59,7 +61,7 @@
         </button>
 
         <span class="pagination-pages">
-          Página {{ pagination.page }} de {{ pagination.totalPages }}
+          Página {{ pagination.page }} de {{ Math.max(1, pagination.totalPages) }}
         </span>
 
         <button
@@ -118,142 +120,19 @@ const getCellValue = (row: T, key: string): string | number | boolean | null | u
 };
 </script>
 
-<style scoped lang="scss">
-.table-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 12px;
-  overflow: hidden;
-}
+<style scoped>
 
-.table-toolbar {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-}
+.table-wrapper { border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); overflow: hidden; }
+.table-scroll { overflow-x: auto; }
+.table { min-width: 560px; }
+.table-toolbar { padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
+.th-content { display: flex; align-items: center; gap: 6px; }
+.sort-btn { display: inline-flex; border: 0; background: transparent; color: var(--text-tertiary); font-size: 16px; }
+.actions-col, .actions-cell { text-align: right; }
+.empty-state { padding: 36px 16px; text-align: center; color: var(--text-secondary); }
+.table-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border-color); padding: 14px 18px; font-size: 11px; color: var(--text-secondary); }
+.pagination-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pagination-btn { border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); padding: 6px 10px; }
+.pagination-btn:disabled { opacity: .4; }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-thead {
-  background: var(--bg-primary, #f5f5f5);
-  border-bottom: 2px solid var(--border-color, #e0e0e0);
-}
-
-th {
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-  user-select: none;
-}
-
-.th-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .sort-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-}
-
-.table-row {
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  transition: background 0.2s;
-
-  &:hover {
-    background: rgba(59, 130, 246, 0.02);
-  }
-}
-
-td {
-  padding: 12px 16px;
-  color: var(--text-primary, #1a1a1a);
-}
-
-.actions-col,
-.actions-cell {
-  text-align: right;
-  width: 120px;
-}
-
-.empty-row {
-  &:hover {
-    background: transparent;
-  }
-
-  td {
-    padding: 40px 16px;
-  }
-}
-
-.empty-state {
-  text-align: center;
-  color: var(--text-secondary, #999999);
-
-  p {
-    margin: 0;
-  }
-}
-
-.table-pagination {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  background: var(--bg-primary, #f5f5f5);
-  font-size: 0.9rem;
-}
-
-.pagination-info {
-  color: var(--text-secondary, #999999);
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pagination-btn {
-  padding: 6px 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
-  background: var(--bg-secondary, #ffffff);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.pagination-pages {
-  color: var(--text-primary, #1a1a1a);
-  font-weight: 500;
-}
 </style>

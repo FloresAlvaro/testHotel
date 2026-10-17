@@ -36,131 +36,23 @@ withDefaults(defineProps<Props>(), {
 });
 </script>
 
-<style scoped lang="scss">
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-  white-space: nowrap;
+<style scoped>
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 9px 15px; font-size: 12px; font-weight: 500; line-height: 1.4; border: 1px solid transparent; border-radius: 7px; transition: background .15s, border-color .15s; white-space: nowrap; }
+.btn-primary { background: #535ed6; color: #fff; border-color: #535ed6; }
+.btn-primary:hover:not(:disabled) { background: #424ebf; border-color: #424ebf; }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color); }
+.btn-secondary:hover:not(:disabled), .btn-ghost:hover:not(:disabled) { background: var(--surface-subtle); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.btn-danger:hover:not(:disabled) { border-color: var(--danger); }
+.btn-success { background: #27765a; color: white; }
+.btn-success:hover:not(:disabled) { background: #1f6149; }
+.btn-warning { background: var(--warning-soft); color: var(--warning); }
+.btn-sm { min-height: 30px; padding: 6px 10px; font-size: 11px; border-radius: 6px; }
+.btn-lg { min-height: 44px; padding: 12px 20px; font-size: 13px; }
+.btn-disabled { opacity: .5; cursor: not-allowed; }
+.btn-spinner { width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  &:active:not(:disabled) {
-    transform: scale(0.98);
-  }
-
-  // ==================== VARIANTES ====================
-  &-primary {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: white;
-
-    &:hover:not(:disabled) {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    }
-  }
-
-  &-secondary {
-    background: #f3f4f6;
-    color: #1f2937;
-    border: 1px solid #e5e7eb;
-
-    &:hover:not(:disabled) {
-      background: #e5e7eb;
-    }
-  }
-
-  &-danger {
-    background: #ef4444;
-    color: white;
-
-    &:hover:not(:disabled) {
-      background: #dc2626;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    }
-  }
-
-  &-warning {
-    background: #f59e0b;
-    color: white;
-
-    &:hover:not(:disabled) {
-      background: #d97706;
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-    }
-  }
-
-  &-success {
-    background: #10b981;
-    color: white;
-
-    &:hover:not(:disabled) {
-      background: #059669;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-  }
-
-  &-ghost {
-    background: transparent;
-    color: #3b82f6;
-    border: 1px solid #3b82f6;
-
-    &:hover:not(:disabled) {
-      background: rgba(59, 130, 246, 0.05);
-    }
-  }
-
-  // ==================== TAMAÑOS ====================
-  &-sm {
-    padding: 6px 12px;
-    font-size: 0.875rem;
-  }
-
-  &-md {
-    padding: 8px 16px;
-    font-size: 0.95rem;
-  }
-
-  &-lg {
-    padding: 10px 20px;
-    font-size: 1rem;
-  }
-
-  // ==================== ESTADOS ====================
-  &-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-icon {
-    display: inline-block;
-    font-size: 1.1em;
-  }
-
-  .btn-spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

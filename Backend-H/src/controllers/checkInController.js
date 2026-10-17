@@ -1,3 +1,4 @@
+const lockReservation = require('../services/reservationLock');
 const CheckInLog = require('../models/CheckInLog');
 const Reservation = require('../models/Reservation');
 const Room = require('../models/Room');
@@ -20,7 +21,7 @@ class CheckInController {
       }
 
       const result = await transaction(async (client) => {
-        const reservation = await Reservation.findById(reservation_id, client, true);
+        const { reservation, room } = await lockReservation(reservation_id, client);
         if (!reservation) {
           return { error: ERROR_MESSAGES.RESERVATION_NOT_FOUND, statusCode: HTTP_STATUS.NOT_FOUND };
         }
@@ -30,6 +31,10 @@ class CheckInController {
             error: 'Solo se puede realizar check-in de reservas confirmadas',
             statusCode: HTTP_STATUS.CONFLICT
           };
+        }
+
+        if (room.status === 'maintenance' || room.status === 'occupied') {
+          return { error: 'La habitación no está lista para recibir al huésped', statusCode: HTTP_STATUS.CONFLICT };
         }
 
         const existingCheckIn = await CheckInLog.findByReservationId(reservation_id, client, true);
@@ -78,7 +83,7 @@ class CheckInController {
       }
 
       const result = await transaction(async (client) => {
-        const reservation = await Reservation.findById(reservation_id, client, true);
+        const { reservation, room } = await lockReservation(reservation_id, client);
         if (!reservation) {
           return { error: ERROR_MESSAGES.RESERVATION_NOT_FOUND, statusCode: HTTP_STATUS.NOT_FOUND };
         }
@@ -110,6 +115,8 @@ class CheckInController {
           client
         );
         await Room.updateStatus(reservation.room_id, ROOM_STATUS.MAINTENANCE, client);
+        await client.query(`INSERT INTO housekeeping_task(room_id,kind,title,reservation_id,created_by)
+          VALUES($1,'cleaning','Limpieza después del check-out',$2,$3) ON CONFLICT DO NOTHING`, [reservation.room_id,reservation_id,req.user.id]);
         return { checkOut: updatedCheckOut };
       });
 

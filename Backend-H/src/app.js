@@ -33,13 +33,23 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
-  max: RATE_LIMIT_MAX_REQUESTS
+  max: RATE_LIMIT_MAX_REQUESTS,
+  standardHeaders: true, legacyHeaders: false,
+  message: { success: false, message: 'Demasiadas solicitudes. Espera unos minutos antes de volver a intentar.' }
 });
 app.use('/api/', limiter);
 
 // Logging
 app.use(morgan('combined'));
 
+// La firma de Stripe se comprueba contra los bytes originales, antes de express.json.
+app.post('/api/webhooks/stripe', express.raw({type:'application/json',limit:'256kb'}), async(req,res,next)=>{
+  const service=require('./services/onlinePaymentService');
+  if(process.env.PAYMENT_PROVIDER!=='stripe'||!service.enabled())return res.sendStatus(404);
+  let event;
+  try{event=service.stripe().webhooks.constructEvent(req.body,req.headers['stripe-signature'],process.env.STRIPE_WEBHOOK_SECRET);}catch{return res.status(400).json({message:'Firma de webhook no válida'});}
+  try{await service.handleEvent(event);res.json({received:true});}catch(error){next(error);}
+});
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

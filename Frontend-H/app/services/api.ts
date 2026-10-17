@@ -96,8 +96,8 @@ export const useApiClient = () => {
         body: data,
       }),
 
-    register: (data: Pick<RegisterRequest, "name" | "email" | "password">) =>
-      api<ApiResponse<LoginResponse>>("/users/register", {
+    register: (data: Pick<RegisterRequest, "name" | "email" | "password"> & { role?: User["role"] }) =>
+      api<ApiResponse<User>>("/users", {
         method: "POST",
         body: data,
       }),

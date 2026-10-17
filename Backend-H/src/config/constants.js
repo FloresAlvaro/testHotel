@@ -8,7 +8,8 @@
 const USER_ROLES = {
   ADMIN: 'admin',
   RECEPTIONIST: 'receptionist',
-  MANAGER: 'manager'
+  MANAGER: 'manager',
+  CUSTOMER: 'customer'
 };
 
 // ============================================

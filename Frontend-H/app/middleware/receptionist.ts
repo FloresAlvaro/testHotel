@@ -11,5 +11,5 @@ export default defineNuxtRouteMiddleware(() => {
     return navigateTo("/auth/login");
   }
 
-  // Todos los roles autenticados tienen acceso (receptionist, manager, admin)
+  if (authStore.isCustomer) return navigateTo('/portal');
 });

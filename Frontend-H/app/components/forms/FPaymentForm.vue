@@ -2,16 +2,12 @@
   <CModal :is-open="isOpen" title="Registrar pago" size="md" @close="handleCancel">
     <form class="form" @submit.prevent="handleSubmit">
     <div class="form-row-2">
-      <CInput
-        v-model="form.reservation_id"
-        label="Reserva"
-        type="number"
-        placeholder="ID reserva"
-        required
-      />
+      <label class="select-field"><span>Reserva</span><select v-model="form.reservation_id" required :disabled="optionsLoading || !!reservationId"><option value="" disabled>Seleccionar reserva</option><option v-for="reservation in reservations" :key="reservation.id" :value="String(reservation.id)">#{{ reservation.id }} · {{ reservation.client_name }} · Hab. {{ reservation.room_number }}</option></select></label>
 
       <CInput
         v-model="form.amount"
+        step="0.01"
+        min="0.01"
         label="Monto"
         type="number"
         placeholder="0.00"
@@ -57,11 +53,12 @@
       />
     </div>
 
+    <p v-if="optionsError" class="form-error" role="alert">{{ optionsError }}</p>
     <div class="form-actions">
       <CButton variant="secondary" type="button" @click="handleCancel">
         Cancelar
       </CButton>
-      <CButton variant="primary" type="submit" :loading="loading">
+      <CButton variant="primary" type="submit" :loading="loading" :disabled="optionsLoading || !!optionsError">
         Registrar Pago
       </CButton>
     </div>
@@ -71,7 +68,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type { CreatePaymentRequest, PaymentMethod, PaymentType } from '~/types';
+import { useApiClient } from '~/services/api';
+import type { Reservation, CreatePaymentRequest, PaymentMethod, PaymentType } from '~/types';
 
 interface Props {
   isOpen: boolean;
@@ -93,6 +91,20 @@ const form = ref({
   transaction_id: '',
   notes: ''
 });
+
+const api = useApiClient();
+const reservations = ref<Reservation[]>([]);
+const optionsLoading = ref(false);
+const optionsError = ref('');
+watch(() => props.isOpen, async (open) => {
+  if (!open) return;
+  form.value = { reservation_id: props.reservationId ? String(props.reservationId) : '', amount: '', payment_method: 'cash', payment_type: 'full', transaction_id: '', notes: '' };
+  optionsLoading.value = true;
+  optionsError.value = '';
+  try { reservations.value = (await api.getReservations(1, 100)).data?.filter(r => r.status !== 'cancelled') || []; }
+  catch { optionsError.value = 'No se pudieron cargar las reservas. Cierra la ventana y vuelve a intentar.'; }
+  finally { optionsLoading.value = false; }
+}, { immediate: true });
 
 watch(() => props.reservationId, (reservationId) => {
   if (reservationId) form.value.reservation_id = String(reservationId);

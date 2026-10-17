@@ -100,12 +100,22 @@ const swaggerSpec = {
         }
       }
     },
+    '/api/users': {
+      post: {
+        tags: ['Users'],
+        summary: 'Crear empleado (solo administrador)',
+        security: [{ bearerAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'password'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, maxLength: 128 }, role: { type: 'string', enum: ['admin', 'manager', 'receptionist'], default: 'receptionist' } } } } } },
+        responses: { 201: { description: 'Empleado creado sin token de sesión' }, 401: { description: 'No autenticado' }, 403: { description: 'Solo administrador' }, 409: { description: 'Email registrado' }, 422: { description: 'Datos invalidos', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } }
+      }
+    },
     '/api/users/register': {
       post: {
         tags: ['Users'],
-        summary: 'Registrar usuario de recepcion',
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UserCredentials' } } } },
-        responses: { 201: { description: 'Usuario creado' }, 422: { description: 'Datos invalidos', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } }
+        summary: 'Crear empleado (solo administrador)',
+        security: [{ bearerAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'password'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, maxLength: 128 }, role: { type: 'string', enum: ['admin', 'manager', 'receptionist'], default: 'receptionist' } } } } } },
+        responses: { 201: { description: 'Empleado creado sin token de sesión' }, 401: { description: 'No autenticado' }, 403: { description: 'Solo administrador' }, 409: { description: 'Email registrado' }, 422: { description: 'Datos invalidos', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } }
       }
     },
     '/api/users/login': {
@@ -310,7 +320,7 @@ const swaggerSpec = {
         summary: 'Actualizar reserva',
         security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', minProperties: 1, properties: { check_in: { type: 'string', format: 'date' }, check_out: { type: 'string', format: 'date' }, total_price: { type: 'number', minimum: 0 }, status: { type: 'string', enum: ['confirmed', 'checked_in', 'checked_out', 'cancelled'] }, notes: { type: 'string' } } } } } },
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', minProperties: 1, properties: { check_in: { type: 'string', format: 'date' }, check_out: { type: 'string', format: 'date' }, total_price: { type: 'number', minimum: 0 }, status: { type: 'string', enum: ['confirmed', 'cancelled'] }, notes: { type: 'string' } } } } } },
         responses: { 200: { description: 'Reserva actualizada' }, 404: { description: 'Reserva no encontrada' }, 409: { description: 'Estado o fechas no permitidos' }, 422: { description: 'Datos invalidos' } }
       }
     },
@@ -382,6 +392,32 @@ const swaggerSpec = {
         responses: { 200: { description: 'Pago reembolsado' }, 403: { description: 'Sin permisos' }, 404: { description: 'Pago no encontrado' }, 409: { description: 'Estado no permitido' } }
       }
     },
+    '/api/payments/revenue/period': {
+      get: {
+        tags: ['Payments'],
+        summary: 'Ingresos por día: solo importes completados',
+        description: 'Incluye ambos días del período según la zona horaria de la base de datos. La fecha final debe ser igual o posterior a la inicial.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'startDate', in: 'query', required: true, schema: { type: 'string', format: 'date' } },
+          { name: 'endDate', in: 'query', required: true, schema: { type: 'string', format: 'date' } }
+        ],
+        responses: { 200: { description: 'Informe de ingresos' }, 400: { description: 'Período inválido' }, 401: { description: 'No autenticado' }, 403: { description: 'Solo admin o manager' } }
+      }
+    },
+    '/api/payments/revenue/method': {
+      get: {
+        tags: ['Payments'],
+        summary: 'Ingresos completados por método',
+        description: 'Incluye ambos días del período según la zona horaria de la base de datos. La fecha final debe ser igual o posterior a la inicial.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'startDate', in: 'query', required: true, schema: { type: 'string', format: 'date' } },
+          { name: 'endDate', in: 'query', required: true, schema: { type: 'string', format: 'date' } }
+        ],
+        responses: { 200: { description: 'Informe de ingresos' }, 400: { description: 'Período inválido' }, 401: { description: 'No autenticado' }, 403: { description: 'Solo admin o manager' } }
+      }
+    },
     '/api/dashboard': {
       get: {
         tags: ['Dashboard'],
@@ -397,4 +433,10 @@ const swaggerSpec = {
   }
 };
 
+swaggerSpec.tags.push({name:'Operations',description:'Configuración, caja, comprobantes, calendario, tareas e historial'});
+Object.assign(swaggerSpec.paths,require('./operationsOpenapi'));
+swaggerSpec.tags.push({name:'Guest portal',description:'Portal privado de cada huésped y gestión de su acceso'});
+Object.assign(swaggerSpec.paths,require('./portalOpenapi'));
+swaggerSpec.tags.push({name:'Guest services',description:'Solicitudes, presentación, correo, recuperación, pagos y respaldos'});
+Object.assign(swaggerSpec.paths,require('./guestServicesOpenapi'));
 module.exports = swaggerSpec;

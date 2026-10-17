@@ -1,11 +1,8 @@
 <template>
 	<section class="mx-auto max-w-3xl space-y-6">
-		<header>
-			<NuxtLink to="/clients" class="text-sm text-blue-700 hover:underline">← Volver a clientes</NuxtLink>
-			<h1 class="mt-3 text-2xl font-bold text-slate-900 dark:text-white">Registrar cliente</h1>
-		</header>
+    <CPageHeader title="Nuevo huésped" description="Completa la información necesaria para su estancia." back-to="/clients" />
 		<p v-if="errorMessage" role="alert" class="text-red-700">{{ errorMessage }}</p>
-		<FClientForm :loading="loading" @submit="saveClient" @cancel="router.back()" />
+		<FClientForm class="form-surface" :loading="loading" @submit="saveClient" @cancel="router.back()" />
 	</section>
 </template>
 

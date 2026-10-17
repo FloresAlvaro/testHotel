@@ -1,21 +1,9 @@
 <template>
   <form class="form" @submit.prevent="handleSubmit">
     <div class="form-row-2">
-      <CInput
-        v-model="form.client_id"
-        label="Cliente"
-        type="number"
-        placeholder="ID cliente"
-        required
-      />
+      <label class="select-field"><span>Huésped</span><select v-model="form.client_id" required :disabled="optionsLoading || !!reservation"><option value="" disabled>Seleccionar huésped</option><option v-for="client in clients" :key="client.id" :value="String(client.id)">{{ client.name }} · {{ client.document }}</option></select></label>
 
-      <CInput
-        v-model="form.room_id"
-        label="Habitación"
-        type="number"
-        placeholder="ID habitación"
-        required
-      />
+      <label class="select-field"><span>Habitación</span><select v-model="form.room_id" required :disabled="optionsLoading || !!reservation"><option value="" disabled>Seleccionar habitación</option><option v-for="room in rooms" :key="room.id" :value="String(room.id)" :disabled="room.status === 'maintenance'">{{ room.number }} · {{ room.room_type_name }}{{ room.status === 'maintenance' ? ' (mantenimiento)' : '' }}</option></select></label>
     </div>
 
     <div class="form-row-2">
@@ -47,16 +35,17 @@
         <strong>Noches:</strong> {{ nights }}
       </p>
       <p>
-        <strong>Precio Total:</strong> {{ formatCurrency(totalPrice) }}
+        <strong>{{ reservation ? 'Total registrado:' : 'Total estimado:' }}</strong> {{ reservation ? formatCurrency(Number(reservation.total_price)) : totalPrice ? formatCurrency(totalPrice) : 'Selecciona habitación y fechas' }}
       </p>
     </div>
 
+    <p v-if="optionsError" class="form-error" role="alert">{{ optionsError }}</p>
     <div class="form-actions">
       <CButton variant="secondary" type="button" @click="handleCancel">
         Cancelar
       </CButton>
-      <CButton variant="primary" type="submit" :loading="loading">
-        Crear Reserva
+      <CButton variant="primary" type="submit" :loading="loading" :disabled="optionsLoading || !!optionsError">
+        {{ reservation ? 'Guardar cambios' : 'Crear reserva' }}
       </CButton>
     </div>
   </form>
@@ -64,8 +53,9 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import type { Reservation, CreateReservationRequest } from '~/types';
-import { formatCurrency } from '~/utils/formatters';
+import { useApiClient } from '~/services/api';
+import type { Client, Room, Reservation, CreateReservationRequest } from '~/types';
+const { money: formatCurrency } = useHotelSettings();
 
 interface Props {
   reservation?: Reservation | null;
@@ -93,12 +83,26 @@ watch(() => props.reservation, (reservation) => {
     ? {
         client_id: String(reservation.client_id),
         room_id: String(reservation.room_id),
-        check_in: reservation.check_in,
-        check_out: reservation.check_out,
+        check_in: reservation.check_in.slice(0, 10),
+        check_out: reservation.check_out.slice(0, 10),
         notes: reservation.notes || ''
       }
     : { client_id: '', room_id: '', check_in: '', check_out: '', notes: '' };
 }, { immediate: true });
+
+const api = useApiClient();
+const clients = ref<Client[]>([]);
+const rooms = ref<Room[]>([]);
+const optionsLoading = ref(true);
+const optionsError = ref('');
+onMounted(async () => {
+  try {
+    const [clientResponse, roomResponse] = await Promise.all([api.getClients(1, 100), api.getRooms(1, 100)]);
+    clients.value = clientResponse.data || [];
+    rooms.value = roomResponse.data || [];
+  } catch { optionsError.value = 'No se pudieron cargar las opciones. Cierra la ventana y vuelve a intentar.'; }
+  finally { optionsLoading.value = false; }
+});
 
 const nights = computed(() => {
   if (form.value.check_in && form.value.check_out) {
@@ -108,8 +112,8 @@ const nights = computed(() => {
 });
 
 const totalPrice = computed(() => {
-  // Esto dependerá de la lógica de precios
-  return 0;
+  const room = rooms.value.find(room => String(room.id) === form.value.room_id);
+  return Number(room?.price || 0) * nights.value;
 });
 
 const handleSubmit = () => {
@@ -159,14 +163,14 @@ const handleCancel = () => {
 }
 
 .info-box {
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-color);
   padding: 12px 16px;
   border-radius: 4px;
 
   p {
     margin: 6px 0;
-    color: #1e3a8a;
+    color: var(--text-secondary);
 
     &:first-child {
       margin-top: 0;

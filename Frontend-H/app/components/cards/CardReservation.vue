@@ -47,7 +47,8 @@
 <script setup lang="ts">
 import type { Reservation } from '~/types';
 import { RESERVATION_STATUS_LABELS } from '~/utils/constants';
-import { formatDate, formatCurrency } from '~/utils/formatters';
+import { formatDate } from '~/utils/formatters';
+const { money: formatCurrency } = useHotelSettings();
 
 interface Props {
   reservation: Reservation;
@@ -64,19 +65,19 @@ defineEmits<{
 .card-reservation {
   background: var(--bg-secondary, #ffffff);
   border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   transition: all 0.2s;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
   }
 }
 
 .card-header {
   padding: 16px;
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -98,8 +99,8 @@ defineEmits<{
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: var(--accent-soft);
+  color: var(--text-primary);
 }
 
 .card-body {

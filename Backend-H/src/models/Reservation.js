@@ -5,19 +5,20 @@ class Reservation {
    * Crear reserva
    */
   static async create(reservationData, client = pool) {
-    const { check_in, check_out, client_id, room_id, user_id, total_price } = reservationData;
+    const { check_in, check_out, client_id, room_id, user_id, total_price, notes } = reservationData;
 
     try {
       const query = `
         INSERT INTO reservation (
-          check_in, check_out, client_id, room_id, user_id, total_price, status
+          check_in, check_out, client_id, room_id, user_id, total_price, status, notes, adults, children, arrival_time, special_requests
         )
-        VALUES ($1, $2, $3, $4, $5, $6, 'confirmed')
+        VALUES ($1, $2, $3, $4, $5, $6, 'confirmed', $7, $8, $9, $10, $11)
         RETURNING *
       `;
 
       const result = await client.query(query, [
-        check_in, check_out, client_id, room_id, user_id, total_price
+        check_in, check_out, client_id, room_id, user_id, total_price, notes,
+      reservationData.adults??1,reservationData.children??0,reservationData.arrival_time||null,reservationData.special_requests||''
       ]);
 
       return result.rows[0];
@@ -41,7 +42,7 @@ class Reservation {
       JOIN room_type rt ON rm.room_type_id = rt.id
       JOIN "user" u ON r.user_id = u.id
       WHERE r.id = $1
-      ${forUpdate ? 'FOR UPDATE' : ''}
+      ${forUpdate ? 'FOR UPDATE OF r' : ''}
     `;
 
     const result = await client.query(query, [id]);
@@ -149,10 +150,20 @@ class Reservation {
     return result.rows;
   }
 
+  static async hasOverlap(roomId, checkIn, checkOut, excludeId, client = pool) {
+    const result = await client.query(`
+      SELECT EXISTS (SELECT 1 FROM reservation
+        WHERE room_id = $1 AND status <> 'cancelled'
+          AND check_in < $3::date AND check_out > $2::date
+          AND id <> $4) AS overlap
+    `, [roomId, checkIn, checkOut, excludeId]);
+    return result.rows[0].overlap;
+  }
+
   /**
    * Actualizar reserva
    */
-  static async update(id, reservationData) {
+  static async update(id, reservationData, client = pool) {
     const { check_in, check_out, total_price, status, notes } = reservationData;
 
     const query = `
@@ -163,7 +174,7 @@ class Reservation {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [
+    const result = await client.query(query, [
       check_in, check_out, total_price, status, notes, id
     ]);
 
@@ -204,11 +215,11 @@ class Reservation {
       JOIN room rm ON r.room_id = rm.id
       JOIN room_type rt ON rm.room_type_id = rt.id
       WHERE r.status != 'cancelled'
-      AND r.check_in BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '${days} days'
+      AND r.check_in BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1::integer * INTERVAL '1 day')
       ORDER BY r.check_in ASC
     `;
 
-    const result = await pool.query(query);
+    const result = await pool.query(query, [days]);
     return result.rows;
   }
 }

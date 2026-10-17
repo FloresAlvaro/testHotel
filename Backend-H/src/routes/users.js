@@ -11,6 +11,11 @@ const {
 } = require('../validators/userValidator');
 
 const router = express.Router();
+const loginLimiter = require('express-rate-limit')({
+  windowMs: 15 * 60 * 1000, max: 20, skipSuccessfulRequests: true,
+  standardHeaders: true, legacyHeaders: false,
+  message: { success: false, message: 'Demasiados intentos fallidos. Intenta nuevamente en unos minutos.' }
+});
 
 const authorizeSelfOrAdmin = (req, res, next) => {
 	if (req.user.role !== 'admin' && String(req.user.id) !== String(req.params.id)) {
@@ -20,9 +25,14 @@ const authorizeSelfOrAdmin = (req, res, next) => {
 	next();
 };
 
-// Públicas
-router.post('/register', validate(registerSchema), UserController.register);
-router.post('/login', validate(loginSchema), UserController.login);
+// Alta de empleados exclusivamente administrada; alias conservado para clientes existentes.
+router.post('/register', auth, authorize('admin'), validate(registerSchema), UserController.register);
+router.post('/', auth, authorize('admin'), validate(registerSchema), UserController.register);
+
+router.use(require('./passwordRecovery'));
+
+// Pública
+router.post('/login', loginLimiter, validate(loginSchema), UserController.login);
 
 // Protegidas
 router.get('/profile', auth, UserController.getProfile);

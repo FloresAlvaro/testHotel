@@ -2,6 +2,10 @@
 
 Aplicacion para administrar usuarios, clientes, habitaciones, reservas, entradas y salidas, pagos e indicadores. Incluye frontend Nuxt, API REST con Express y PostgreSQL.
 
+## Demo con datos de ejemplo
+
+Consulta [la guía de demo](docs/demo.md) para iniciar una instancia separada con usuarios por rol, reservas y pagos. La inicialización normal carga solo el esquema; la demo se activa con `docker-compose.demo.yml`.
+
 ## Requisitos
 
 - Docker Desktop con Docker Compose v2.
@@ -29,7 +33,7 @@ Construye las imagenes e inicia PostgreSQL, el backend y el frontend:
 docker compose up --build -d
 ```
 
-Abre la aplicacion en `http://localhost:3001`. La API esta en `http://localhost:3000`, la documentacion en `http://localhost:3000/api-docs` y PostgreSQL se publica en el puerto `5432`. En el primer inicio, PostgreSQL crea el esquema desde `database/init/01-schema.sql`.
+Abre la aplicacion en `http://localhost:3001`. La API esta en `http://localhost:3000`, la documentacion en `http://localhost:3000/api-docs` y PostgreSQL se publica en el puerto `5432`. En el primer inicio, PostgreSQL crea el esquema y aplica las migraciones de `database/migrations/` en orden.
 
 Comprueba el estado y los logs:
 
@@ -72,6 +76,11 @@ La interfaz local quedara en `http://localhost:3001`. Para ejecutar el backend f
 
 ```powershell
 psql -U hotel_user -d hotel_db -f database/init/01-schema.sql
+psql -U hotel_user -d hotel_db -f database/migrations/001-operations.sql
+psql -U hotel_user -d hotel_db -f database/migrations/002-customer-role.sql
+psql -U hotel_user -d hotel_db -f database/migrations/003-customer-portal.sql
+psql -U hotel_user -d hotel_db -f database/migrations/004-guest-services.sql
+psql -U hotel_user -d hotel_db -f database/migrations/005-reservation-guests.sql
 Set-Location Backend-H
 npm ci
 npm run dev
@@ -86,7 +95,17 @@ Configura tambien `JWT_SECRET` con al menos 32 caracteres. El backend valida `DA
 - OpenAPI JSON: `http://localhost:3000/api-docs.json`
 - Recursos: `/api/users`, `/api/clients`, `/api/rooms`, `/api/room-types`, `/api/reservations`, `/api/check-in`, `/api/payments` y `/api/dashboard`
 
-No se crea un usuario inicial automaticamente. Registra una cuenta desde la aplicacion o con `POST /api/users/register`, enviando `name`, `email` y `password`; el registro asigna el rol `receptionist`. El inicio de sesion esta en `POST /api/users/login`. Las rutas protegidas requieren `Authorization: Bearer <token>`. El dashboard requiere rol `admin` o `manager`.
+El alta pública de empleados está deshabilitada. Para el primer administrador, configura `Backend-H/.env` según las instrucciones de desarrollo y, desde `Backend-H/`, ejecuta:
+
+```sh
+npm run admin:create
+```
+
+El comando solicita nombre, email y contraseña (entrada oculta); solo funciona si todavía no existe ningún administrador y no imprime la contraseña. No recibe credenciales en argumentos de línea de comandos. En Docker puedes ejecutarlo con `docker compose exec backend npm run admin:create`.
+
+Después inicia sesión y crea empleados desde **Configuración → Usuarios**, eligiendo su rol. La API es `POST /api/users`, con `name`, `email`, `password` y `role` opcional (por defecto `receptionist`). Requiere un administrador autenticado y devuelve el usuario creado sin token de sesión. `POST /api/users/register` conserva el mismo comportamiento como alias protegido. Las cuentas existentes conservan sus credenciales.
+
+El inicio de sesión está en `POST /api/users/login`. Las rutas protegidas requieren `Authorization: Bearer <token>`. El dashboard requiere rol `admin` o `manager`.
 
 ## Pruebas
 
@@ -106,3 +125,33 @@ Las pruebas no requieren una instancia PostgreSQL activa; esas variables solo so
 - Si un puerto no esta disponible, modifica los puertos en `.env`; no cambies los puertos internos de los contenedores.
 - Si cambiaste las credenciales PostgreSQL despues de inicializar el volumen, la base existente conserva las credenciales anteriores. Para reiniciar desde cero, `docker compose down -v` borra los datos.
 - Para revisar un servicio concreto, usa `docker compose logs -f db`, `docker compose logs -f backend` o `docker compose logs -f frontend`.
+
+## Integridad de reservas y pagos
+
+Las operaciones de reservas y check-in/out bloquean primero la habitación y después la reserva en una misma transacción. Al editar fechas se comprueba disponibilidad; al cancelar se recalcula el estado sin liberar otra estancia activa. El esquema inicial también incluye una restricción PostgreSQL de exclusión para solapamientos. Check-in y check-out deben hacerse mediante sus endpoints específicos, no mediante un cambio genérico de estado de reserva.
+
+Los pagos se serializan por reserva y vuelven a comprobar su saldo al completarse. Un pago pendiente no descuenta saldo: pueden existir varios pendientes, pero solo se completan mientras exista saldo. Los importes aceptan hasta dos decimales y las comparaciones usan centavos. No se crean ni completan cobros sobre reservas canceladas; los pagos completados conservan la opción de reembolso.
+
+### Pruebas de integración PostgreSQL
+
+`Backend-H/tests/concurrency.integration.test.js` crea un esquema temporal propio y lo elimina al terminar. Requiere una **base de pruebas aislada**, con permiso para crear esquemas y la extensión `btree_gist`; no uses la base del hotel. Sin `TEST_DATABASE_URL` esa suite se omite y se ejecutan las pruebas unitarias habituales.
+
+Desde `Backend-H/`, configura `TEST_DATABASE_URL`, `DATABASE_URL` y `JWT_SECRET` con valores de prueba y ejecuta:
+
+```sh
+npm test -- --runInBand
+```
+
+La suite comprueba peticiones simultáneas de creación, modificación, cancelación, check-in y cobros, además de altas HTTP por rol. No requiere servicios de correo ni pagos externos.
+
+### Configuración, caja y operación
+
+Se añadieron configuración compartida, turnos y arqueo de caja, comprobantes internos imprimibles, calendario de habitaciones, limpieza/mantenimiento e historial de cambios. La recuperación por correo está disponible cuando SMTP está configurado. Consulta [instalación, reglas y pruebas de los módulos operativos](docs/operaciones.md), especialmente la migración requerida para bases existentes.
+
+### Portal del huésped
+
+Los clientes disponen de acceso propio en `/portal` para crear reservas y consultar sus estancias, pagos y comprobantes. El administrador crea y gestiona el acceso desde la ficha del huésped. Consulta [cuentas de demo, migraciones y reglas de aislamiento](docs/portal-huesped.md). El seed actualizado incluye `customer@hotel.com` y `customer2@hotel.com`, ambos con contraseña de demo `Customer123!`.
+
+### Solicitudes, correo, pagos y respaldos
+
+El template incluye solicitudes con aprobación del hotel, SMTP con cola y recuperación de contraseña, checkout configurable (Stripe o demo), presentación editable y copias PostgreSQL con restauración de prueba. Consulta [configuración, límites y operación](docs/servicios-huesped.md). El modo demo no cobra dinero ni entrega correos a Internet.

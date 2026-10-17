@@ -13,6 +13,7 @@ export const useAuthStore = defineStore("auth", () => {
   const userRole = computed(() => user.value?.role || null);
   const isAdmin = computed(() => user.value?.role === "admin");
   const isManager = computed(() => user.value?.role === "manager");
+  const isCustomer = computed(() => user.value?.role === "customer");
   const isReceptionist = computed(() => user.value?.role === "receptionist");
 
   // Actions
@@ -73,6 +74,7 @@ export const useAuthStore = defineStore("auth", () => {
     isAdmin,
     isManager,
     isReceptionist,
+    isCustomer,
 
     // Methods
     setAuth,

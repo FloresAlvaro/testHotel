@@ -1,0 +1,10 @@
+<template>
+  <CCard class="receipt-paper"><div class="operation-heading"><div><h1>{{ receipt.snapshot.hotel.hotel_name }}</h1><p>{{ receipt.snapshot.hotel.address }} · {{ receipt.snapshot.hotel.city }}</p><p>{{ receipt.snapshot.hotel.phone }} · {{ receipt.snapshot.hotel.email }}</p></div><strong>{{ receipt.number }}</strong></div><p>Emitido: {{ issuedAt }}</p><p v-if="receipt.payment_status==='refunded'" class="operation-error">Pago reembolsado</p><p v-if="receipt.snapshot.historical">Comprobante reconstruido de un pago histórico.</p><hr class="my-6"><p>Huésped: <strong>{{ receipt.snapshot.client_name }}</strong></p><p>Reserva #{{ receipt.snapshot.reservation_id }} · Habitación {{ receipt.snapshot.room_number }}</p><p>Medio: {{ methods[receipt.snapshot.payment.method] || receipt.snapshot.payment.method }}</p><p class="text-2xl mt-6">Importe: <strong>{{ money(receipt.snapshot.payment.amount,receipt.snapshot.hotel.currency) }}</strong></p><p class="mt-8 text-sm">Comprobante interno de recepción de pago · No válido como factura fiscal.</p></CCard>
+</template>
+<script setup lang="ts">
+import type { Receipt } from '~/types/operations'
+const props=defineProps<{receipt:Receipt}>(),{money}=useHotelSettings()
+const issuedAt=computed(()=>new Intl.DateTimeFormat('es-BO',{timeZone:props.receipt.snapshot.hotel.timezone,dateStyle:'short',timeStyle:'short'}).format(new Date(props.receipt.issued_at)))
+const methods:Record<string,string>={cash:'Efectivo',credit_card:'Tarjeta de crédito',debit_card:'Tarjeta de débito',transfer:'Transferencia',check:'Cheque'}
+</script>
+<style>@media print{.workspace-sidebar,.workspace-topbar,.receipt-controls,.skip-link,.guest-header,.guest-footer{display:none!important}.workspace-main{margin:0!important;width:100%!important}.workspace-content,.guest-content{padding:0!important}.receipt-paper{box-shadow:none!important;border:0!important;background:white!important;color:black!important}.workspace-page{max-width:none!important}body{background:white!important}}</style>

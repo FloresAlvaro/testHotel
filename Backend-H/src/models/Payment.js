@@ -4,7 +4,7 @@ class Payment {
   /**
    * Crear pago
    */
-  static async create(paymentData) {
+  static async create(paymentData, client = pool) {
     const { reservation_id, amount, type, method, status, transaction_id, notes } = paymentData;
 
     const query = `
@@ -15,7 +15,7 @@ class Payment {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [
+    const result = await client.query(query, [
       reservation_id, amount, type, method, status || 'pending', transaction_id, notes
     ]);
 
@@ -25,30 +25,31 @@ class Payment {
   /**
    * Obtener pago por ID
    */
-  static async findById(id) {
+  static async findById(id, client = pool, forUpdate = false) {
     const query = `
       SELECT p.*, r.check_in, r.check_out, c.name as client_name
       FROM payment p
       JOIN reservation r ON p.reservation_id = r.id
       JOIN client c ON r.client_id = c.id
       WHERE p.id = $1
+      ${forUpdate ? 'FOR UPDATE OF p' : ''}
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 
   /**
    * Obtener pagos de una reserva
    */
-  static async findByReservationId(reservationId) {
+  static async findByReservationId(reservationId, client = pool) {
     const query = `
       SELECT * FROM payment
       WHERE reservation_id = $1
       ORDER BY created_at DESC
     `;
 
-    const result = await pool.query(query, [reservationId]);
+    const result = await client.query(query, [reservationId]);
     return result.rows;
   }
 
@@ -96,7 +97,7 @@ class Payment {
   /**
    * Actualizar pago
    */
-  static async update(id, paymentData) {
+  static async update(id, paymentData, client = pool) {
     const { amount, type, method, status, transaction_id } = paymentData;
 
     const query = `
@@ -107,7 +108,7 @@ class Payment {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [
+    const result = await client.query(query, [
       amount, type, method, status, transaction_id, id
     ]);
 
@@ -117,7 +118,7 @@ class Payment {
   /**
    * Cambiar estado de pago
    */
-  static async updateStatus(id, status) {
+  static async updateStatus(id, status, client = pool) {
     const query = `
       UPDATE payment
       SET status = $1, updated_at = CURRENT_TIMESTAMP
@@ -125,7 +126,7 @@ class Payment {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [status, id]);
+    const result = await client.query(query, [status, id]);
     return result.rows[0] || null;
   }
 
@@ -137,10 +138,10 @@ class Payment {
       SELECT 
         DATE(p.created_at) as date,
         COUNT(p.id) as total_payments,
-        SUM(p.amount) as total_amount,
+        COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'completed'), 0) as total_amount,
         COUNT(CASE WHEN p.status = 'completed' THEN 1 END) as completed_payments
       FROM payment p
-      WHERE p.created_at BETWEEN $1 AND $2
+      WHERE p.created_at >= $1::date AND p.created_at < ($2::date + INTERVAL '1 day')
       GROUP BY DATE(p.created_at)
       ORDER BY date DESC
     `;
@@ -159,7 +160,7 @@ class Payment {
         COUNT(id) as total_transactions,
         SUM(amount) as total_amount
       FROM payment
-      WHERE status = 'completed' AND created_at BETWEEN $1 AND $2
+      WHERE status = 'completed' AND created_at >= $1::date AND created_at < ($2::date + INTERVAL '1 day')
       GROUP BY method
       ORDER BY total_amount DESC
     `;

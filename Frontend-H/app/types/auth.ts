@@ -2,13 +2,14 @@
  * Tipos de autenticación
  */
 
-export type UserRole = 'admin' | 'receptionist' | 'manager';
+export type UserRole = 'admin' | 'receptionist' | 'manager' | 'customer';
 
 export interface User {
   id: number;
   name: string;
   email: string;
   role: UserRole;
+  client_id?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

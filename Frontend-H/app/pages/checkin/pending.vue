@@ -1,20 +1,11 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Check-out Pendientes
-        </h1>
-        <p class="text-slate-600 dark:text-slate-400 mt-1">
-          Registrar salida de huéspedes
-        </p>
-      </div>
-      <CButton variant="primary" @click="refreshData">
+    <CPageHeader title="Salidas" description="Registrar salida de huéspedes"><CButton variant="primary" @click="refreshData">
         <Icon name="system-uicons:refresh" size="18" class="mr-2" />
         Actualizar
-      </CButton>
-    </div>
+      </CButton></CPageHeader>
+    <nav class="section-tabs" aria-label="Entradas y salidas"><NuxtLink to="/checkin">Entradas</NuxtLink><NuxtLink to="/checkin/pending">Salidas pendientes</NuxtLink></nav>
 
     <!-- Filtros -->
     <CCard>
@@ -31,7 +22,7 @@
         </CInput>
 
         <select
-          v-model="sortBy"
+          v-model="sortBy" aria-label="Ordenar resultados"
           class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
         >
           <option value="checkout_time">Por hora de check-out</option>
@@ -45,7 +36,7 @@
     <CCard v-if="overdueCheckOuts.length > 0" class="bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700">
       <div class="flex items-start gap-3">
         <Icon
-          name="system-uicons:warning"
+          name="system-uicons:warning-triangle"
           size="24"
           class="text-red-600 dark:text-red-400 flex-shrink-0 mt-1"
         />
@@ -70,7 +61,7 @@
         <div
           v-for="checkOutItem in overdueCheckOuts"
           :key="checkOutItem.id"
-          class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-600 rounded-r-lg hover:shadow-md transition-shadow"
+          class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-600 rounded-r-lg transition-colors"
         >
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-red-900 dark:text-red-200">
@@ -86,7 +77,7 @@
               <div>
                 <p class="text-red-700 dark:text-red-300">Vencido hace</p>
                 <p class="font-medium text-red-900 dark:text-red-100">
-                  {{ getHoursOverdue(checkOutItem.scheduled_checkout_date || '') }} horas
+                  {{ getHoursOverdue(checkOutItem.scheduled_checkout_at || '') }} horas
                 </p>
               </div>
               <div>
@@ -103,7 +94,7 @@
               :loading="processingId === checkOutItem.id"
               @click="performCheckOut(checkOutItem.reservation_id, checkOutItem.id)"
             >
-              <Icon name="system-uicons:exit" size="18" class="mr-2" />
+              <Icon name="system-uicons:exit-right" size="18" class="mr-2" />
               Registrar
             </CButton>
           </div>
@@ -118,7 +109,7 @@
         <div
           v-for="checkOutItem in upcomingCheckOuts"
           :key="checkOutItem.id"
-          class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow"
+          class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
         >
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
@@ -134,7 +125,7 @@
               <div>
                 <p class="text-slate-600 dark:text-slate-400">Check-out en</p>
                 <p class="font-medium text-slate-900 dark:text-white">
-                  {{ getTimeUntilCheckOut(checkOutItem.scheduled_checkout_date || '') }}
+                  {{ getTimeUntilCheckOut(checkOutItem.scheduled_checkout_at || '') }}
                 </p>
               </div>
               <div>
@@ -151,7 +142,7 @@
               :loading="processingId === checkOutItem.id"
               @click="performCheckOut(checkOutItem.reservation_id, checkOutItem.id)"
             >
-              <Icon name="system-uicons:exit" size="18" class="mr-2" />
+              <Icon name="system-uicons:exit-right" size="18" class="mr-2" />
               Registrar
             </CButton>
           </div>
@@ -226,7 +217,7 @@ const sortedCheckOuts = computed(() => {
 const overdueCheckOuts = computed(() => {
   const now = new Date()
   return sortedCheckOuts.value.filter(c => {
-    const checkOutTime = new Date(c.scheduled_checkout_date || '')
+    const checkOutTime = new Date(c.scheduled_checkout_at || '')
     const hoursOverdue = (now.getTime() - checkOutTime.getTime()) / (1000 * 60 * 60)
     return hoursOverdue > 0
   })
@@ -235,7 +226,7 @@ const overdueCheckOuts = computed(() => {
 const upcomingCheckOuts = computed(() => {
   const now = new Date()
   return sortedCheckOuts.value.filter(c => {
-    const checkOutTime = new Date(c.scheduled_checkout_date || '')
+    const checkOutTime = new Date(c.scheduled_checkout_at || '')
     return checkOutTime > now
   })
 })

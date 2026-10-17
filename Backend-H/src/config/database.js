@@ -21,6 +21,13 @@ if (!DATABASE_URL) {
 // CONFIGURAR POOL DE CONEXIONES
 // ============================================
 
+const requestContext = require('../utils/requestContext');
+const applyContext = async (client) => {
+  const context = requestContext.getStore() || {};
+  await client.query("SELECT set_config('hotel.actor_id',$1,true), set_config('hotel.actor_ip',$2,true)", [String(context.userId || ''), context.ip || '']);
+  await client.query("SELECT set_config('TimeZone', timezone, true) FROM hotel_settings WHERE id=1");
+};
+
 const poolConfig = {
   connectionString: DATABASE_URL,
   max: DB_POOL_MAX,
@@ -123,27 +130,15 @@ const query = async (text, params) => {
     throw new Error('La base de datos no está disponible');
   }
 
-  const start = Date.now();
-  
+  const client = await pool.connect();
   try {
-    const result = await queryPool(text, params);
-    const duration = Date.now() - start;
-    
-    // Log de queries en desarrollo
-    if (NODE_ENV === 'development') {
-      console.log(`✓ Query ejecutada en ${duration}ms`);
-    }
-    
+    await client.query('BEGIN');
+    await applyContext(client);
+    const result = await client.query(text, params);
+    await client.query('COMMIT');
     return result;
-  } catch (error) {
-    console.error('Error en query:', {
-      query: text,
-      params: params,
-      error: error.message,
-      code: error.code
-    });
-    throw error;
-  }
+  } catch (error) { await client.query('ROLLBACK'); throw error; }
+  finally { client.release(); }
 };
 
 /**
@@ -154,6 +149,7 @@ const transaction = async (callback) => {
 
   try {
     await client.query('BEGIN');
+    await applyContext(client);
     const result = await callback(client);
     await client.query('COMMIT');
     return result;

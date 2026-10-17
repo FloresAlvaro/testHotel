@@ -1,51 +1,17 @@
 <template>
-  <NuxtLink :to="href" class="nav-link" :class="{ active }">
-    <Icon :name="icon" class="nav-link-icon" aria-hidden="true" />
-    <span>{{ label }}</span>
+  <NuxtLink :to="href" class="workspace-navlink" :class="{ 'is-current': active }" :aria-current="active ? 'page' : undefined">
+    <Icon :name="icon" class="workspace-navlink-icon" aria-hidden="true" /><span>{{ label }}</span><span v-if="active" class="workspace-navlink-marker" aria-hidden="true" />
   </NuxtLink>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  icon: string;
-  label: string;
-  href: string;
-  active?: boolean;
-}>();
+defineProps<{ icon: string; label: string; href: string; active?: boolean }>();
 </script>
 
 <style scoped>
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 16px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  border-left: 3px solid transparent;
-  transition: background-color 160ms ease, color 160ms ease;
-  font-size: 0.84rem;
-}
-
-.nav-link:hover {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.nav-link.active {
-  color: #2563eb;
-  background: #eff6ff;
-  border-left-color: #2563eb;
-  font-weight: 600;
-}
-
-.nav-link-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-}
-
-:global(.dark) .nav-link.active {
-  background: rgba(37, 99, 235, 0.14);
-}
+.workspace-navlink { min-height: 39px; display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 3px 0; border-radius: 7px; color: var(--text-secondary); font-size: 12px; line-height: 1.4; text-decoration: none; transition: color .15s, background .15s; }
+.workspace-navlink:hover { background: var(--surface-subtle); color: var(--text-primary); }
+.workspace-navlink.is-current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.workspace-navlink-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.workspace-navlink-marker { width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin-left: auto; }
 </style>

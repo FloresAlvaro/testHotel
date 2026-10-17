@@ -1,24 +1,15 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Check-in Hoy
-        </h1>
-        <p class="text-slate-600 dark:text-slate-400 mt-1">
-          Registrar entrada de huéspedes
-        </p>
-      </div>
-      <CButton variant="primary" @click="refreshData">
+    <CPageHeader title="Entradas" description="Registrar entrada de huéspedes"><CButton variant="primary" @click="refreshData">
         <Icon name="system-uicons:refresh" size="18" class="mr-2" />
         Actualizar
-      </CButton>
-    </div>
+      </CButton></CPageHeader>
+    <nav class="section-tabs" aria-label="Entradas y salidas"><NuxtLink to="/checkin">Entradas</NuxtLink><NuxtLink to="/checkin/pending">Salidas pendientes</NuxtLink></nav>
 
     <!-- Estadísticas -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <CCard class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Check-ins Pendientes
@@ -29,7 +20,7 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Check-ins Completados
@@ -40,7 +31,7 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             No Shows
@@ -70,7 +61,7 @@
       <div
         v-for="checkIn in filteredCheckIns"
         :key="checkIn.id"
-        class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow"
+        class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
       >
         <div class="flex-1">
           <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
@@ -153,9 +144,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useUIStore } from '~/stores/ui'
 import { useCheckIn } from '~/composables/useCheckIn'
 import { useReservationsStore } from '~/stores/reservations'
-import { getTodayDateOnly } from '~/utils/dates'
+import { getTodayDateOnly, reservationDateOnly } from '~/utils/dates'
 import type { Reservation, CheckInLogData } from '~/types'
 import { formatDate } from '~/utils/formatters'
+
+const { settings: operatingSettings } = useHotelSettings();
 
 definePageMeta({
   middleware: ['auth', 'receptionist']
@@ -165,9 +158,9 @@ const uiStore = useUIStore()
 const checkInApi = useCheckIn()
 const reservationsStore = useReservationsStore()
 const todayCheckIns = computed(() => {
-  const today = getTodayDateOnly()
+  const today = getTodayDateOnly(operatingSettings.value.timezone)
   return reservationsStore.reservations.filter(
-    reservation => reservation.status === 'confirmed' && reservation.check_in <= today
+    reservation => reservation.status === 'confirmed' && reservationDateOnly(reservation.check_in) <= today
   )
 })
 const completedCheckInLogs = ref<CheckInLogData[]>([])
@@ -179,9 +172,9 @@ const processingId = ref<number | null>(null)
 const selectedCheckIn = ref<Reservation | null>(null)
 const completedCheckIns = computed(() => completedCheckInLogs.value.length)
 const noShows = computed(() => {
-  const today = getTodayDateOnly()
+  const today = getTodayDateOnly(operatingSettings.value.timezone)
   return reservationsStore.reservations.filter(
-    reservation => reservation.status === 'confirmed' && reservation.check_in < today
+    reservation => reservation.status === 'confirmed' && reservationDateOnly(reservation.check_in) < today
   ).length
 })
 

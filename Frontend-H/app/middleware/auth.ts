@@ -1,3 +1,4 @@
+import { postLoginPath } from '~/utils/authNavigation';
 /**
  * Middleware de autenticación
  * Protege rutas que requieren usuario autenticado
@@ -9,6 +10,7 @@ export default defineNuxtRouteMiddleware((to) => {
     "/auth/login",
     "/auth/register",
     "/auth/forgot-password",
+    "/auth/reset-password",
   ];
 
   if (import.meta.server) {
@@ -21,13 +23,16 @@ export default defineNuxtRouteMiddleware((to) => {
     return;
   }
 
+  // La redirección del acceso ocurre al montar, después de hidratar el HTML público.
+  if (useNuxtApp().isHydrating && publicRoutes.includes(to.path)) return;
+
   const authStore = useAuthStore();
 
   // ==================== LÓGICA ====================
 
   // Si está en ruta pública y ya está autenticado, redirigir a home
   if (publicRoutes.includes(to.path) && authStore.isAuthenticated) {
-    return navigateTo("/dashboard");
+    return navigateTo(postLoginPath(authStore.user?.role));
   }
 
   // Si intenta acceder a ruta privada sin autenticación
@@ -41,6 +46,12 @@ export default defineNuxtRouteMiddleware((to) => {
       path: "/auth/login",
       query: { redirect: to.fullPath },
     });
+  }
+
+  if (authStore.isAuthenticated && !publicRoutes.includes(to.path)) {
+    const portal = to.path === '/portal' || to.path.startsWith('/portal/');
+    if (authStore.isCustomer && !portal) return navigateTo('/portal');
+    if (!authStore.isCustomer && portal) return navigateTo('/dashboard');
   }
 
   // Si está autenticado pero el token es inválido

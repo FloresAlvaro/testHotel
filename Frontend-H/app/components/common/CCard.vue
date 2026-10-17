@@ -29,51 +29,14 @@ withDefaults(defineProps<Props>(), {
 });
 </script>
 
-<style scoped lang="scss">
-.card {
-  background: var(--bg-secondary, #ffffff);
-  border-radius: 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
-  overflow: hidden;
-  transition: all 0.2s;
+<style scoped>
 
-  &-elevated {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+.card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; min-width: 0; overflow: hidden; }
+.card-bordered { border-color: var(--text-tertiary); }
+.card-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 19px 22px; border-bottom: 1px solid var(--border-color); }
+.card-title { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.card-body { padding: 22px; }
+.card-footer { border-top: 1px solid var(--border-color); padding: 16px 22px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+@media(max-width:640px) { .card-body, .card-header { padding: 18px; } }
 
-    &:hover {
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-    }
-  }
-
-  &-bordered {
-    border: 2px solid var(--border-color, #e0e0e0);
-  }
-}
-
-.card-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-title {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-}
-
-.card-body {
-  padding: 16px;
-}
-
-.card-footer {
-  padding: 16px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
 </style>

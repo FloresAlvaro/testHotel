@@ -57,14 +57,14 @@ const handleCancel = () => emit('cancel');
 
 <style scoped lang="scss">
 .checkin-info {
-  background: #f0f9ff;
+  background: var(--surface-subtle);
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 16px;
 
   p {
     margin: 6px 0;
-    color: #1e3a8a;
+    color: var(--text-secondary);
   }
 }
 
@@ -89,7 +89,7 @@ const handleCancel = () => emit('cancel');
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 }

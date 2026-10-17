@@ -1,20 +1,10 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Habitaciones
-        </h1>
-        <p class="text-slate-600 dark:text-slate-400 mt-1">
-          Gestión de inventario de habitaciones
-        </p>
-      </div>
-      <CButton variant="primary" @click="openAddModal">
+    <CPageHeader title="Habitaciones" description="Disponibilidad, estado y detalles de tus habitaciones."><CButton variant="primary" @click="openAddModal">
         <Icon name="system-uicons:home" size="18" class="mr-2" />
         Nueva Habitación
-      </CButton>
-    </div>
+      </CButton></CPageHeader>
 
     <!-- Filtros -->
     <CCard>
@@ -33,7 +23,7 @@
 
           <!-- Filtro por Estado -->
           <select
-            v-model="selectedStatus"
+            v-model="selectedStatus" aria-label="Filtrar por estado"
             class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos los Estados</option>
@@ -45,7 +35,7 @@
 
           <!-- Filtro por Piso -->
           <select
-            v-model="selectedFloor"
+            v-model="selectedFloor" aria-label="Filtrar por piso"
             class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos los Pisos</option>
@@ -87,7 +77,7 @@
     <!-- Loading -->
     <div v-else class="text-center py-12">
       <Icon
-        name="system-uicons:loading"
+        name="system-uicons:loader"
         size="32"
         class="mx-auto text-blue-500 animate-spin mb-4"
       />
@@ -118,30 +108,36 @@
       </CButton>
     </div>
 
+    <CModal :is-open="!!detailRoom" :title="`Habitación ${detailRoom?.number || ''}`" @close="detailRoom = null">
+      <dl v-if="detailRoom" class="room-detail-grid"><div><dt>Tipo</dt><dd>{{ detailRoom.room_type_name }}</dd></div><div><dt>Piso</dt><dd>{{ detailRoom.floor ?? '—' }}</dd></div><div><dt>Precio por noche</dt><dd>{{ hotelMoney(Number(detailRoom.price || 0).toFixed(2)) }}</dd></div><div><dt>Estado</dt><dd>{{ { available: 'Disponible', occupied: 'Ocupada', reserved: 'Reservada', maintenance: 'Mantenimiento' }[detailRoom.status] }}</dd></div></dl>
+    </CModal>
+
     <!-- Modal de Habitación -->
+    <CModal :is-open="isModalOpen" :title="selectedRoom ? 'Editar habitación' : 'Nueva habitación'" @close="closeModal">
     <FRoomForm
-      :is-open="isModalOpen"
+v-if="isModalOpen"
       :room="selectedRoom"
       :loading="isSubmitting"
       @submit="handleSubmit"
       @cancel="closeModal"
     />
+    </CModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useRoomsStore } from '~/stores/rooms'
 import { useUIStore } from '~/stores/ui'
 import { useRooms } from '~/composables/useRooms'
 import type { CreateRoomRequest, Room } from '~/types'
 
+const { money: hotelMoney } = useHotelSettings()
+
 definePageMeta({
   middleware: ['auth', 'manager']
 })
 
-const router = useRouter()
 const roomsStore = useRoomsStore()
 const uiStore = useUIStore()
 const { fetchRooms, createRoom, updateRoom } = useRooms()
@@ -153,6 +149,7 @@ const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedFloor = ref('')
 const selectedRoom = ref<Room | null>(null)
+const detailRoom = ref<Room | null>(null)
 
 const rooms = computed(() => roomsStore.rooms)
 const totalRooms = computed(() => rooms.value.length)
@@ -184,7 +181,7 @@ const editRoom = (roomId: number) => {
 }
 
 const viewRoom = (roomId: number) => {
-  router.push(`/rooms/${roomId}`)
+  detailRoom.value = rooms.value.find(room => room.id === roomId) || null
 }
 
 const closeModal = () => {

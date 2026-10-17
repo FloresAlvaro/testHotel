@@ -14,19 +14,9 @@ export default defineNuxtConfig({
   },
   components: [{ path: "~/components", pathPrefix: false }],
   modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxt/ui", "@nuxt/image"],
+  fonts: { providers: { google: false, bunny: false, fontshare: false, fontsource: false } },
   ui: {
     colorMode: false,
-  },
-  fonts: {
-    families: [
-      {
-        name: "Alata",
-        provider: "google",
-        weights: [400],
-        styles: ["normal"],
-        preload: true,
-      },
-    ],
   },
   image: {
     domains: ["images.unsplash.com"],

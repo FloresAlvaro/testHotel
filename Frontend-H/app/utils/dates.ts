@@ -1,5 +1,6 @@
 const getDateOnlyTimestamp = (value: string): number | null => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const normalized = value.length > 10 && Number.isFinite(Date.parse(value)) ? value.slice(0, 10) : value;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
   if (!match) return null;
 
   const year = Number(match[1]);
@@ -19,12 +20,8 @@ const getDateOnlyTimestamp = (value: string): number | null => {
   return timestamp;
 };
 
-export const getTodayDateOnly = (): string => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+export const getTodayDateOnly = (timezone = 'America/La_Paz'): string => {
+  return new Intl.DateTimeFormat('en-CA', {timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 };
 
 export const compareDateOnly = (left: string, right: string): number | null => {
@@ -52,4 +49,14 @@ export const formatDateOnly = (value: string): string => {
     dateStyle: "long",
     timeZone: "UTC",
   }).format(timestamp);
+};
+
+// Los campos DATE de PostgreSQL pueden llegar serializados como ISO.
+export const reservationDateOnly = (value: string): string => value.slice(0, 10);
+
+export const localDateOnly = (value: string, timezone = 'America/La_Paz'): string => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
 };

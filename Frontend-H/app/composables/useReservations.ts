@@ -10,6 +10,7 @@ import {
 } from "../utils/dates";
 
 export const useReservations = () => {
+  const { settings: operatingSettings } = useHotelSettings();
   const reservationsStore = useReservationsStore();
   const uiStore = useUiStore();
 
@@ -183,7 +184,7 @@ export const useReservations = () => {
    * Validar fechas de reserva
    */
   const validateDates = (checkIn: string, checkOut: string): boolean => {
-    const today = getTodayDateOnly();
+    const today = getTodayDateOnly(operatingSettings.value.timezone);
     const checkInVsToday = compareDateOnly(checkIn, today);
     const checkOutVsCheckIn = compareDateOnly(checkOut, checkIn);
 

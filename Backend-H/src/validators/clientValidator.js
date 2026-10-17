@@ -3,7 +3,7 @@ const Joi = require('joi');
 const clientFields = {
 	name: Joi.string().trim().min(2).max(200).required(),
 	document: Joi.string().trim().min(3).max(50).required(),
-	document_type: Joi.string().valid('cedula', 'passport', 'license', 'other'),
+	document_type: Joi.string().valid('cedula', 'passport', 'license', 'other').default('cedula'),
 	email: Joi.string().trim().email().max(200).allow('', null),
 	phone: Joi.string().trim().max(20).allow('', null),
 	address: Joi.string().trim().max(300).allow('', null),
