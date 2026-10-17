@@ -30,6 +30,7 @@ const ReservationController = require('../src/controllers/reservationController'
 const CheckInController = require('../src/controllers/checkInController');
 const Payment = require('../src/models/Payment');
 const Room = require('../src/models/Room');
+const User = require('../src/models/User');
 const Reservation = require('../src/models/Reservation');
 const fs = require('fs');
 const path = require('path');
@@ -615,6 +616,76 @@ describeDb('Concurrencia real PostgreSQL y altas de empleados', () => {
       const down=await fetch(url);expect(down.status).toBe(503);expect((await down.json()).database).toBe('unavailable');
       pool.testConnection.mockResolvedValue(true);const up=await fetch(url);expect(up.status).toBe(200);expect((await up.json()).database).toBe('available');
     }finally{await new Promise(resolve=>healthServer.close(resolve));if(original)pool.testConnection=original;else delete pool.testConnection;}
+  });
+
+  const browserLogin = async (headers={}) => {
+    await pool.query('UPDATE "user" SET password=$1 WHERE id=$2',[await hashPassword('Admin123!'),userId]);
+    return fetch(`${base}/users/session`,{method:'POST',headers:{'Content-Type':'application/json','X-Hotel-Request':'1',...headers},body:JSON.stringify({email:'admin@example.com',password:'Admin123!'})});
+  };
+  test('sesión HttpOnly sin credenciales en JSON; CSRF y revocación al salir',async()=>{
+    const login=await browserLogin();expect(login.status).toBe(200);
+    const cookie=login.headers.get('set-cookie');expect(cookie).toContain('HttpOnly');expect(cookie).toContain('SameSite=Lax');
+    const data=await login.json();expect(require('../src/utils/contractValidator').byName('SessionResponse').validate(data).error).toBeUndefined();expect(data.data.token).toBeUndefined();expect(data.data.csrfToken).toMatch(/^[a-f0-9]{64}$/);
+    const headers={Cookie:cookie.split(';')[0]};
+    const profile=await fetch(`${base}/users/session`,{headers});expect(profile.status).toBe(200);
+    const without=await fetch(`${base}/users/session`,{method:'DELETE',headers:{...headers,'X-Hotel-Request':'1'}});expect(without.status).toBe(403);
+    const invalid=await fetch(`${base}/users/session`,{method:'DELETE',headers:{...headers,'X-Hotel-Request':'1','X-Hotel-CSRF':'a'.repeat(64)}});expect(invalid.status).toBe(403);
+    const logout=await fetch(`${base}/users/session`,{method:'DELETE',headers:{...headers,'X-Hotel-Request':'1','X-Hotel-CSRF':data.data.csrfToken}});expect(logout.status).toBe(200);
+    expect((await fetch(`${base}/users/profile`,{headers})).status).toBe(401);
+  });
+  test('sesión: origen ajeno bloqueado, rotación, caducidad y versión revocada',async()=>{
+    expect((await browserLogin({Origin:'https://malicioso.example'})).status).toBe(403);
+    const first=await browserLogin(),cookie=first.headers.get('set-cookie').split(';')[0];
+    const second=await browserLogin({Cookie:cookie});expect(second.status).toBe(200);
+    expect((await fetch(`${base}/users/profile`,{headers:{Cookie:cookie}})).status).toBe(401);
+    const current=second.headers.get('set-cookie').split(';')[0];
+    await pool.query('UPDATE "user" SET auth_version=auth_version+1 WHERE id=$1',[userId]);
+    expect((await fetch(`${base}/users/profile`,{headers:{Cookie:current}})).status).toBe(401);
+    const third=await browserLogin(),expired=third.headers.get('set-cookie').split(';')[0];
+    await pool.query("UPDATE web_session SET expires_at=now()-interval '1 minute'");
+    expect((await fetch(`${base}/users/profile`,{headers:{Cookie:expired}})).status).toBe(401);
+  });
+  test('invitación de personal: correo sin contraseña, aceptación única concurrente y contrato real',async()=>{
+    const previousHost=process.env.SMTP_HOST,previousFrom=process.env.MAIL_FROM;
+    process.env.SMTP_HOST='local-test';process.env.MAIL_FROM='hotel@example.com';
+    try{
+      const headers={Authorization:`Bearer ${createToken({id:userId,version:0})}`,'Content-Type':'application/json'};
+      const invite=await fetch(`${base}/users/invitations`,{method:'POST',headers,body:JSON.stringify({name:'Persona invitada',email:'INVITADA@EXAMPLE.COM',role:'receptionist'})});expect(invite.status).toBe(201);
+      const body=await invite.json();expect(body.data.token).toBeUndefined();expect(body.data.password).toBeUndefined();
+      expect(require('../src/utils/contractValidator').byName('InvitationResponse').validate(body).error).toBeUndefined();
+      expect((await pool.query('SELECT id FROM "user" WHERE email=$1',['invitada@example.com'])).rowCount).toBe(0);
+      const outbox=(await pool.query("SELECT body FROM email_outbox WHERE event_key LIKE 'invite:%'")).rows[0];
+      const token=new URL(outbox.body.match(/https?:\/\/\S+/)[0]).searchParams.get('token');
+      const accept=()=>fetch(`${base}/users/accept-invitation`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password:'Welcome123!'})});
+      const accepted=await Promise.all([accept(),accept()]);expect(accepted.map(r=>r.status).sort()).toEqual([200,400]);
+      expect((await User.verifyPassword('invitada@example.com','Welcome123!')).role).toBe('receptionist');
+      expect((await pool.query('SELECT token_hash FROM user_invitation')).rows[0].token_hash).not.toBe(token);
+    }finally{if(previousHost===undefined)delete process.env.SMTP_HOST;else process.env.SMTP_HOST=previousHost;if(previousFrom===undefined)delete process.env.MAIL_FROM;else process.env.MAIL_FROM=previousFrom;}
+  });
+  test('invitaciones: permisos, revocación, caducidad y vínculo customer impuesto',async()=>{
+    const oldHost=process.env.SMTP_HOST,oldFrom=process.env.MAIL_FROM;process.env.SMTP_HOST='local-test';process.env.MAIL_FROM='hotel@example.com';
+    try{
+      const headers={Authorization:`Bearer ${createToken({id:userId,version:0})}`,'Content-Type':'application/json'};
+      const invite=(data)=>fetch(`${base}/users/invitations`,{method:'POST',headers,body:JSON.stringify(data)});
+      const invalid=await invite({name:'Cliente',email:'cliente@example.com',role:'customer'});expect(invalid.status).toBe(422);
+      const valid=await invite({name:'Cliente',email:'cliente@example.com',role:'customer',client_id:clientId});expect(valid.status).toBe(201);
+      let row=(await pool.query('SELECT * FROM user_invitation')).rows[0];
+      const mail=(await pool.query("SELECT body FROM email_outbox WHERE event_key LIKE 'invite:%'")).rows[0];
+      const token=new URL(mail.body.match(/https?:\/\/\S+/)[0]).searchParams.get('token');
+      const accept=()=>fetch(`${base}/users/accept-invitation`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password:'Welcome123!'})});
+      await pool.query("UPDATE user_invitation SET expires_at=now()-interval '1 minute' WHERE id=$1",[row.id]);expect((await accept()).status).toBe(400);
+      await pool.query("UPDATE user_invitation SET expires_at=now()+interval '1 day' WHERE id=$1",[row.id]);
+      const revoke=await fetch(`${base}/users/invitations/${row.id}`,{method:'DELETE',headers});expect(revoke.status).toBe(200);expect((await accept()).status).toBe(400);
+      await pool.query('UPDATE "user" SET role=\'receptionist\' WHERE id=$1',[userId]);
+      expect((await invite({name:'No autorizado',email:'otro@example.com',role:'admin'})).status).toBe(403);
+    }finally{if(oldHost===undefined)delete process.env.SMTP_HOST;else process.env.SMTP_HOST=oldHost;if(oldFrom===undefined)delete process.env.MAIL_FROM;else process.env.MAIL_FROM=oldFrom;}
+  });
+
+  test('login de sesión conserva correos históricos con mayúsculas',async()=>{
+    await pool.query('UPDATE "user" SET email=$1,password=$2 WHERE id=$3',['Legacy@Example.com',await hashPassword('Admin123!'),userId]);
+    const response=await fetch(`${base}/users/session`,{method:'POST',headers:{'Content-Type':'application/json','X-Hotel-Request':'1'},body:JSON.stringify({email:'Legacy@Example.com',password:'Admin123!'})});
+    expect(response.status).toBe(200);
+    expect((await response.json()).data.user.email).toBe('Legacy@Example.com');
   });
 
 });

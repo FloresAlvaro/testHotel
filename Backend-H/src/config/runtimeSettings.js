@@ -21,6 +21,7 @@ module.exports=env=>{
  let app;
  try{app=new URL(env.APP_URL||'http://localhost:3001');}catch{throw new Error('APP_URL debe ser un origen HTTP/HTTPS válido');}
  if(!['http:','https:'].includes(app.protocol)||app.username||app.password||app.pathname!=='/'||app.search||app.hash)throw new Error('APP_URL debe ser un origen HTTP/HTTPS sin ruta, credenciales ni parámetros');
+ if(production&&app.protocol!=='https:'&&!['localhost','127.0.0.1','[::1]'].includes(app.hostname))throw new Error('APP_URL debe usar HTTPS en producción fuera de localhost');
  const origins=(env.CORS_ORIGIN||(production?'https://yourdomain.com':'*')).split(',').map(s=>s.trim()).filter(Boolean);
  for(const origin of origins){if(origin==='*')continue;let url;try{url=new URL(origin);}catch{throw new Error('CORS_ORIGIN contiene un origen no válido');}if(url.origin!==origin||!['http:','https:'].includes(url.protocol))throw new Error('CORS_ORIGIN requiere orígenes HTTP/HTTPS sin rutas');}
  if(production&&origins.includes('*'))throw new Error('En producción CORS_ORIGIN requiere orígenes explícitos');

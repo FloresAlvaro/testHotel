@@ -89,3 +89,32 @@ la suite visual: no cambió la UI. La demo y producción no se migraron en esta 
 Pendientes posteriores: respaldos externos, sesiones/cookies HttpOnly e
 invitaciones, contratos generados y tipado gradual. Los cambios siguen locales,
 sin commit ni publicación remota de esta etapa.
+
+## Pasos finales: respaldos, sesiones, invitaciones y contratos
+
+La implementación y operación están descritas en
+[la guía de sesiones, respaldos y contratos](sesiones-respaldos-contratos.md).
+Incluye migración 006, sesiones opacas revocables HttpOnly con CSRF, invitaciones
+de personal/huéspedes por SMTP, copia externa configurable con integridad y
+retención segura, OpenAPI/declaraciones generadas y checkJs estricto inicial.
+
+Validación local: 123 pruebas backend correctas en 10 suites, incluidos contratos
+reales, concurrencia, caducidad y revocación; 10 recorridos Chromium correctos,
+incluido correo SMTP entregado a Mailpit y aceptación desde móvil; lint,
+TypeScript y build frontend correctos; api:check y typecheck backend correctos.
+Se comprobó que api:check detecta un archivo modificado sin regeneración, y se
+analizó el YAML del workflow. La prueba desechable de respaldos comprobó
+restauración de todas las tablas, copia, fallo del destino, integridad alterada y
+retención limitada a conjuntos reconocidos. Se inspeccionó el formulario móvil
+renderizado de aceptación. GitHub Actions aún no se ejecutó remotamente para
+esta entrega.
+
+Se respaldó la demo antes de migrar. Se aplicó 006 (estableciendo también el
+historial de 001..005), se reconstruyeron los servicios y se verificó salud,
+login HttpOnly, SSR privado y logout en localhost:3001/3000. Los conteos de usuarios, clientes, reservas y pagos coincidieron con el respaldo previo.
+No se volvió a cargar el seed ni se modificaron contraseñas, nombre del hotel o reservas.
+
+Configuración pendiente por instalación: destino externo real y almacenamiento
+cifrado, HTTPS y correo SMTP de producción. La demo utiliza Mailpit y respaldo
+local; no se afirma que exista una copia fuera del servidor. Los cambios de esta
+entrega permanecen locales hasta que se solicite publicarlos.

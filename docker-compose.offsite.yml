@@ -1,0 +1,11 @@
+# Añadir a los archivos Compose al usar un disco remoto/montaje externo real.
+services:
+  backups:
+    environment:
+      BACKUP_OFFSITE_ENABLED: 'true'
+    volumes:
+      - type: bind
+        source: ${BACKUP_OFFSITE_PATH:?Configura BACKUP_OFFSITE_PATH con un montaje externo existente}
+        target: /offsite
+        bind:
+          create_host_path: false

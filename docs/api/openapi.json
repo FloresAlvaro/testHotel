@@ -1,0 +1,5204 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Hotel System API",
+    "version": "1.0.0",
+    "description": "API para la gestion de usuarios, clientes, habitaciones, reservas, check-in/check-out y pagos."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor local"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Estado del servicio"
+    },
+    {
+      "name": "Users",
+      "description": "Autenticacion y usuarios"
+    },
+    {
+      "name": "Clients",
+      "description": "Clientes del hotel"
+    },
+    {
+      "name": "Rooms",
+      "description": "Habitaciones"
+    },
+    {
+      "name": "Reservations",
+      "description": "Reservas"
+    },
+    {
+      "name": "Check-in",
+      "description": "Entradas y salidas"
+    },
+    {
+      "name": "Payments",
+      "description": "Pagos"
+    },
+    {
+      "name": "Dashboard",
+      "description": "Indicadores del hotel"
+    },
+    {
+      "name": "Operations",
+      "description": "Configuración, caja, comprobantes, calendario, tareas e historial"
+    },
+    {
+      "name": "Guest portal",
+      "description": "Portal privado de cada huésped y gestión de su acceso"
+    },
+    {
+      "name": "Guest services",
+      "description": "Solicitudes, presentación, correo, recuperación, pagos y respaldos"
+    },
+    {
+      "name": "Sessions and invitations",
+      "description": "Sesiones revocables e invitaciones de un solo uso"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "hotel_session",
+        "description": "Sesión de navegador. Operaciones de escritura requieren X-Hotel-CSRF."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "Solicitud invalida"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserCredentials": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "usuario@hotel.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "password123"
+          }
+        }
+      },
+      "Client": {
+        "type": "object",
+        "required": [
+          "name",
+          "document"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ana Perez"
+          },
+          "document": {
+            "type": "string",
+            "example": "123456789"
+          },
+          "document_type": {
+            "type": "string",
+            "enum": [
+              "cedula",
+              "passport",
+              "license",
+              "other"
+            ],
+            "example": "cedula"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "ana@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+57 3000000000"
+          },
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "M",
+              "F"
+            ]
+          },
+          "emergency_contact": {
+            "type": "string"
+          },
+          "emergency_phone": {
+            "type": "string"
+          }
+        }
+      },
+      "Reservation": {
+        "type": "object",
+        "required": [
+          "check_in",
+          "check_out",
+          "client_id",
+          "room_id"
+        ],
+        "properties": {
+          "check_in": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-10-01"
+          },
+          "check_out": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-10-03"
+          },
+          "client_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "room_id": {
+            "type": "integer",
+            "example": 2
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "required": [
+          "reservation_id",
+          "amount",
+          "method"
+        ],
+        "properties": {
+          "reservation_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 250.5
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "full",
+              "partial",
+              "advance"
+            ],
+            "example": "partial"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "credit_card",
+              "debit_card",
+              "transfer",
+              "check"
+            ],
+            "example": "cash"
+          },
+          "transaction_id": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionUser": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 200
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "manager",
+              "receptionist",
+              "customer"
+            ]
+          },
+          "client_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "auth_version": {
+            "type": "integer"
+          },
+          "client_active": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "SessionLoginInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 200,
+            "x-trim": true
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "SessionData": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          },
+          "csrfToken": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "user",
+          "csrfToken"
+        ]
+      },
+      "SessionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionData"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "StaffInvitationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200,
+            "x-trim": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 200,
+            "x-trim": true,
+            "x-lowercase": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "manager",
+              "receptionist"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "role"
+        ]
+      },
+      "CustomerInvitationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200,
+            "x-trim": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 200,
+            "x-trim": true,
+            "x-lowercase": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer"
+            ]
+          },
+          "client_id": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "role",
+          "client_id"
+        ]
+      },
+      "InvitationInput": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/StaffInvitationInput"
+          },
+          {
+            "$ref": "#/components/schemas/CustomerInvitationInput"
+          }
+        ]
+      },
+      "AcceptInvitationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).*$"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ]
+      },
+      "Invitation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 200
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "manager",
+              "receptionist",
+              "customer"
+            ]
+          },
+          "client_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "used_at": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "expires_at"
+        ]
+      },
+      "InvitationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Invitation"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "BackupStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "latest": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "verified_at": {
+                "type": "string"
+              },
+              "archive": {
+                "type": "string"
+              },
+              "restored": {
+                "type": "boolean"
+              },
+              "offsite_verified": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "verified_at",
+              "archive",
+              "restored"
+            ],
+            "nullable": true
+          },
+          "status": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "ok": {
+                "type": "boolean"
+              },
+              "attempted_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ok",
+              "attempted_at"
+            ],
+            "nullable": true
+          },
+          "storage": {
+            "type": "string"
+          },
+          "offsite_configured": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "latest",
+          "status",
+          "storage",
+          "offsite_configured"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Verificar estado de la API",
+        "responses": {
+          "200": {
+            "description": "Servicio disponible"
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Crear empleado (solo administrador)",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "manager",
+                      "receptionist"
+                    ],
+                    "default": "receptionist"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Empleado creado sin token de sesión"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Solo administrador"
+          },
+          "409": {
+            "description": "Email registrado"
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/register": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Crear empleado (solo administrador)",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "manager",
+                      "receptionist"
+                    ],
+                    "default": "receptionist"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Empleado creado sin token de sesión"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Solo administrador"
+          },
+          "409": {
+            "description": "Email registrado"
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/login": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Iniciar sesion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCredentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token JWT generado"
+          },
+          "401": {
+            "description": "Credenciales invalidas"
+          }
+        }
+      }
+    },
+    "/api/users/profile": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Obtener perfil actual",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Perfil del usuario"
+          },
+          "401": {
+            "description": "No autenticado"
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Obtener usuario por ID",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario encontrado"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Actualizar usuario",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "receptionist",
+                      "manager"
+                    ]
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      }
+    },
+    "/api/users/{id}/password": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Cambiar contraseña",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "currentPassword",
+                  "newPassword",
+                  "confirmPassword"
+                ],
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "confirmPassword": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña actualizada"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "422": {
+            "description": "Datos invalidos"
+          }
+        }
+      }
+    },
+    "/api/users/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Desactivar usuario",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario desactivado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      }
+    },
+    "/api/users/{id}/activate": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Activar usuario",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario activado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      }
+    },
+    "/api/clients": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Listar clientes",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de clientes"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Crear cliente",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Client"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cliente creado"
+          },
+          "422": {
+            "description": "Datos invalidos"
+          }
+        }
+      }
+    },
+    "/api/clients/{id}": {
+      "put": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Actualizar cliente",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "city": {
+                    "type": "string"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "emergency_contact": {
+                    "type": "string"
+                  },
+                  "emergency_phone": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cliente actualizado"
+          },
+          "404": {
+            "description": "Cliente no encontrado"
+          },
+          "422": {
+            "description": "Datos invalidos"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Eliminar cliente",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cliente eliminado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Cliente no encontrado"
+          }
+        }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Listar habitaciones",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de habitaciones"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Crear habitacion",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Habitacion creada"
+          },
+          "403": {
+            "description": "Sin permisos"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}": {
+      "put": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Actualizar habitación",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "number": {
+                    "type": "string"
+                  },
+                  "room_type_id": {
+                    "type": "integer"
+                  },
+                  "floor": {
+                    "type": "integer"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "available",
+                      "reserved",
+                      "occupied",
+                      "maintenance"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Habitación actualizada"
+          },
+          "404": {
+            "description": "Habitación no encontrada"
+          },
+          "409": {
+            "description": "Transición de estado no permitida"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/status": {
+      "patch": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Actualizar estado de habitación",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "available",
+                      "reserved",
+                      "occupied",
+                      "maintenance"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado actualizado"
+          },
+          "404": {
+            "description": "Habitación no encontrada"
+          },
+          "409": {
+            "description": "Transición de estado no permitida"
+          }
+        }
+      }
+    },
+    "/api/room-types": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Listar tipos de habitación",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de tipos de habitación"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Crear tipo de habitación",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "price",
+                  "capacity"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "capacity": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "amenities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "image": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tipo de habitación creado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "409": {
+            "description": "El tipo ya existe"
+          }
+        }
+      }
+    },
+    "/api/room-types/{id}": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Obtener tipo de habitación por ID",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de habitación encontrado"
+          },
+          "404": {
+            "description": "Tipo no encontrado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Actualizar tipo de habitación",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number"
+                  },
+                  "capacity": {
+                    "type": "integer"
+                  },
+                  "amenities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "image": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tipo de habitación actualizado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Tipo no encontrado"
+          }
+        }
+      }
+    },
+    "/api/room-types/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Desactivar tipo de habitación",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de habitación desactivado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Tipo no encontrado"
+          }
+        }
+      }
+    },
+    "/api/rooms/available-for-dates": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Consultar habitaciones disponibles por fechas",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkIn",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "checkOut",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "roomTypeId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Habitaciones disponibles"
+          }
+        }
+      }
+    },
+    "/api/reservations": {
+      "get": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Listar reservas",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de reservas"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Crear reserva",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reservation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reserva creada"
+          },
+          "409": {
+            "description": "Habitacion no disponible"
+          }
+        }
+      }
+    },
+    "/api/reservations/{id}": {
+      "put": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Actualizar reserva",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "check_in": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "check_out": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "total_price": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "confirmed",
+                      "cancelled"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reserva actualizada"
+          },
+          "404": {
+            "description": "Reserva no encontrada"
+          },
+          "409": {
+            "description": "Estado o fechas no permitidos"
+          },
+          "422": {
+            "description": "Datos invalidos"
+          }
+        }
+      }
+    },
+    "/api/reservations/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Cancelar reserva",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reserva cancelada"
+          },
+          "409": {
+            "description": "Transicion no permitida"
+          }
+        }
+      }
+    },
+    "/api/check-in": {
+      "post": {
+        "tags": [
+          "Check-in"
+        ],
+        "summary": "Registrar check-in",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check-in registrado"
+          },
+          "409": {
+            "description": "Estado no permitido"
+          }
+        }
+      }
+    },
+    "/api/check-in/check-out": {
+      "post": {
+        "tags": [
+          "Check-in"
+        ],
+        "summary": "Registrar check-out",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check-out registrado"
+          },
+          "409": {
+            "description": "Estado no permitido"
+          }
+        }
+      }
+    },
+    "/api/payments": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Listar pagos",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de pagos"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Crear pago",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Payment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pago registrado"
+          },
+          "422": {
+            "description": "Datos invalidos"
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/status": {
+      "patch": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Actualizar estado de pago",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "completed",
+                      "failed",
+                      "refunded"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado del pago actualizado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Pago no encontrado"
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/complete": {
+      "patch": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Completar pago",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pago completado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Pago no encontrado"
+          },
+          "409": {
+            "description": "Estado no permitido"
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/refund": {
+      "patch": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Reembolsar pago",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pago reembolsado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Pago no encontrado"
+          },
+          "409": {
+            "description": "Estado no permitido"
+          }
+        }
+      }
+    },
+    "/api/payments/revenue/period": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Ingresos por día: solo importes completados",
+        "description": "Incluye ambos días del período según la zona horaria de la base de datos. La fecha final debe ser igual o posterior a la inicial.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Informe de ingresos"
+          },
+          "400": {
+            "description": "Período inválido"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Solo admin o manager"
+          }
+        }
+      }
+    },
+    "/api/payments/revenue/method": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Ingresos completados por método",
+        "description": "Incluye ambos días del período según la zona horaria de la base de datos. La fecha final debe ser igual o posterior a la inicial.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Informe de ingresos"
+          },
+          "400": {
+            "description": "Período inválido"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Solo admin o manager"
+          }
+        }
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Obtener resumen del dashboard",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicadores del hotel"
+          },
+          "403": {
+            "description": "Solo admin o manager"
+          }
+        }
+      }
+    },
+    "/api/operations/settings": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Configuración compartida",
+        "description": "Todos los empleados activos pueden consultar la configuración.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Guardar configuración",
+        "description": "Solo admin. La versión debe coincidir. No cambia la moneda cuando existen reservas o turnos.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "hotel_name": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "city": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "check_in_time": {
+                    "type": "string",
+                    "example": "15:00"
+                  },
+                  "check_out_time": {
+                    "type": "string",
+                    "example": "11:00"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "BOB",
+                      "USD",
+                      "EUR"
+                    ]
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "example": "America/La_Paz"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "hotel_name",
+                  "city",
+                  "email",
+                  "phone",
+                  "address",
+                  "check_in_time",
+                  "check_out_time",
+                  "currency",
+                  "timezone",
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/cash-shifts": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Últimos 100 turnos",
+        "description": "Recepción ve sus turnos; admin y manager ven los del equipo. Incluye totales por medio de pago.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Abrir turno propio",
+        "description": "Un turno abierto por empleado. La moneda se toma de la configuración.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "opening_amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 99999999.99,
+                    "multipleOf": 0.01
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "opening_amount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/cash-shifts/{id}/close": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Cerrar y arquear turno",
+        "description": "Propietario, admin o manager. Esperado = fondo + cobros en efectivo - reembolsos en efectivo. Cierre inmutable; rechaza repetición.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "counted_amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 99999999.99,
+                    "multipleOf": 0.01
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "counted_amount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/receipts/{id}": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Comprobante por ID de pago",
+        "description": "Instantánea del hotel, huésped, habitación e importe al emitir. Incluye estado actual del pago; los reembolsos conservan el comprobante. Comprobante interno, no factura fiscal.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/task-assignees": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Responsables disponibles",
+        "description": "IDs y nombres de empleados activos, sin datos de acceso.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/tasks": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Consultar tareas",
+        "description": "Listado paginado por estado.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "in_progress",
+                "completed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Crear tarea",
+        "description": "Solo admin o manager. Bloquea una habitación libre hasta finalizar sus tareas.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "room_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "cleaning",
+                      "maintenance"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "assigned_to": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "room_id",
+                  "kind",
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/tasks/{id}": {
+      "patch": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Actualizar tarea",
+        "description": "Responsable, admin o manager; solo admin o manager reasignan. Finalizar todas las tareas habilita la habitación según sus reservas.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "in_progress",
+                      "completed"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "assigned_to": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                },
+                "required": []
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/calendar": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Calendario por habitación",
+        "description": "Entre 1 y 62 noches, salida exclusiva; habitaciones paginadas. Excluye cancelaciones.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/operations/audit": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Historial de cambios",
+        "description": "Solo admin o manager. Registros automáticos con valores anteriores/nuevos; contraseñas excluidas.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INSERT",
+                "UPDATE",
+                "DELETE"
+              ]
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "record_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación realizada; respuesta success/data (listas: pagination)"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "JWT requerido"
+          },
+          "403": {
+            "description": "Rol no autorizado"
+          },
+          "404": {
+            "description": "Registro no encontrado"
+          },
+          "409": {
+            "description": "Conflicto de versión, estado o registro duplicado"
+          }
+        }
+      }
+    },
+    "/api/portal/hotel": {
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Información del hotel",
+        "description": "Solo customer. Nombre, contacto, moneda, zona horaria y horarios; no da acceso a la configuración administrativa.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/portal/availability": {
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Consultar habitaciones disponibles",
+        "description": "Solo customer. Fechas del hotel, 1 a 365 noches; excluye mantenimiento, tareas abiertas y reservas solapadas. Devuelve habitaciones paginadas, tarifa por noche, total, noches y moneda.",
+        "parameters": [
+          {
+            "name": "check_in",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "check_out",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "adults",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 1
+            }
+          },
+          {
+            "name": "children",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 19,
+              "default": 0
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/portal/profile": {
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Mi perfil de huésped",
+        "description": "Solo customer. Nombre, correo y teléfono de la ficha vinculada.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/portal/next-stay": {
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Mi estancia actual o próxima",
+        "description": "Solo customer. Devuelve la estancia activa o la próxima confirmada, o null.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/portal/reservations": {
+      "post": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Confirmar mi reserva",
+        "description": "Solo customer. Revalida disponibilidad y tarifa en una transacción. Vincula la ficha autenticada y calcula el total en servidor. No acepta client_id, user_id, status ni total_price. Una reserva confirmada no registra un pago.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "check_in",
+                  "check_out",
+                  "room_id",
+                  "expected_total",
+                  "expected_currency"
+                ],
+                "properties": {
+                  "check_in": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "check_out": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "room_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "adults": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 1
+                  },
+                  "children": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 19,
+                    "default": 0
+                  },
+                  "arrival_time": {
+                    "type": "string",
+                    "description": "Opcional HH:MM"
+                  },
+                  "special_requests": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "expected_total": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "expected_currency": {
+                    "type": "string",
+                    "enum": [
+                      "BOB",
+                      "USD",
+                      "EUR"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Mis reservas",
+        "description": "Solo customer. Vinculación obtenida de la base de datos; no acepta client_id.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "confirmed",
+                "checked_in",
+                "checked_out",
+                "cancelled"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/portal/reservations/{id}": {
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Detalle de mi reserva",
+        "description": "Solo customer. Incluye pagos propios y disponibilidad de comprobante. Omite notas internas y usuarios del personal.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/portal/receipts/{id}": {
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Mi comprobante por ID de pago",
+        "description": "Solo customer. Comprueba pertenencia de la reserva en SQL. Devuelve instantánea pública, estado actual y marca histórica; excluye notas, referencias bancarias y emisor interno.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/clients/{id}/account": {
+      "get": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Consultar acceso del huésped",
+        "description": "Solo admin. Devuelve cuenta vinculada o null; nunca devuelve contraseña.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Crear acceso del huésped",
+        "description": "Solo admin. Una cuenta por ficha activa; no emite token ni envía correo. Rol customer fijado en servidor; no acepta role ni client_id en el cuerpo.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 200
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Guest portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Activar o desactivar acceso",
+        "description": "Solo admin. La desactivación se comprueba también en cada petición con un token existente.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "is_active"
+                ],
+                "properties": {
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta success/data; reservas incluyen pagination"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Datos no válidos"
+          },
+          "401": {
+            "description": "Autenticación requerida"
+          },
+          "403": {
+            "description": "Rol no autorizado o acceso desactivado"
+          },
+          "404": {
+            "description": "Registro inexistente o perteneciente a otro huésped"
+          },
+          "409": {
+            "description": "Conflicto de disponibilidad, tarifa o registro existente"
+          },
+          "422": {
+            "description": "Datos de entrada no válidos"
+          }
+        }
+      }
+    },
+    "/api/users/forgot-password": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Solicitar recuperación",
+        "description": "Público y limitado. Respuesta neutra; SMTP debe estar configurado. Enlace de 30 minutos.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/users/reset-password": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Restablecer contraseña",
+        "description": "Público y limitado. Token de un solo uso; revoca las sesiones anteriores.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token",
+                  "password"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 64,
+                    "maxLength": 64
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/portal/presentation": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Presentación y reglas",
+        "description": "Customer. Contenido público del hotel, tipos de habitación y disponibilidad del proveedor de pago.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/portal/reservations/{id}/requests": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Mis solicitudes",
+        "description": "Customer. Solo solicitudes de la propia reserva, máximo 50.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Solicitar cambio o cancelación",
+        "description": "Customer. Reserva confirmada, plazo configurable, una solicitud pendiente. No modifica la reserva.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "reason"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "dates",
+                      "cancel"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "check_in": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "check_out": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/operations/reservation-requests": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Solicitudes de huéspedes",
+        "description": "Personal. Páginas de 20 registros.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ],
+              "default": "pending"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/operations/reservation-requests/{id}/review": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Aprobar o rechazar solicitud",
+        "description": "Admin/manager. Respuesta obligatoria. Cambios de fechas requieren total acordado, revalidan disponibilidad y pagos. Una cancelación no devuelve dinero automáticamente.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "decision",
+                  "response"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected"
+                    ]
+                  },
+                  "response": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "total_price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 99999999.99
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/portal/reservations/{id}/checkout": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Crear o recuperar checkout",
+        "description": "Customer. Importe calculado en servidor; anticipo o saldo. Una sesión activa por reserva. Nunca confirma el pago por retorno del navegador.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mode"
+                ],
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "deposit",
+                      "balance"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/portal/online-payments/{paymentId}": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Consultar mi pago en línea",
+        "description": "Customer. Solo pagos de la propia cuenta.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/portal/online-payments/{paymentId}/demo-confirm": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Simular pago",
+        "description": "Solo customer propietario y adaptador demo explícitamente habilitado; nunca mueve dinero.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/operations/online-payments": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Últimos pagos en línea",
+        "description": "Admin/manager. Máximo 100 registros.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/operations/online-payments/{paymentId}/refund": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Reembolsar pago en línea",
+        "description": "Admin/manager. Importe completo por el mismo medio, solicitud idempotente. El estado final lo confirma la pasarela.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/webhooks/stripe": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Webhook firmado Stripe",
+        "description": "Sin JWT. Stripe-Signature obligatoria. Verifica cuerpo original y deduplica eventos.",
+        "parameters": [
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operations/presentation": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Configuración de presentación",
+        "description": "Admin/manager.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Guardar presentación y reglas",
+        "description": "Admin. Descripción, cover_image HTTPS o /images/, request_notice_hours 0..720, deposit_percent 1..100, payment_due_hours 1..168 y rooms [{id,description,image_url}]. El contacto y nombre usan /operations/settings.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "description",
+                  "cover_image",
+                  "request_notice_hours",
+                  "deposit_percent",
+                  "payment_due_hours",
+                  "rooms"
+                ],
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "maxLength": 3000
+                  },
+                  "cover_image": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "request_notice_hours": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  },
+                  "deposit_percent": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "payment_due_hours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 168
+                  },
+                  "rooms": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "description",
+                        "image_url"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 3000
+                        },
+                        "image_url": {
+                          "type": "string",
+                          "maxLength": 500
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/operations/email-status": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Estado de correo",
+        "description": "Admin. Estado SMTP y últimos 50 mensajes, sin cuerpo ni enlaces de recuperación.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/operations/email-status/{id}/retry": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Reintentar correo",
+        "description": "Admin. Reinicia intentos de un correo pendiente.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/operations/backup-status": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Estado del respaldo",
+        "description": "Admin. Lee el manifiesto de la última restauración comprobada del volumen local; no expone el dump.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Estado local y externo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BackupStatus"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/users/session": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Iniciar sesión de navegador",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionLoginInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        },
+        "description": "Requiere X-Hotel-Request: 1 y origen APP_URL. Emite hotel_session HttpOnly, SameSite=Lax, Secure en HTTPS; no devuelve credencial de sesión en JSON."
+      },
+      "get": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Recuperar perfil y CSRF de sesión",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Revocar sesión actual",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        },
+        "description": "Requiere X-Hotel-Request: 1 y X-Hotel-CSRF del GET /users/session."
+      }
+    },
+    "/api/users/invitations": {
+      "get": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Listar invitaciones (solo admin, máximo 100)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Invitar personal o huésped (solo admin)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/invitations/{id}": {
+      "delete": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Revocar invitación pendiente (solo admin)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/users/accept-invitation": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Elegir contraseña y aceptar invitación de un solo uso",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    }
+  }
+}

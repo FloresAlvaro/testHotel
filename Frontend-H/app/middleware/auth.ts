@@ -11,20 +11,8 @@ export default defineNuxtRouteMiddleware((to) => {
     "/auth/register",
     "/auth/forgot-password",
     "/auth/reset-password",
+    "/auth/accept-invitation",
   ];
-
-  if (import.meta.server) {
-    if (!publicRoutes.includes(to.path)) {
-      return navigateTo({
-        path: "/auth/login",
-        query: { redirect: to.fullPath },
-      });
-    }
-    return;
-  }
-
-  // La redirección del acceso ocurre al montar, después de hidratar el HTML público.
-  if (useNuxtApp().isHydrating && publicRoutes.includes(to.path)) return;
 
   const authStore = useAuthStore();
 
@@ -39,7 +27,7 @@ export default defineNuxtRouteMiddleware((to) => {
   if (!publicRoutes.includes(to.path) && !authStore.isAuthenticated) {
     // Guardar URL destino para redirigir después de login
     const redirectUrl = to.fullPath;
-    sessionStorage.setItem("redirectUrl", redirectUrl);
+    if(import.meta.client) sessionStorage.setItem("redirectUrl", redirectUrl);
 
     // Redirigir a login
     return navigateTo({
@@ -54,9 +42,4 @@ export default defineNuxtRouteMiddleware((to) => {
     if (!authStore.isCustomer && portal) return navigateTo('/dashboard');
   }
 
-  // Si está autenticado pero el token es inválido
-  if (authStore.isAuthenticated && !authStore.token) {
-    authStore.logout();
-    return navigateTo("/auth/login");
-  }
 });

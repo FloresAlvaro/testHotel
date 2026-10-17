@@ -439,4 +439,12 @@ swaggerSpec.tags.push({name:'Guest portal',description:'Portal privado de cada h
 Object.assign(swaggerSpec.paths,require('./portalOpenapi'));
 swaggerSpec.tags.push({name:'Guest services',description:'Solicitudes, presentación, correo, recuperación, pagos y respaldos'});
 Object.assign(swaggerSpec.paths,require('./guestServicesOpenapi'));
+swaggerSpec.components.securitySchemes.cookieAuth={type:'apiKey',in:'cookie',name:'hotel_session',description:'Sesión de navegador. Operaciones de escritura requieren X-Hotel-CSRF.'};
+Object.assign(swaggerSpec.components.schemas,require('../../contracts/schemas.json'));
+Object.assign(swaggerSpec.paths,require('./sessionOpenapi'));
+swaggerSpec.tags.push({name:'Sessions and invitations',description:'Sesiones revocables e invitaciones de un solo uso'});
+for(const path of Object.values(swaggerSpec.paths))for(const operation of Object.values(path)){
+ if(operation.security?.some(s=>s.bearerAuth)&&!operation.security.some(s=>s.cookieAuth))operation.security.push({cookieAuth:[]});
+}
+swaggerSpec.paths['/api/operations/backup-status'].get.responses[200]={description:'Estado local y externo',content:{'application/json':{schema:{type:'object',required:['success','data'],properties:{success:{type:'boolean'},data:{$ref:'#/components/schemas/BackupStatus'}}}}}};
 module.exports = swaggerSpec;

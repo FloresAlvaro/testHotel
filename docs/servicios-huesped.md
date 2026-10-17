@@ -1,11 +1,10 @@
 # Servicios del huésped y operación del template
 
-Aplica todas las migraciones, incluida `004-guest-services.sql`, antes de desplegar el backend nuevo. No es necesario borrar la base:
-
-```sh
-docker compose exec backend npm run db:migrate
-docker compose up -d --build
-```
+Antes de actualizar el backend, aplica todas las migraciones, incluida 006,
+usando la secuencia de respaldo, construcción y migración del
+[README](../README.md#actualizar-una-instalación-existente-sin-borrar-datos).
+Para la demo sigue [sus comandos específicos](demo.md#actualizar-una-demo-existente).
+No es necesario borrar la base ni volver a cargar el seed.
 
 ## Solicitudes
 
@@ -51,7 +50,7 @@ docker compose logs backups
 docker compose exec backups cat /backups/latest.json
 docker compose exec backups ls /backups
 # Restaurar manualmente a una base NUEVA; no permite sobrescribir la operativa:
-docker compose exec backups sh /scripts/restore.sh /backups/hotel-FECHA.dump hotel_restore_revision
+docker compose exec backups sh /scripts/restore.sh /backups/hotel-FECHA-ID/archive.dump hotel_restore_revision
 ```
 
 El volumen de respaldo y el volumen de datos están en el mismo host: una pérdida del equipo puede afectar ambos. Antes de producción configura una copia cifrada fuera del host con el almacenamiento de la instalación. No hay destino remoto inventado ni credenciales incluidas. Los dumps contienen datos personales y credenciales cifradas por hash: restringe el acceso y elimina copias vencidas. La exportación de preferencias del navegador sigue siendo una función distinta y no respalda la base.
@@ -69,3 +68,5 @@ Aplica también `005-reservation-guests.sql` en instalaciones existentes. El for
 Hora estimada de llegada y solicitudes especiales son opcionales. Se guardan en columnas separadas de las notas internas y son visibles para el huésped propietario y para recepción. Una solicitud especial no garantiza un servicio adicional. Nombre y correo de acceso proceden de la cuenta existente. Los mensajes de reserva y comprobante usan el correo de la cuenta vinculada activa y, cuando no hay cuenta, el correo de la ficha del cliente.
 
 La fotografía de referencia `demo-bedroom.webp` fue generada para este template y está identificada como imagen de ejemplo. Sustitúyela por imágenes autorizadas de la propiedad al personalizar la instalación.
+
+Las sesiones HttpOnly, las invitaciones y la copia externa configurable están detalladas en [la guía actualizada](sesiones-respaldos-contratos.md). El nuevo respaldo publica conjuntos con dump, manifiesto, conteos de tablas y checksums. La restauración también admite los dumps anteriores con su archivo `.sha256`.

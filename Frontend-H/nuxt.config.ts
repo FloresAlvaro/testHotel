@@ -12,6 +12,7 @@ export default defineNuxtConfig({
       apiBase: process.env.NUXT_PUBLIC_API_BASE || "http://localhost:3000/api",
     },
   },
+  routeRules: {'/auth/**':{headers:{'referrer-policy':'no-referrer','cache-control':'no-store'}}},
   components: [{ path: "~/components", pathPrefix: false }],
   modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxt/ui", "@nuxt/image"],
   fonts: { providers: { google: false, bunny: false, fontshare: false, fontsource: false } },

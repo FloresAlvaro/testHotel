@@ -2,7 +2,7 @@ const validate=require('../src/config/runtimeSettings');
 const base={NODE_ENV:'test',DATABASE_URL:'postgresql://test:test@localhost/hotel_test',JWT_SECRET:'isolated-test-secret-at-least-32-characters'};
 describe('Configuración de arranque',()=>{
  test.each([
-  {PORT:'3000junk'},{SMTP_PORT:'65536'},{DB_POOL_MIN:'20',DB_POOL_MAX:'5'},
+  {NODE_ENV:'production',APP_URL:'http://hotel.example',CORS_ORIGIN:'http://hotel.example'},{PORT:'3000junk'},{SMTP_PORT:'65536'},{DB_POOL_MIN:'20',DB_POOL_MAX:'5'},
   {CORS_CREDENTIALS:'yes'},{CORS_CREDENTIALS:'true',CORS_ORIGIN:'*'},
   {APP_URL:'https://example.test/portal'},{APP_URL:'https://name:secret@example.test'},
   {CORS_CREDENTIALS:'true',APP_URL:'https://hotel.test',CORS_ORIGIN:'https://otro.test'},

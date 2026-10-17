@@ -68,6 +68,11 @@ class UserController {
         const linked = await User.findById(user.id);
         if (!linked?.client_id || linked.client_active !== true) return sendError(res, 'El acceso de este huésped está desactivado', HTTP_STATUS.FORBIDDEN);
       }
+      if (req.path === '/session') {
+        delete user.password;
+        const csrfToken = await require('../services/sessionService').create(user, req, res);
+        return sendSuccess(res, { user, csrfToken });
+      }
       // Generar token
       const token = createToken(
         { id: user.id, email: user.email, role: user.role, version: user.auth_version || 0 },

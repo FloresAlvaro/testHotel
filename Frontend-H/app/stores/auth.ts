@@ -1,86 +1,49 @@
-import { defineStore } from "pinia";
-import type { User } from "~/types";
+import { defineStore } from 'pinia';
+import type { User } from '~/types';
+import type { SessionResponse } from '~/types/generated/api';
 
-export const useAuthStore = defineStore("auth", () => {
-  // State
+export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  const token = ref<string | null>(null);
+  const csrfToken = ref<string | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
-
-  // Computed
-  const isAuthenticated = computed(() => !!token.value && !!user.value);
+  const isAuthenticated = computed(() => !!user.value);
   const userRole = computed(() => user.value?.role || null);
-  const isAdmin = computed(() => user.value?.role === "admin");
-  const isManager = computed(() => user.value?.role === "manager");
-  const isCustomer = computed(() => user.value?.role === "customer");
-  const isReceptionist = computed(() => user.value?.role === "receptionist");
-
-  // Actions
-  const setAuth = (userData: User, userToken: string) => {
+  const isAdmin = computed(() => user.value?.role === 'admin');
+  const isManager = computed(() => user.value?.role === 'manager');
+  const isCustomer = computed(() => user.value?.role === 'customer');
+  const isReceptionist = computed(() => user.value?.role === 'receptionist');
+  const setAuth = (userData: User, csrf?: string) => {
     user.value = userData;
-    token.value = userToken;
-    if (import.meta.client) {
-      localStorage.setItem("auth_token", userToken);
-      localStorage.setItem("auth_user", JSON.stringify(userData));
+    if (csrf) csrfToken.value = csrf;
+  };
+  const clearSession = () => { user.value = null; csrfToken.value = null; error.value = null; };
+  const restoreSession = async () => {
+    const config = useRuntimeConfig();
+    const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined;
+    if(import.meta.client) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    try {
+      const response = await $fetch<SessionResponse>('/users/session', {
+        baseURL: import.meta.server ? config.apiInternalBase : config.public.apiBase,
+        credentials: 'include', headers, retry: 0,
+      });
+      setAuth(response.data.user, response.data.csrfToken);
+    } catch { clearSession(); }
+  };
+  const logout = async () => {
+    const config = useRuntimeConfig();
+    try {
+      await $fetch('/users/session', {baseURL:config.public.apiBase, method:'DELETE',credentials:'include',retry:0,
+        headers:{'X-Hotel-Request':'1','X-Hotel-CSRF':csrfToken.value || ''}});
+      clearSession();
+    } catch (failure) {
+      if((failure as {statusCode?:number}).statusCode===401) {clearSession();return;}
+      throw failure;
     }
   };
-
-  const logout = () => {
-    user.value = null;
-    token.value = null;
-    error.value = null;
-    if (import.meta.client) {
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("auth_user");
-    }
-  };
-
-  const loadFromStorage = () => {
-    if (!import.meta.client) return;
-
-    const storedToken = localStorage.getItem("auth_token");
-    const storedUser = localStorage.getItem("auth_user");
-
-    if (storedToken && storedUser) {
-      try {
-        token.value = storedToken;
-        user.value = JSON.parse(storedUser);
-      } catch (err) {
-        console.error("Error cargando auth desde storage:", err);
-        logout();
-      }
-    }
-  };
-
-  const clearError = () => {
-    error.value = null;
-  };
-
-  const setError = (msg: string) => {
-    error.value = msg;
-  };
-
-  return {
-    // State
-    user,
-    token,
-    loading,
-    error,
-
-    // Computed
-    isAuthenticated,
-    userRole,
-    isAdmin,
-    isManager,
-    isReceptionist,
-    isCustomer,
-
-    // Methods
-    setAuth,
-    logout,
-    loadFromStorage,
-    clearError,
-    setError,
-  };
+  return {user,csrfToken,loading,error,isAuthenticated,userRole,isAdmin,isManager,isReceptionist,isCustomer,
+    setAuth,clearSession,restoreSession,logout,clearError:()=>{error.value=null;},setError:(msg:string)=>{error.value=msg;}};
 });

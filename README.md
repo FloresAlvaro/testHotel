@@ -1,130 +1,296 @@
-# Sistema de gestion hotelera
+# Sistema de gestión hotelera
 
-Aplicacion para administrar usuarios, clientes, habitaciones, reservas, entradas y salidas, pagos e indicadores. Incluye frontend Nuxt, API REST con Express y PostgreSQL.
+Aplicación con frontend Nuxt, API Express y PostgreSQL para administrar huéspedes,
+habitaciones, reservas, entradas/salidas y pagos. Incluye un portal de reservas
+para clientes.
 
-## Demo con datos de ejemplo
+- [Demo con cuentas y datos ficticios](docs/demo.md).
+- [Sesiones, invitaciones, respaldos externos y contratos](docs/sesiones-respaldos-contratos.md).
+- [Operación del hotel](docs/operaciones.md).
 
-Consulta [la guía de demo](docs/demo.md) para iniciar una instancia separada con usuarios por rol, reservas y pagos. La inicialización normal carga solo el esquema; la demo se activa con `docker-compose.demo.yml`.
+## Requisitos y ubicación
 
-## Requisitos
+Ejecuta los comandos Docker desde la raíz del repositorio, donde está
+`docker-compose.yml`, con Docker Desktop iniciado y Docker Compose v2 disponible.
+Para Docker no necesitas instalar Node.js en el equipo. Para desarrollo local,
+usa **Node.js 22.19 o posterior de la rama 22.x** y npm, compatibles con el Nuxt instalado.
 
-- Docker Desktop con Docker Compose v2.
-- Node.js 20 o superior y npm solo para desarrollo local o pruebas.
-
-## Inicio completo con Docker
-
-Ejecuta los comandos desde la raiz del repositorio. Primero crea el archivo de entorno:
-
-```powershell
-Copy-Item .env.example .env
+```sh
+docker --version
+docker compose version
+# Solo para desarrollo local:
+node --version
+npm --version
 ```
 
-Edita `.env` y reemplaza `JWT_SECRET` por una clave aleatoria de al menos 32 caracteres. Para generarla en PowerShell:
+## Preparación del entorno (una sola vez)
+
+Crea `.env` en la raíz **solo si todavía no existe**. No reemplaces un `.env` ya
+configurado.
+
+macOS/Linux, desde Bash o zsh:
+
+```sh
+[ -f .env ] || cp .env.example .env
+```
+
+Windows PowerShell:
 
 ```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+Edita `.env`: reemplaza `JWT_SECRET` por una clave aleatoria de al menos 32
+caracteres y define `POSTGRES_PASSWORD`. Con Node instalado puedes generar una
+clave y copiarla al archivo:
+
+```sh
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Los valores de `.env.example` sirven para desarrollo local; cambia tambien la contrasena de PostgreSQL antes de exponer el sistema. Si cambias `POSTGRES_PASSWORD`, usa caracteres seguros para URL, por ejemplo letras y numeros.
+Para la contraseña PostgreSQL, usa letras y números o codifica los caracteres
+reservados de URL. Los siguientes comandos sirven en Bash, zsh y PowerShell salvo
+los bloques que indiquen otro intérprete.
 
-Construye las imagenes e inicia PostgreSQL, el backend y el frontend:
+## Ejecutar el sistema sin datos de demo
 
-```powershell
+Después de preparar `.env`. Si la demo está usando los mismos puertos, detenla
+primero con su comando `down` de la sección de demo (sin `-v`).
+
+```sh
 docker compose up --build -d
+docker compose exec backend npm run db:migrate
 ```
 
-Abre la aplicacion en `http://localhost:3001`. La API esta en `http://localhost:3000`, la documentacion en `http://localhost:3000/api-docs` y PostgreSQL se publica en el puerto `5432`. En el primer inicio, PostgreSQL crea el esquema y aplica las migraciones de `database/migrations/` en orden.
+En el **primer arranque, si todavía no hay administrador**, créalo con el comando
+interactivo. Solicita nombre, correo y contraseña; no recibe contraseñas como
+argumentos:
 
-Comprueba el estado y los logs:
+```sh
+docker compose exec backend npm run admin:create
+```
 
-```powershell
+Esta instalación no carga cuentas ni reservas ficticias. Inicia sesión con el
+administrador que acabas de crear. Para invitar personal desde **Equipo → Invitar
+persona**, configura SMTP; para huéspedes, usa la ficha del cliente. Consulta
+[la guía de accesos](docs/sesiones-respaldos-contratos.md).
+
+| Servicio | Dirección predeterminada |
+|---|---|
+| Aplicación | http://localhost:3001 |
+| Login | http://localhost:3001/auth/login |
+| Salud de la API | http://localhost:3000/health |
+| Swagger | http://localhost:3000/api-docs |
+| OpenAPI JSON | http://localhost:3000/api-docs.json |
+| PostgreSQL | localhost:5432 |
+
+## Ejecutar la demo
+
+Usa el mismo `.env` preparado arriba. La demo utiliza el proyecto `hotel-demo` y
+un volumen de PostgreSQL propio. Si el sistema normal ocupa los mismos puertos,
+detén primero esa instancia con `docker compose down` (conserva sus datos).
+
+```sh
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up --build -d
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec backend npm run db:migrate
+```
+
+Abre http://localhost:3001. Cuentas principales:
+
+| Rol | Correo | Contraseña de demo |
+|---|---|---|
+| Administrador | admin@hotel.com | Admin123! |
+| Gerente | manager@hotel.com | Manager123! |
+| Recepción | recepcion1@hotel.com | Recep123! |
+| Customer / huésped | customer@hotel.com | Customer123! |
+
+El customer entra al portal `/portal` y puede reservar desde `/portal/book`.
+Los correos de demo se consultan en http://localhost:8025 (Mailpit); los pagos
+son simulados. No se necesita `admin:create` en la demo.
+
+El seed se carga **solo la primera vez que se crea el volumen vacío**. Reiniciar
+no vuelve a cargar datos. Para cuentas adicionales, actualización y regeneración
+voluntaria de los datos, consulta [docs/demo.md](docs/demo.md).
+
+## Estado, logs y parada
+
+Sistema normal:
+
+```sh
 docker compose ps
 docker compose logs -f backend frontend
+docker compose logs --tail=50 backups
+docker compose down
 ```
 
-Verifica el backend:
+Demo (conserva el mismo proyecto y los dos archivos en todos los comandos):
+
+```sh
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml ps
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml logs -f backend frontend
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml down
+```
+
+`Ctrl+C` deja de seguir los logs; los servicios continúan ejecutándose.
+`down` detiene y elimina contenedores, conservando datos y respaldos en volúmenes.
+Para volver a iniciar, repite el comando `up -d` correspondiente. **Añadir `-v`
+a `down` elimina los volúmenes y sus datos**; no lo uses para actualizar.
+
+Comprobar salud en macOS/Linux:
+
+```sh
+curl --fail http://localhost:3000/health
+```
+
+En PowerShell:
 
 ```powershell
 Invoke-RestMethod http://localhost:3000/health
 ```
 
-Para detener los servicios sin borrar los datos:
+## Actualizar una instalación existente sin borrar datos
 
-```powershell
-docker compose down
+Los scripts de inicialización solo se aplican sobre un volumen vacío. Una
+actualización necesita ejecutar el runner de migraciones, que conserva los datos
+y registra cada archivo/checksum. Desde la raíz, para el sistema normal:
+
+```sh
+docker compose up -d db backups
+docker compose exec -T backups sh /scripts/backup.sh
+docker compose build backend frontend
+docker compose run --rm --no-deps backend npm run db:migrate
+docker compose up -d backend frontend backups
 ```
 
-Los datos permanecen en el volumen `postgres_data`. El script de inicializacion se ejecuta solo al crear un volumen vacio; los cambios posteriores al SQL no se aplican automaticamente. `docker compose down -v` elimina la base de datos y todos sus datos.
+El segundo comando debe terminar con respaldo y restauración verificados antes
+de continuar. Para la demo, usa la secuencia equivalente de
+[su guía de actualización](docs/demo.md#actualizar-una-demo-existente).
+No cargues el seed sobre una base con datos. No edites migraciones ya registradas.
 
-Si un puerto esta ocupado, cambia `FRONTEND_PORT`, `BACKEND_PORT` o `POSTGRES_PORT` en `.env` y vuelve a ejecutar Compose. El frontend usa la URL interna de Docker para sus solicitudes SSR y la URL publicada del backend desde el navegador.
+## Desarrollo local con recarga en caliente
 
-## Desarrollo local
+### Nuxt local, API y PostgreSQL en Docker
 
-Puedes mantener PostgreSQL y el backend en Docker y ejecutar Nuxt con recarga en caliente. Desde la raiz:
+Desde la raíz, con el `.env` raíz preparado:
 
-```powershell
-Copy-Item .env.example .env
+```sh
+# Libera el puerto 3001 si el frontend Docker estaba iniciado.
+docker compose stop frontend
 docker compose up --build -d db backend
-Set-Location Frontend-H
+docker compose exec backend npm run db:migrate
+# Solo si aún no existe administrador:
+# docker compose exec backend npm run admin:create
+cd Frontend-H
 npm ci
-$env:NUXT_PUBLIC_API_BASE = 'http://localhost:3000/api'
-$env:NUXT_API_INTERNAL_BASE = 'http://localhost:3000/api'
 npm run dev -- --host 0.0.0.0 --port 3001
 ```
 
-La interfaz local quedara en `http://localhost:3001`. Para ejecutar el backend fuera de Docker, crea `Backend-H/.env` desde `Backend-H/.env.example` y configura `DATABASE_URL` con una instancia PostgreSQL accesible. La base debe existir antes de aplicar el esquema:
+Abre http://localhost:3001. Termina Nuxt con `Ctrl+C`.
+Los valores por defecto de Nuxt apuntan a http://localhost:3000/api. Si cambias el
+puerto del backend, crea `Frontend-H/.env` con los valores correspondientes:
 
-```powershell
-psql -U hotel_user -d hotel_db -f database/init/01-schema.sql
-psql -U hotel_user -d hotel_db -f database/migrations/001-operations.sql
-psql -U hotel_user -d hotel_db -f database/migrations/002-customer-role.sql
-psql -U hotel_user -d hotel_db -f database/migrations/003-customer-portal.sql
-psql -U hotel_user -d hotel_db -f database/migrations/004-guest-services.sql
-psql -U hotel_user -d hotel_db -f database/migrations/005-reservation-guests.sql
-Set-Location Backend-H
+```dotenv
+NUXT_PUBLIC_API_BASE=http://localhost:3000/api
+NUXT_API_INTERNAL_BASE=http://localhost:3000/api
+```
+
+En Docker la URL SSR es `http://backend:3000/api`; desde el equipo es localhost.
+No uses el nombre `backend` como URL pública del navegador.
+
+### API y Nuxt locales, solo PostgreSQL en Docker
+
+Desde la raíz:
+
+```sh
+docker compose stop backend frontend
+docker compose up -d db
+```
+
+Crea `Backend-H/.env` desde su ejemplo si todavía no existe (`cp` en macOS/Linux,
+`Copy-Item` en PowerShell). Edita estos valores; sustituye la URL por las
+credenciales y puerto de PostgreSQL definidos en el `.env` raíz:
+
+```dotenv
+DATABASE_URL=postgresql://USUARIO:CLAVE@localhost:5432/hotel_db
+JWT_SECRET=REEMPLAZAR_POR_UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_CARACTERES
+APP_URL=http://localhost:3001
+CORS_ORIGIN=http://localhost:3001
+CORS_CREDENTIALS=true
+```
+
+En una terminal desde la raíz:
+
+```sh
+cd Backend-H
 npm ci
+npm run db:migrate
+# Solo si aún no existe administrador:
+# npm run admin:create
 npm run dev
 ```
 
-Configura tambien `JWT_SECRET` con al menos 32 caracteres. El backend valida `DATABASE_URL` y `JWT_SECRET` al arrancar.
-
-## API y primer usuario
-
-- Estado: `GET /health`
-- Swagger: `http://localhost:3000/api-docs`
-- OpenAPI JSON: `http://localhost:3000/api-docs.json`
-- Recursos: `/api/users`, `/api/clients`, `/api/rooms`, `/api/room-types`, `/api/reservations`, `/api/check-in`, `/api/payments` y `/api/dashboard`
-
-El alta pública de empleados está deshabilitada. Para el primer administrador, configura `Backend-H/.env` según las instrucciones de desarrollo y, desde `Backend-H/`, ejecuta:
+En otra terminal desde la raíz:
 
 ```sh
-npm run admin:create
-```
-
-El comando solicita nombre, email y contraseña (entrada oculta); solo funciona si todavía no existe ningún administrador y no imprime la contraseña. No recibe credenciales en argumentos de línea de comandos. En Docker puedes ejecutarlo con `docker compose exec backend npm run admin:create`.
-
-Después inicia sesión y crea empleados desde **Configuración → Usuarios**, eligiendo su rol. La API es `POST /api/users`, con `name`, `email`, `password` y `role` opcional (por defecto `receptionist`). Requiere un administrador autenticado y devuelve el usuario creado sin token de sesión. `POST /api/users/register` conserva el mismo comportamiento como alias protegido. Las cuentas existentes conservan sus credenciales.
-
-El inicio de sesión está en `POST /api/users/login`. Las rutas protegidas requieren `Authorization: Bearer <token>`. El dashboard requiere rol `admin` o `manager`.
-
-## Pruebas
-
-```powershell
-Set-Location Backend-H
+cd Frontend-H
 npm ci
-$env:DATABASE_URL = 'postgresql://hotel_user:hotel_password@localhost:5432/hotel_db'
-$env:JWT_SECRET = 'test-secret-at-least-32-characters-long'
-npm test -- --runInBand
+npm run dev -- --host 0.0.0.0 --port 3001
 ```
 
-Las pruebas no requieren una instancia PostgreSQL activa; esas variables solo son necesarias para cargar la configuracion del backend.
+El contenedor `db` ya instala esquema y migraciones al crear el volumen. Si usas
+un PostgreSQL instalado fuera de Docker, crea primero una base vacía y carga
+`database/init/01-schema.sql` con `psql` antes de `npm run db:migrate`.
+Copiar el `.env` raíz no configura automáticamente el backend ejecutado con Node;
+este lee su propio `Backend-H/.env` al iniciarse desde esa carpeta.
 
-## Solucion de problemas
+## Autenticación y API
 
-- Si Compose indica que falta `JWT_SECRET`, confirma que copiaste `.env.example` como `.env` en la raiz y vuelve a iniciar los servicios.
-- Si un puerto no esta disponible, modifica los puertos en `.env`; no cambies los puertos internos de los contenedores.
-- Si cambiaste las credenciales PostgreSQL despues de inicializar el volumen, la base existente conserva las credenciales anteriores. Para reiniciar desde cero, `docker compose down -v` borra los datos.
-- Para revisar un servicio concreto, usa `docker compose logs -f db`, `docker compose logs -f backend` o `docker compose logs -f frontend`.
+El navegador utiliza `/api/users/session` con cookie HttpOnly y protección CSRF.
+No guarda credenciales en localStorage. Después de instalar la actualización de
+sesiones hay que volver a iniciar sesión. POST `/api/users/login` mantiene Bearer
+para integraciones; el dashboard requiere admin/manager. El registro público de
+empleados está cerrado.
+
+## Comprobaciones de desarrollo
+
+Desde la raíz, después de `npm ci` en ambas carpetas:
+
+```sh
+npm run lint --prefix Frontend-H
+npm run typecheck --prefix Frontend-H
+npm run build --prefix Frontend-H
+npm run api:check --prefix Backend-H
+npm run typecheck --prefix Backend-H
+```
+
+Para regenerar OpenAPI y tipos después de modificar sus contratos:
+
+```sh
+npm run api:generate --prefix Backend-H
+```
+
+Las pruebas backend requieren `DATABASE_URL` y `JWT_SECRET` de prueba, aunque las
+unitarias no conecten a PostgreSQL. `TEST_DATABASE_URL` habilita las suites de
+integración y debe apuntar exclusivamente a una base aislada. Nunca uses la base
+del hotel o de la demo interactiva. Consulta los comandos de
+[pruebas operativas](docs/operaciones.md#pruebas-repetibles).
+
+La comprobación de respaldos crea y elimina su propio contenedor desechable:
+
+```sh
+python3 database/backup/test-backup.py
+```
+
+## Solución de problemas
+
+- **No inicia Docker:** abre Docker Desktop antes de ejecutar Compose.
+- **JWT_SECRET ausente:** prepara el `.env` raíz; para Node local, prepara además Backend-H/.env.
+- **Puertos ocupados:** detén la otra instancia. Si cambias puertos, ajusta `FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT`, `APP_URL` y, si se define, `CORS_ORIGIN`. APP_URL y CORS_ORIGIN deben coincidir con la dirección exacta del navegador.
+- **Login falla por CORS/cookie:** no mezcles localhost con 127.0.0.1; usa el mismo host en APP_URL, navegador y API. En Node local configura CORS_CREDENTIALS=true y un origen explícito.
+- **Faltan tablas nuevas:** aplica `npm run db:migrate` con el contenedor actualizado. Reiniciar la API no aplica migraciones.
+- **No aparecen datos nuevos de demo:** el seed solo se aplica en volúmenes vacíos. Actualizar el código conserva los datos existentes.
+- **Contraseña PostgreSQL cambiada en `.env`:** una base ya inicializada conserva la contraseña anterior; editar el archivo no cambia el usuario de PostgreSQL. No borres volúmenes para solucionar una instalación con datos importantes.
+- **Invitaciones sin correo:** la instalación normal necesita SMTP. En demo consulta Mailpit en localhost:8025 y los logs de backend.
 
 ## Integridad de reservas y pagos
 
@@ -158,7 +324,7 @@ El template incluye solicitudes con aprobación del hotel, SMTP con cola y recup
 
 ### Verificaciones automáticas y protección operativa
 
-La primera integración incorpora CI para backend, frontend y E2E, identificadores de petición y logs JSON, protección concurrente del último administrador, validación de configuración y cierre ordenado. Consulta [el detalle de implementación y comprobaciones](docs/entrega-calidad-operacion.md). El workflow se ejecutará al publicar estos archivos en GitHub.
+La primera integración incorpora CI para backend, frontend y E2E, identificadores de petición y logs JSON, protección concurrente del último administrador, validación de configuración y cierre ordenado. Consulta [el detalle de implementación y comprobaciones](docs/entrega-calidad-operacion.md). El workflow está definido en `.github/workflows/checks.yml`.
 
 ### Historial de migraciones
 
@@ -184,3 +350,7 @@ o un archivo ausente detiene la actualización. Restaura el archivo original y
 crea una migración con un número posterior al último. Las nuevas migraciones
 no deben controlar transacciones internas ni usar operaciones que requieran
 salir de una transacción (por ejemplo `CREATE INDEX CONCURRENTLY`).
+
+### Sesiones, invitaciones y copia externa
+
+Consulta [la guía de operación](docs/sesiones-respaldos-contratos.md) para actualizar una base existente, configurar el destino de respaldos e invitar personal o huéspedes. Los contratos se generan con `npm run api:generate` y se verifican con `npm run api:check` desde `Backend-H/`.

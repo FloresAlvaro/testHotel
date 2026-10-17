@@ -46,6 +46,7 @@ const limiter = rateLimit({
   message: { success: false, message: 'Demasiadas solicitudes. Espera unos minutos antes de volver a intentar.' }
 });
 app.use('/api/', limiter);
+app.use('/api', (req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
 // La firma de Stripe se comprueba contra los bytes originales, antes de express.json.
 app.post('/api/webhooks/stripe', express.raw({type:'application/json',limit:'256kb'}), async(req,res,next)=>{

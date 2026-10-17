@@ -119,10 +119,11 @@
           </h2>
           <CButton variant="primary" size="sm" @click="openCreateUser">
             <Icon name="system-uicons:user-add" size="16" class="mr-2" />
-            Crear usuario
+            Invitar persona
           </CButton>
         </div>
 
+        <CInvitationList :key="invitationsVersion" />
         <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
           <table class="w-full">
             <thead class="border-b border-slate-200 dark:border-slate-700">
@@ -392,11 +393,11 @@
       </div>
     </CCard>
 
-    <CModal :is-open="isUserModalOpen" :title="userForm.id ? 'Editar usuario' : 'Crear usuario'" size="md" @close="isUserModalOpen = false">
+    <CModal :is-open="isUserModalOpen" :title="userForm.id ? 'Editar usuario' : 'Invitar persona'" size="md" @close="isUserModalOpen = false">
       <form class="space-y-4" @submit.prevent="saveUser">
         <CInput v-model="userForm.name" label="Nombre" required />
         <CInput v-model="userForm.email" type="email" label="Email" required />
-        <CInput v-if="!userForm.id" v-model="userForm.password" type="password" label="Contraseña temporal" required />
+        <p v-if="!userForm.id" class="text-sm">Recibirá un enlace por correo para elegir su contraseña. La invitación vence en 48 horas.</p>
         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Rol
           <select v-model="userForm.role" class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-800">
@@ -416,6 +417,7 @@
 </template>
 
 <script setup lang="ts">
+import type { StaffInvitationInput } from '~/types/generated/api'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useUIStore } from '~/stores/ui'
 import { useApiClient } from '~/services/api'
@@ -570,17 +572,21 @@ const openEditUser = (user: User) => {
   isUserModalOpen.value = true
 }
 
+const invitationsVersion=ref(0)
 const saveUser = async () => {
   isSavingUser.value = true
   try {
     if (userForm.id) {
       await api.updateUser(userForm.id, { name: userForm.name, email: userForm.email, role: userForm.role, is_active: userForm.is_active })
     } else {
-      await api.register({ name: userForm.name, email: userForm.email, password: userForm.password, role: userForm.role })
+      if(userForm.role==='customer') throw new Error('Invita huéspedes desde su ficha')
+      const body:StaffInvitationInput={name:userForm.name,email:userForm.email,role:userForm.role}
+      await api.request('/users/invitations', {method:'POST', body, retry:0})
+      invitationsVersion.value++
     }
     await loadUsers()
     isUserModalOpen.value = false
-    uiStore.success('Usuario guardado')
+    uiStore.success(userForm.id ? 'Usuario guardado' : 'Invitación enviada a la cola de correo')
   } catch (error) {
     uiStore.error(error instanceof Error ? error.message : 'No se pudo guardar el usuario')
   } finally {

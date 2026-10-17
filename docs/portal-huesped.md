@@ -1,6 +1,6 @@
 # Portal del huésped
 
-Se implementan acceso de clientes, aislamiento de datos y consulta de sus estancias, pagos y comprobantes. El portal permite crear reservas en línea y consultar estancias, pagos y comprobantes. Los cambios o cancelaciones de reservas existentes se gestionan con recepción. Los pagos por pasarela y la recuperación de contraseña continúan pendientes.
+El portal permite crear reservas, consultar estancias, pagos y comprobantes y solicitar cambios de fechas o cancelaciones con aprobación del hotel. Los pagos en línea y la recuperación de contraseña dependen de la configuración de cada instalación. Para iniciar la aplicación o la demo, consulta el [README](../README.md).
 
 ## Acceso de demostración
 
@@ -15,13 +15,13 @@ Al iniciar sesión se dirige a `/portal`, incluso si la URL anterior era adminis
 
 ## Crear un acceso real
 
-Un administrador abre **Huéspedes → ficha del huésped → Acceso al portal del huésped** y define correo de acceso y contraseña inicial. El acceso se vincula al ID de la ficha, no al correo del cliente. Solo se permite una cuenta por ficha activa. El administrador entrega las credenciales por un medio seguro; no se envían correos automáticamente.
+Un administrador abre **Huéspedes → ficha del huésped → Acceso al portal del huésped** y envía una invitación al correo indicado. El huésped elige su contraseña desde el enlace. Requiere SMTP; en demo el correo se recibe en Mailpit. También existe un desplegable para crear acceso con contraseña inicial y entregarla por un medio seguro. El vínculo corresponde al ID de la ficha, no al correo del cliente; solo se permite una cuenta por ficha activa.
 
 El mismo panel activa/desactiva la cuenta. Desactivar la cuenta o la ficha del huésped bloquea peticiones con sesiones existentes y nuevos inicios de sesión. Las cuentas customer se excluyen de la lista de empleados y de los responsables de tareas.
 
 ## Migraciones y demo existente
 
-El orden es: `01-schema.sql` → `001-operations.sql` → `002-customer-role.sql` → `003-customer-portal.sql` → seed, solo en una base nueva. El nuevo valor del enum se confirma en un archivo separado antes de usarlo en restricciones. Las bases existentes conservan sus datos.
+En una base nueva el orden es esquema inicial → todas las migraciones 001..006 → seed de demo, si corresponde. El nuevo valor del enum se confirma en un archivo separado antes de usarlo en restricciones. Las bases existentes conservan sus datos.
 
 Desde `Backend-H/`, con `DATABASE_URL` de la instalación correspondiente:
 
@@ -31,7 +31,7 @@ npm run db:migrate
 
 El comando aplica todas las migraciones en orden. Con un backend Docker existente, recréalo para incluir el script nuevo y usa el volumen de migraciones que define Compose; aplica las migraciones antes de habilitar tráfico con las nuevas consultas.
 
-También se pueden aplicar los archivos directamente con `psql -v ON_ERROR_STOP=1`, en el orden indicado. Guarda previamente una copia de seguridad de una instalación real.
+Para Docker usa la secuencia de [actualización normal](../README.md#actualizar-una-instalación-existente-sin-borrar-datos) o de [demo](demo.md#actualizar-una-demo-existente). Utiliza el runner para mantener el historial/checksum; no apliques SQL histórico manualmente.
 
 En una **demo ya cargada**, aplica las migraciones y actualiza/reinicia backend y frontend con la versión que protege el portal. Solo entonces ejecuta `database/demo-customer-accounts.sql`. Añade únicamente las dos cuentas ficticias a sus fichas conocidas; no reemplaza cuentas ni contraseñas existentes y no borra reservas. Si hay un conflicto de correo o vinculación, falla y revierte la operación. No uses ese script en producción.
 

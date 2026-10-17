@@ -31,6 +31,19 @@ router.post('/', auth, authorize('admin'), validate(registerSchema), UserControl
 
 router.use(require('./passwordRecovery'));
 
+router.use(require('./invitations'));
+const sessions = require('../services/sessionService');
+router.post('/session', loginLimiter, sessions.trustedRequest, validate(require('../utils/contractValidator').byName('SessionLoginInput')), UserController.login);
+router.get('/session', auth, async(req,res,next)=>{
+ try { if(!req.session)return res.status(401).json({message:'Inicia una sesión de navegador'});
+ const user=await require('../models/User').findById(req.user.id);
+ res.json({success:true,data:{user,csrfToken:req.session.csrf_token}});
+ } catch(error){next(error);}
+});
+router.delete('/session', sessions.trustedRequest, auth, async(req,res,next)=>{
+ try{await sessions.destroy(req,res);res.json({success:true,data:null});}catch(error){next(error);}
+});
+
 // Pública
 router.post('/login', loginLimiter, validate(loginSchema), UserController.login);
 

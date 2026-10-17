@@ -25,7 +25,9 @@ router.get('/online-payments',authorize('admin','manager'),wrap(async(req,res)=>
 router.get('/backup-status',authorize('admin'),wrap(async(req,res)=>{
  const fs=require('fs/promises');
  let latest=null;
- try{const data=JSON.parse(await fs.readFile('/backups/latest.json','utf8'));latest={verified_at:data.verified_at,archive:data.archive,restored:data.restored===true};}catch(error){if(error.code!=='ENOENT')throw fail('No se pudo leer el estado de los respaldos',503);}
- sendSuccess(res,{latest,storage:'Volumen local separado de PostgreSQL',offsite_configured:false});
+ try{const data=JSON.parse(await fs.readFile('/backups/latest.json','utf8'));latest={verified_at:data.verified_at,archive:data.archive,restored:data.restored===true,offsite_verified:data.offsite_verified===true};}catch(error){if(error.code!=='ENOENT')throw fail('No se pudo leer el estado de los respaldos',503);}
+ let status=null;
+ try{status=JSON.parse(await fs.readFile('/backups/status.json','utf8'));}catch(error){if(error.code!=='ENOENT')throw fail('No se pudo leer el resultado del respaldo',503);}
+ sendSuccess(res,{latest,status,storage:'Volumen local separado de PostgreSQL',offsite_configured:latest?.offsite_verified===true});
 }));
 module.exports=router;

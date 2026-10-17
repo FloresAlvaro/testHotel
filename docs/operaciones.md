@@ -1,6 +1,6 @@
 # Módulos operativos
 
-Se implementaron las prioridades 1, 3, 4, 5, 6 y 7. La recuperación de contraseña (prioridad 2) queda pendiente por petición del usuario.
+El arranque del sistema y de la demo está documentado en el [README](../README.md). La recuperación de contraseña por correo ya está disponible cuando SMTP está configurado.
 
 ## Instalación con datos existentes
 
@@ -15,15 +15,17 @@ npm run db:migrate
 Con Docker Compose existente, desde la raíz:
 
 ```sh
-docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < database/migrations/001-operations.sql
-docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < database/migrations/002-customer-role.sql
-docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < database/migrations/003-customer-portal.sql
-docker compose up -d --build backend frontend
+docker compose up -d db backups
+docker compose exec -T backups sh /scripts/backup.sh
+docker compose build backend frontend
+docker compose run --rm --no-deps backend npm run db:migrate
+docker compose up -d backend frontend backups
 ```
 
-Para la demo usa los mismos argumentos `-p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml` en todos los comandos. No elimines volúmenes: la migración se puede repetir. Las bases nuevas ejecutan esquema → migraciones → seed de demo automáticamente.
-
-`npm run db:migrate` también funciona dentro del contenedor backend después de recrearlo con el volumen de migraciones de Compose.
+Continúa después del respaldo solo si su restauración fue verificada. Para la
+demo usa la [secuencia completa](demo.md#actualizar-una-demo-existente), siempre
+con `-p hotel-demo` y ambos archivos Compose. No elimines volúmenes ni ejecutes
+SQL histórico manualmente: el runner conserva el orden y los checksums.
 
 ## Uso y reglas
 

@@ -5,12 +5,16 @@ const { verifyToken } = require('../utils/jwt');
 const auth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
+    const sessions = require('../services/sessionService');
+    const session = token ? null : await sessions.resolve(req);
     
-    if (!token) {
+    if (!token && !session) {
       return res.status(401).json({ message: 'Token no proporcionado' });
     }
 
-    const decoded = verifyToken(token);
+    const decoded = token ? verifyToken(token) : session;
+    if(session && !['GET','HEAD','OPTIONS'].includes(req.method) && !sessions.validCsrf(req,session)) return res.status(403).json({message:'La verificación de la sesión falló. Recarga la página.'});
+    req.session = session;
     const user = await User.findById(decoded.id);
 
     if (!user) {

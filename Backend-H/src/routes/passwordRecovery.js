@@ -8,7 +8,7 @@ const fail=require('../utils/businessError');
 const mail=require('../services/mailService');
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 const limiter=require('express-rate-limit')({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false});
-const hash=token=>crypto.createHash('sha256').update(token).digest('hex');
+const hash=require('../utils/tokenHash');
 router.post('/forgot-password',limiter,validate(Joi.object({email:Joi.string().email({tlds:false}).max(254).required()})),wrap(async(req,res)=>{
  if(!mail.configured())throw fail('La recuperación por correo aún no está configurada. Contacta con recepción.',503);
  const token=crypto.randomBytes(32).toString('hex');

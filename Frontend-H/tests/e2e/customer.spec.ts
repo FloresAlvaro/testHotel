@@ -64,6 +64,7 @@ test('administrador crea y desactiva el acceso desde la ficha del huésped',asyn
   await expect(page).toHaveURL(/dashboard/)
   await page.goto(`/clients/${guest.id}`)
   await page.getByLabel('Correo de acceso del huésped').fill(email)
+  await page.getByText('Crear acceso con contraseña inicial',{exact:true}).click()
   await page.getByLabel('Contraseña inicial del huésped').fill('Customer123!')
   await page.getByRole('button',{name:'Crear acceso del huésped'}).click()
   await expect(page.getByText(email,{exact:true})).toBeVisible()

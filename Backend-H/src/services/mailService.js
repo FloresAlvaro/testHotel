@@ -14,7 +14,7 @@ const processQueue=async()=>{
     if(!mail)return false;
     try{
      await transport.sendMail({from:process.env.MAIL_FROM,to:mail.recipient,subject:mail.subject,text:mail.body,messageId:`<hotel-${mail.id}@${new URL(process.env.APP_URL||'http://localhost:3001').hostname}>`});
-     await c.query("UPDATE email_outbox SET sent_at=now(),body=CASE WHEN event_key LIKE 'reset:%' THEN '[Enlace de recuperación eliminado después del envío]' ELSE body END,last_error=NULL WHERE id=$1",[mail.id]);
+     await c.query("UPDATE email_outbox SET sent_at=now(),body=CASE WHEN (event_key LIKE 'reset:%' OR event_key LIKE 'invite:%') THEN '[Enlace de recuperación eliminado después del envío]' ELSE body END,last_error=NULL WHERE id=$1",[mail.id]);
     }catch{await c.query("UPDATE email_outbox SET attempts=attempts+1,available_at=now()+interval '1 minute'*power(2,attempts),last_error='No se pudo entregar por SMTP; revisa la conexión y configuración' WHERE id=$1",[mail.id]);}
     return true;
    });

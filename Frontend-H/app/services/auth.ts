@@ -18,7 +18,7 @@ export const useAuthService = () => {
       const response = await api.login({ email, password });
 
       if (response.success && response.data) {
-        authStore.setAuth(response.data.user, response.data.token);
+        authStore.setAuth(response.data.user, response.data.csrfToken);
         await hotel.load().catch(() => uiStore.error("No se pudo cargar la configuración del hotel"));
         uiStore.success("Sesión iniciada correctamente");
         return response.data;
@@ -57,10 +57,12 @@ export const useAuthService = () => {
     }
   };
 
-  const logout = () => {
-    authStore.logout();
-    router.push("/auth/login");
-    uiStore.success("Sesión cerrada");
+  const logout = async () => {
+    try {
+      await authStore.logout();
+      await router.push("/auth/login");
+      uiStore.success("Sesión cerrada");
+    } catch { uiStore.error("No se pudo cerrar la sesión. Revisa tu conexión e intenta de nuevo."); }
   };
 
   const getProfile = async () => {
