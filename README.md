@@ -300,6 +300,38 @@ Los pagos se serializan por reserva y vuelven a comprobar su saldo al completars
 
 ### Pruebas de integración PostgreSQL
 
+Para preparar un PostgreSQL aislado de la instalación y la demo, desde la raíz:
+
+```sh
+docker compose -f docker-compose.test.yml up -d --wait
+```
+
+Este proyecto independiente usa PostgreSQL 16, el puerto `127.0.0.1:55432` y
+almacenamiento temporal en memoria, sin montar datos del hotel. Las credenciales
+son exclusivas de pruebas. No combines este archivo con `docker-compose.yml`.
+
+En PowerShell, desde `Backend-H/`:
+
+```powershell
+$env:DATABASE_URL = 'postgresql://hotel_test:isolated-test-only@127.0.0.1:55432/hotel_test'
+$env:TEST_DATABASE_URL = $env:DATABASE_URL
+$env:JWT_SECRET = 'isolated-test-secret-at-least-32-characters'
+$env:NODE_ENV = 'test'
+$env:RATE_LIMIT_MAX_REQUESTS = '10000'
+npm test -- --runInBand
+```
+
+Usa una terminal dedicada a pruebas para no conservar estas variables en la
+terminal de desarrollo. Las suites preparan sus propios esquemas; no cargues
+datos del hotel. Para eliminar el entorno de pruebas, desde la raíz:
+
+```sh
+docker compose -f docker-compose.test.yml down
+```
+
+Los datos de prueba se pierden al detener el contenedor; vuelve a ejecutar las
+suites para recrearlos.
+
 `Backend-H/tests/concurrency.integration.test.js` crea un esquema temporal propio y lo elimina al terminar. Requiere una **base de pruebas aislada**, con permiso para crear esquemas y la extensión `btree_gist`; no uses la base del hotel. Sin `TEST_DATABASE_URL` esa suite se omite y se ejecutan las pruebas unitarias habituales.
 
 Desde `Backend-H/`, configura `TEST_DATABASE_URL`, `DATABASE_URL` y `JWT_SECRET` con valores de prueba y ejecuta:

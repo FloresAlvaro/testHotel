@@ -1,6 +1,6 @@
 """Prueba destructiva SOLO en un contenedor temporal propio, sin puertos ni volúmenes."""
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 import time
 import uuid
@@ -40,7 +40,7 @@ try:
     archive = '/offsite/' + latest['archive']
     execute('sh', '/scripts/restore.sh', archive, 'hotel_restore_proof')
     # Compara los conteos de TODAS las tablas contra el contenido del respaldo.
-    manifest = execute('cat', str(Path(archive).parent/'tables.txt')).stdout.strip().splitlines()
+    manifest = execute('cat', str(PurePosixPath(archive).parent/'tables.txt')).stdout.strip().splitlines()
     for record in manifest:
         relation, count = record.split('|')
         schema, table = relation.split('.')
