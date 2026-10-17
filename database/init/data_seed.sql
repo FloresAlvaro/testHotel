@@ -22,7 +22,7 @@ END $$;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-UPDATE hotel_settings SET hotel_name='Mi hotel',city='La Paz',email='recepcion@hotel.test',phone='+591 2 123 4567',address='Calle Principal 123, Centro',currency='BOB',timezone='America/La_Paz';
+UPDATE hotel_settings SET hotel_name='Hotel Central La Paz',city='La Paz',email='recepcion@hotel.test',phone='+591 2 123 4567',address='Calle Principal 123, Centro',currency='BOB',timezone='America/La_Paz';
 
 -- ============================================
 -- USUARIOS (contraseñas con bcrypt, compatible con bcrypt/bcryptjs de Node)
@@ -290,11 +290,77 @@ WHERE u.email='customer@hotel.com' AND a.email='admin@hotel.com' AND rm.status<>
 AND NOT EXISTS(SELECT 1 FROM housekeeping_task t WHERE t.room_id=rm.id AND t.status<>'completed')
 AND NOT EXISTS(SELECT 1 FROM reservation r WHERE r.room_id=rm.id AND r.status<>'cancelled' AND r.check_in<CURRENT_DATE+22 AND r.check_out>CURRENT_DATE+20)
 AND NOT EXISTS(SELECT 1 FROM reservation WHERE notes='DEMO: gestión de reserva desde el portal') ORDER BY rm.id LIMIT 1;
-INSERT INTO reservation_request(reservation_id,client_id,kind,reason) SELECT r.id,r.client_id,'cancel','Solicitud ficticia para demostrar la revisión del hotel.' FROM reservation r JOIN "user" u ON u.client_id=r.client_id WHERE u.email='customer@hotel.com' AND r.status='confirmed' AND r.check_in>CURRENT_DATE+1 ORDER BY r.id LIMIT 1;
+INSERT INTO reservation_request(reservation_id,client_id,kind,reason) SELECT r.id,r.client_id,'cancel','Solicitud ficticia para demostrar la revisión del hotel.' FROM reservation r JOIN "user" u ON u.client_id=r.client_id WHERE u.email='customer@hotel.com' AND r.status='confirmed' AND r.check_in>CURRENT_DATE ORDER BY r.id LIMIT 1;
 
 UPDATE hotel_settings SET cover_image='/images/demo-bedroom.webp' WHERE id=1 AND cover_image='';
 UPDATE room_type SET image_url='/images/demo-bedroom.webp' WHERE name='Estándar' AND image_url='';
 UPDATE reservation r SET adults=LEAST(2,rt.capacity),children=CASE WHEN rt.capacity>=4 THEN 1 ELSE 0 END,arrival_time='16:00' FROM room rm JOIN room_type rt ON rt.id=rm.room_type_id WHERE r.room_id=rm.id AND r.notes='DEMO: gestión de reserva desde el portal';
+
+-- Ocupación y preferencias: sin exceder la capacidad de cada categoría.
+UPDATE reservation r SET adults=LEAST(2,rt.capacity),
+ children=CASE WHEN rt.capacity>=4 THEN 1 ELSE 0 END,
+ arrival_time=CASE WHEN r.status='confirmed' THEN '16:00'::time ELSE NULL END,
+ special_requests=CASE WHEN rt.capacity>=4 THEN 'DEMO: preparar ropa de cama para un niño.' ELSE 'DEMO: habitación tranquila, si hay disponibilidad.' END
+FROM room rm JOIN room_type rt ON rt.id=rm.room_type_id WHERE r.room_id=rm.id;
+
+-- Tareas pendientes, en curso y finalizadas; las habitaciones bloqueadas siguen bloqueadas.
+UPDATE housekeeping_task SET status='in_progress' WHERE room_id=(SELECT id FROM room WHERE number='303');
+INSERT INTO housekeeping_task(room_id,kind,title,notes,status,assigned_to,created_by,completed_at)
+SELECT r.id,'cleaning','Limpieza de salida finalizada','DEMO: habitación revisada y lista para vender.',
+ 'completed',u.id,u.id,now()-interval '1 hour'
+FROM room r CROSS JOIN "user" u WHERE r.number='103' AND u.email='recepcion1@hotel.com';
+
+-- Caja cerrada con movimientos históricos reales del seed y diferencia de arqueo.
+UPDATE cash_shift SET opened_at=CURRENT_DATE-30,closed_at=CURRENT_DATE,
+ notes='DEMO: movimientos históricos y diferencia de Bs. -10 en el arqueo';
+UPDATE cash_movement m SET shift_id=s.id,actor_id=s.user_id
+FROM cash_shift s WHERE m.created_at<CURRENT_DATE;
+UPDATE cash_shift s SET
+ expected_amount=s.opening_amount+COALESCE((SELECT SUM(m.amount) FROM cash_movement m WHERE m.shift_id=s.id),0),
+ counted_amount=s.opening_amount+COALESCE((SELECT SUM(m.amount) FROM cash_movement m WHERE m.shift_id=s.id),0)-10,
+ summary=COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY t.method) FROM (
+  SELECT method,SUM(amount)::text AS total,COUNT(*)::int AS movements FROM cash_movement WHERE shift_id=s.id GROUP BY method
+ ) t),'[]'::jsonb);
+INSERT INTO cash_shift(user_id,opening_amount,currency,notes)
+SELECT id,200,'BOB','DEMO: turno abierto para practicar el cobro y cierre de caja.'
+FROM "user" WHERE email='recepcion2@hotel.com';
+
+-- Solicitudes del portal: dos pendientes y un historial aprobado/rechazado.
+INSERT INTO reservation_request(reservation_id,client_id,kind,check_in,check_out,reason)
+SELECT id,client_id,'dates',check_in+1,check_out+1,'DEMO: deseo retrasar mi estancia un día.'
+FROM reservation WHERE notes='DEMO: gestión de reserva desde el portal';
+INSERT INTO reservation_request(reservation_id,client_id,kind,check_in,check_out,reason,status,response,reviewed_by,created_at,reviewed_at)
+SELECT r.id,r.client_id,'dates',r.check_in,r.check_out,'DEMO: confirmar las fechas acordadas.',
+ 'approved','Fechas acordadas con el huésped.',u.id,now()-interval '2 hours',now()-interval '1 hour'
+FROM reservation r CROSS JOIN "user" u WHERE r.notes='DEMO: gestión de reserva desde el portal' AND u.email='manager@hotel.com';
+INSERT INTO reservation_request(reservation_id,client_id,kind,reason,status,response,reviewed_by,created_at,reviewed_at)
+SELECT r.id,r.client_id,'cancel','DEMO: consultar cancelación de una estancia ya iniciada.',
+ 'rejected','La estancia está en curso; contacta con recepción.',a.id,now()-interval '2 hours',now()-interval '1 hour'
+FROM reservation r JOIN "user" u ON u.client_id=r.client_id CROSS JOIN "user" a
+WHERE u.email='customer2@hotel.com' AND r.status='checked_in' AND a.email='manager@hotel.com';
+
+-- Pasarela DEMO: sin sesiones Stripe ni dinero real. El cobro pagado reutiliza
+-- un movimiento existente para no duplicar ingresos ni descontar dos veces el saldo.
+INSERT INTO online_payment(id,reservation_id,user_id,provider,amount,currency,status,provider_intent,payment_id,expires_at,created_at)
+SELECT gen_random_uuid(),p.reservation_id,u.id,'demo',p.amount,'BOB','paid',
+ 'demo:seed:'||p.id,p.id,now()+interval '1 day',p.created_at
+FROM payment p JOIN reservation r ON r.id=p.reservation_id JOIN "user" u ON u.client_id=r.client_id
+WHERE u.email='customer2@hotel.com' AND p.status='completed';
+INSERT INTO online_payment(id,reservation_id,user_id,provider,amount,currency,status,expires_at)
+SELECT gen_random_uuid(),r.id,u.id,'demo',round(r.total_price*0.30,2),'BOB','pending',now()+interval '1 day'
+FROM reservation r JOIN "user" u ON u.client_id=r.client_id WHERE r.notes='DEMO: gestión de reserva desde el portal';
+INSERT INTO online_payment(id,reservation_id,user_id,provider,amount,currency,status,expires_at,created_at)
+SELECT gen_random_uuid(),r.id,u.id,'demo',30,'BOB','expired',now()-interval '1 hour',now()-interval '1 day'
+FROM reservation r JOIN "user" u ON u.client_id=r.client_id WHERE r.notes='DEMO: gestión de reserva desde el portal';
+UPDATE online_payment SET checkout_url='/portal/payments/'||id WHERE provider='demo';
+
+-- No precargar sesiones, tokens de recuperación o invitaciones reutilizables.
+-- Se generan desde la interfaz y se entregan a Mailpit durante la demostración.
+-- Direcciones reservadas: incluso los datos ficticios de contacto evitan dominios reales.
+UPDATE client SET email='huesped-'||id||'@hotel.test' WHERE email IS NOT NULL;
+UPDATE email_outbox SET recipient=COALESCE(
+ (SELECT u.email FROM "user" u JOIN client c ON c.id=u.client_id WHERE c.email=email_outbox.recipient LIMIT 1),
+ 'demo@hotel.test');
 COMMIT;
 
 -- ============================================

@@ -48,6 +48,7 @@ suite('Historial de migraciones PostgreSQL', () => {
   test('adopta una instalación previa sin perder registros', async () => {
     await pool.query('INSERT INTO migration_probe VALUES (42)');
     await pool.query(fs.readFileSync(path.resolve(__dirname,'../../database/init/data_seed.sql'),'utf8'));
+    await pool.query(fs.readFileSync(path.resolve(__dirname,'../../database/verify-demo.sql'),'utf8'));
     const guests = await pool.query('SELECT id, email, role, client_id FROM "user" ORDER BY id');
     const reservations = await pool.query('SELECT * FROM reservation ORDER BY id');
     await pool.query('DROP TABLE schema_migrations');

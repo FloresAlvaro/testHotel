@@ -128,6 +128,11 @@ La demo ya crea al administrador, por lo que no necesita `npm run admin:create`.
 
 ## Recorrido sugerido
 
+El seed prepara **Hotel Central La Paz**, con 7 usuarios, 8 huéspedes, 5 categorías,
+10 habitaciones, 11 reservas y 11 pagos. Conserva una categoría y una cuenta de
+personal inactivas para demostrar sus restricciones. Los datos se calculan en
+America/La_Paz al cargar la base, sin depender de fechas fijas.
+
 - **Dashboard:** habitaciones disponibles, ocupadas, reservadas y en mantenimiento, con estancias actuales y futuras. Las cantidades cambian al operar; usa el verificador justo después de cargar el seed.
 - **Check-in:** habitación 203, Sofía Martínez, llegada de hoy. Reserva de Bs. 240, adelanto completado de Bs. 60 y saldo pendiente de Bs. 180.
 - **Check-out:** habitación 201, Pedro Ramírez, salida prevista hoy. Los Bs. 360 ya están pagados. Al salir, la habitación pasa a mantenimiento según el flujo actual.
@@ -138,6 +143,28 @@ La demo ya crea al administrador, por lo que no necesita `npm run admin:create`.
 - **Equipo:** entrar como administrador, invitar personal con su rol y abrir el mensaje en Mailpit para elegir una contraseña.
 - **Customer:** entrar con customer@hotel.com, crear una reserva y consultar pagos, comprobantes y solicitudes de cambios o cancelación.
 - **Invitación del huésped:** desde su ficha, enviar una invitación y abrirla desde Mailpit; su acceso queda limitado al portal.
+- **Limpieza:** habitación 104 pendiente, mantenimiento de 303 en curso y limpieza
+  de 103 finalizada. Las dos primeras permanecen bloqueadas hasta finalizar sus tareas.
+- **Caja:** gerencia tiene un arqueo cerrado con movimientos históricos y diferencia
+  de Bs. -10; recepción 2 tiene un turno abierto con Bs. 200 de apertura para practicar cobros y cierre.
+- **Solicitudes:** una cancelación pendiente de María y un cambio de fechas pendiente
+  para su reserva «DEMO: gestión de reserva desde el portal», además de ejemplos
+  aprobados y rechazados con respuesta de gerencia.
+- **Pagos en línea:** tres enlaces del proveedor demo: uno pagado de John (reutiliza
+  el cobro de Bs. 100), un anticipo pendiente de María y un enlace vencido. Desde
+  el portal se puede simular el anticipo; desde gerencia, reembolsar el pago de John.
+  No hay sesiones Stripe ni cobros reales.
+- **Ocupantes:** reservas con adultos, niños según capacidad, horario de llegada y
+  preferencias para consultar en el portal y en la ficha de reserva.
+- **Correo y accesos:** los contactos de huéspedes usan el dominio reservado
+  `hotel.test`; la cola alimenta Mailpit al iniciar la demo. Las sesiones,
+  invitaciones y recuperaciones se generan durante el recorrido; el seed no
+  incorpora enlaces ni tokens de acceso reutilizables.
+
+El verificador comprueba también propiedad de pagos del portal, enlaces demo,
+capacidad, estados de tareas, saldos de caja y ausencia de tokens precargados.
+La carga repetida se rechaza sin cambiar los datos existentes. Actualizar este
+archivo no recarga automáticamente una instalación ya poblada.
 
 Para comprobar cantidades, precios, saldos, estados, comprobantes, configuración, tareas y fechas justo después de cargar el seed:
 

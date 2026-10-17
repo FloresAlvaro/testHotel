@@ -4,7 +4,7 @@ SET LOCAL TIME ZONE 'America/La_Paz';
 DO $$
 BEGIN
   IF (SELECT COUNT(*) FROM "user") <> 7 OR (SELECT COUNT(*) FROM room) <> 10
-     OR (SELECT COUNT(*) FROM client) <> 8 OR (SELECT COUNT(*) FROM reservation) <> 10
+     OR (SELECT COUNT(*) FROM client) <> 8 OR (SELECT COUNT(*) FROM reservation) <> 11
      OR (SELECT COUNT(*) FROM payment) <> 11 THEN
     RAISE EXCEPTION 'Cantidad de datos de demo inesperada';
   END IF;
@@ -13,10 +13,27 @@ BEGIN
      OR NOT EXISTS(SELECT 1 FROM "user" u JOIN client c ON c.id=u.client_id JOIN reservation r ON r.client_id=c.id WHERE u.email='customer2@hotel.com' AND r.status='checked_in') THEN
     RAISE EXCEPTION 'Faltan cuentas y estancias del portal del huésped';
   END IF;
-  IF (SELECT COUNT(*) FROM housekeeping_task) <> 2 OR (SELECT COUNT(*) FROM cash_shift) <> 1
+  IF (SELECT COUNT(*) FROM housekeeping_task) <> 3 OR (SELECT COUNT(*) FROM cash_shift) <> 2
      OR (SELECT hotel_name FROM hotel_settings WHERE id=1) <> 'Hotel Central La Paz'
      OR EXISTS(SELECT 1 FROM payment p LEFT JOIN payment_receipt r ON r.payment_id=p.id WHERE p.status IN ('completed','refunded') AND r.id IS NULL) THEN
     RAISE EXCEPTION 'Faltan datos operativos de demostración';
+  END IF;
+  IF (SELECT COUNT(*) FROM reservation_request WHERE status='pending')<>2
+     OR NOT EXISTS(SELECT 1 FROM reservation_request WHERE status='approved' AND reviewed_at IS NOT NULL)
+     OR NOT EXISTS(SELECT 1 FROM reservation_request WHERE status='rejected' AND reviewed_at IS NOT NULL)
+     OR (SELECT COUNT(DISTINCT status) FROM online_payment WHERE provider='demo')<>3
+     OR EXISTS(SELECT 1 FROM online_payment op JOIN "user" u ON u.id=op.user_id JOIN reservation r ON r.id=op.reservation_id WHERE u.client_id IS DISTINCT FROM r.client_id)
+     OR EXISTS(SELECT 1 FROM online_payment op LEFT JOIN payment p ON p.id=op.payment_id WHERE op.status='paid' AND (p.id IS NULL OR p.status<>'completed' OR p.amount<>op.amount OR p.reservation_id<>op.reservation_id))
+     OR EXISTS(SELECT 1 FROM online_payment WHERE provider<>'demo' OR checkout_url<>'/portal/payments/'||id)
+     OR EXISTS(SELECT 1 FROM web_session) OR EXISTS(SELECT 1 FROM user_invitation) OR EXISTS(SELECT 1 FROM password_reset) THEN
+    RAISE EXCEPTION 'Escenarios del portal o de pagos en línea inconsistentes';
+  END IF;
+  IF EXISTS(SELECT 1 FROM reservation r JOIN room rm ON rm.id=r.room_id JOIN room_type rt ON rt.id=rm.room_type_id WHERE r.adults+r.children>rt.capacity)
+     OR (SELECT COUNT(DISTINCT status) FROM housekeeping_task)<>3
+     OR EXISTS(SELECT 1 FROM housekeeping_task t JOIN room r ON r.id=t.room_id WHERE t.status<>'completed' AND r.status<>'maintenance')
+     OR NOT EXISTS(SELECT 1 FROM cash_shift WHERE closed_at IS NULL)
+     OR EXISTS(SELECT 1 FROM cash_shift s WHERE s.closed_at IS NOT NULL AND (s.expected_amount<>s.opening_amount+COALESCE((SELECT SUM(amount) FROM cash_movement WHERE shift_id=s.id),0) OR s.counted_amount-s.expected_amount<>-10)) THEN
+    RAISE EXCEPTION 'Ocupación, tareas o arqueo inconsistentes';
   END IF;
   IF EXISTS (
     SELECT 1 FROM room rm WHERE rm.status <> CASE
