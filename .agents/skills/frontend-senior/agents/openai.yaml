@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Senior"
+  short_description: "Nuxt, Vue, Angular y React con arquitectura y UX/UI"
+  default_prompt: "Usa $frontend-senior para implementar o revisar esta funcionalidad con criterios de arquitectura, código limpio y UX/UI."

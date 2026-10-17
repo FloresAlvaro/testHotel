@@ -1,217 +1,34 @@
 <template>
-  <div class="auth-wrapper" :class="{ dark: theme === 'dark' }">
-    <div class="auth-container">
-      <!-- Logo -->
-      <div class="auth-logo">
-        <h1>🏨 HotelSys</h1>
-        <p>Sistema de Gestión Hotelera</p>
-      </div>
-
-      <!-- Content -->
-      <div class="auth-content">
-        <slot />
-      </div>
-
-      <!-- Footer -->
-      <div class="auth-footer">
-        <button class="theme-toggle" @click="uiStore.toggleTheme">
-          {{ theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro' }}
-        </button>
-        <p>&copy; 2026 HotelSys. Todos los derechos reservados.</p>
-      </div>
-    </div>
-
-    <!-- Lado derecho (decorativo) -->
-    <div class="auth-decoration">
-      <div class="decoration-content">
-        <h2>Bienvenido a HotelSys</h2>
-        <p>Gestión hotelera moderna y eficiente</p>
-        <div class="features">
-          <div class="feature">
-            <span>📅</span>
-            <p>Reservas en tiempo real</p>
-          </div>
-          <div class="feature">
-            <span>🛏️</span>
-            <p>Control de habitaciones</p>
-          </div>
-          <div class="feature">
-            <span>💰</span>
-            <p>Gestión de pagos</p>
-          </div>
-          <div class="feature">
-            <span>📊</span>
-            <p>Reportes detallados</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <main class="auth-layout">
+    <section class="auth-introduction" aria-labelledby="auth-introduction-title">
+      <NuxtLink to="/auth/login" class="auth-brand"><span>r.</span>roomly</NuxtLink>
+      <div class="auth-story"><p class="auth-kicker">UN ESPACIO PARA TU HOTEL</p><h1 id="auth-introduction-title">Menos tareas.<br>Más hospitalidad.</h1><p>Reservas, huéspedes y operación.<br>Todo lo que necesitas, en su lugar.</p><div class="auth-architecture" aria-hidden="true"><div class="architecture-tower"><span v-for="window in 9" :key="window" /></div><div class="architecture-wing"><span v-for="window in 6" :key="window" /></div></div></div>
+      <p class="auth-brand-caption">Hecho para recibir mejor.</p>
+    </section>
+    <section class="auth-access" aria-label="Acceso al sistema"><button class="icon-button auth-theme" :aria-label="uiStore.theme === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'" @click="uiStore.toggleTheme"><Icon :name="uiStore.theme === 'dark' ? 'system-uicons:sun' : 'system-uicons:moon'" /></button><div class="auth-access-content"><slot /></div><footer class="auth-access-footer">Roomly · Huéspedes y equipo del hotel</footer></section>
+  </main>
 </template>
-
 <script setup lang="ts">
-import { computed } from 'vue';
-
 const uiStore = useUiStore();
-
-const theme = computed(() => uiStore.theme);
 </script>
-
-<style scoped lang="scss">
-.auth-wrapper {
-  display: flex;
-  height: 100vh;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  transition: background-color 0.3s, color 0.3s;
-
-  &.dark {
-    --bg-primary: #1a1a1a;
-    --bg-secondary: #2d2d2d;
-    --text-primary: #ffffff;
-    --text-secondary: #b0b0b0;
-    --border-color: #404040;
-  }
-
-  &:not(.dark) {
-    --bg-primary: #f5f5f5;
-    --bg-secondary: #ffffff;
-    --text-primary: #1a1a1a;
-    --text-secondary: #666666;
-    --border-color: #e0e0e0;
-  }
-}
-
-// ==================== CONTENEDOR PRINCIPAL ====================
-.auth-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  background: var(--bg-secondary);
-
-  @media (max-width: 768px) {
-    background: var(--bg-primary);
-  }
-}
-
-// ==================== LOGO ====================
-.auth-logo {
-  text-align: center;
-  margin-bottom: 40px;
-
-  h1 {
-    margin: 0;
-    font-size: 2.5rem;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  p {
-    margin: 8px 0 0;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-  }
-}
-
-// ==================== CONTENIDO ====================
-.auth-content {
-  width: 100%;
-  max-width: 400px;
-
-  @media (max-width: 768px) {
-    max-width: 100%;
-  }
-}
-
-// ==================== FOOTER ====================
-.auth-footer {
-  margin-top: 40px;
-  text-align: center;
-
-  .theme-toggle {
-    background: none;
-    border: 2px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: all 0.2s;
-    margin-bottom: 16px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-
-    &:hover {
-      background: var(--bg-primary);
-      border-color: #3b82f6;
-      color: #3b82f6;
-    }
-  }
-
-  p {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-  }
-}
-
-// ==================== DECORACIÓN (DERECHA) ====================
-.auth-decoration {
-  flex: 1;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  padding: 40px;
-
-  @media (min-width: 1024px) {
-    display: flex;
-  }
-
-  .decoration-content {
-    text-align: center;
-
-    h2 {
-      font-size: 2rem;
-      margin: 0 0 16px;
-    }
-
-    p {
-      font-size: 1.1rem;
-      margin: 0 0 40px;
-      opacity: 0.9;
-    }
-
-    .features {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-
-      .feature {
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        backdrop-filter: blur(10px);
-
-        span {
-          display: block;
-          font-size: 2rem;
-          margin-bottom: 8px;
-        }
-
-        p {
-          margin: 0;
-          font-size: 0.95rem;
-        }
-      }
-    }
-  }
-}
+<style scoped>
+.auth-layout { display:grid; grid-template-columns:.95fr 1.05fr; min-height:100dvh; color:var(--text-primary); }
+.auth-introduction { background:var(--surface-subtle); padding:44px clamp(30px,5vw,78px); display:flex; flex-direction:column; border-right:1px solid var(--border-color); }
+.auth-brand { display:inline-flex; align-items:center; width:fit-content; gap:10px; color:var(--text-primary); font-size:25px; font-weight:650; letter-spacing:-1px; text-decoration:none; }
+.auth-brand > span { display:grid; place-items:center; width:33px; height:36px; background:#252a36; color:white; font-size:27px; border-radius:9px; }
+.auth-story { margin:auto 0; padding:65px 0 40px; }
+.auth-kicker { color:var(--text-tertiary); font-size:10px; letter-spacing:1.5px; margin-bottom:22px; font-weight:500; }
+.auth-story h1 { font-size:clamp(36px,4vw,54px); line-height:1.1; font-weight:550; letter-spacing:-2.5px; margin:0 0 22px; }
+.auth-story > p:last-of-type { font-size:14px; line-height:1.8; color:var(--text-secondary); }
+.auth-brand-caption { margin:0; color:var(--text-tertiary); font-size:11px; }
+.auth-access { display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; background:var(--bg-secondary); padding:72px 32px; }
+.auth-theme { position:absolute; top:30px; right:32px; }
+.auth-access-content { width:100%; max-width:350px; padding-block:40px; }
+.auth-access-footer { position:absolute; bottom:30px; font-size:10px; color:var(--text-tertiary); }
+.auth-architecture { display:flex; align-items:flex-end; height:160px; margin-top:44px; max-width:350px; opacity:.75; border-bottom:1px solid var(--border-color); }
+.architecture-tower { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; padding:22px; width:146px; height:155px; border:1px solid var(--border-color); background:var(--bg-secondary); border-radius:50px 50px 0 0; }
+.architecture-wing { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; padding:24px; width:145px; height:103px; border:1px solid var(--border-color); border-left:0; background:var(--accent-soft); border-radius:0 12px 0 0; }
+.architecture-tower span,.architecture-wing span { background:#bac0e6; border-radius:8px 8px 0 0; width:15px; height:20px; }
+.architecture-tower span:nth-child(2n) { background:#d5d8e9; }
+@media(max-width:760px) { .auth-layout { display:flex; flex-direction:column; } .auth-introduction { border-right:0; border-bottom:1px solid var(--border-color); padding:22px 24px; background:var(--bg-secondary); } .auth-story,.auth-brand-caption { display:none; } .auth-access { flex:1; justify-content:flex-start; padding:50px 24px 80px; min-height:calc(100dvh - 81px); } .auth-theme { top:16px; right:18px; } .auth-access-content { padding-block:30px; max-width:390px; } }
 </style>

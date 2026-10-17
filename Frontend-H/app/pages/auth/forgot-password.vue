@@ -1,17 +1,6 @@
-<template>
-  <main class="min-h-screen flex items-center justify-center p-6">
-    <section class="w-full max-w-md space-y-4 text-center">
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Restablecer contraseña</h1>
-      <p class="text-slate-600 dark:text-slate-300">
-        El sistema no cuenta con recuperación automática. Contacta a un administrador para restablecer el acceso.
-      </p>
-      <NuxtLink to="/auth/login" class="inline-flex rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700">
-        Volver al inicio de sesión
-      </NuxtLink>
-    </section>
-  </main>
-</template>
-
+<template><main class="auth-help"><section class="space-y-5"><h1 class="text-2xl font-bold">Recuperar contraseña</h1><p>Te enviaremos un enlace válido por 30 minutos para recuperar el acceso.</p><form class="space-y-4" @submit.prevent="submit"><label class="block">Correo electrónico<input v-model="email" class="operation-filter block w-full mt-2" type="email" autocomplete="email" required maxlength="254" :disabled="busy"></label><CButton type="submit" :loading="busy">Enviar enlace</CButton></form><p v-if="message" role="status">{{ message }}</p><p v-if="error" class="operation-error" role="alert">{{ error }}</p><NuxtLink to="/auth/login" class="button-link">Volver al inicio de sesión</NuxtLink></section></main></template>
 <script setup lang="ts">
-definePageMeta({ layout: 'auth', middleware: 'auth' });
+definePageMeta({layout:'auth',middleware:'auth'})
+const config=useRuntimeConfig(),email=ref(''),busy=ref(false),message=ref(''),error=ref('')
+const submit=async()=>{busy.value=true;error.value='';message.value='';try{const r=await $fetch<{message:string}>(`${config.public.apiBase}/users/forgot-password`,{method:'POST',body:{email:email.value},retry:0});message.value=r.message}catch(e){error.value=(e as {data?:{message?:string}}).data?.message||'No se pudo enviar el enlace. Intenta nuevamente.'}finally{busy.value=false}}
 </script>

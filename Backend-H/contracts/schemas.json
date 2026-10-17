@@ -1,0 +1,348 @@
+{
+  "SessionUser": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "name": {
+        "type": "string"
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 200
+      },
+      "role": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "manager",
+          "receptionist",
+          "customer"
+        ]
+      },
+      "client_id": {
+        "type": "integer",
+        "nullable": true
+      },
+      "is_active": {
+        "type": "boolean"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "updated_at": {
+        "type": "string"
+      },
+      "auth_version": {
+        "type": "integer"
+      },
+      "client_active": {
+        "type": "boolean",
+        "nullable": true
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "email",
+      "role",
+      "is_active",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "SessionLoginInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 200,
+        "x-trim": true
+      },
+      "password": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 128
+      }
+    },
+    "required": [
+      "email",
+      "password"
+    ]
+  },
+  "SessionData": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/SessionUser"
+      },
+      "csrfToken": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "required": [
+      "user",
+      "csrfToken"
+    ]
+  },
+  "SessionResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "enum": [
+          true
+        ]
+      },
+      "data": {
+        "$ref": "#/components/schemas/SessionData"
+      },
+      "message": {
+        "type": "string"
+      },
+      "timestamp": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "success",
+      "data"
+    ]
+  },
+  "StaffInvitationInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 200,
+        "x-trim": true
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 200,
+        "x-trim": true,
+        "x-lowercase": true
+      },
+      "role": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "manager",
+          "receptionist"
+        ]
+      }
+    },
+    "required": [
+      "name",
+      "email",
+      "role"
+    ]
+  },
+  "CustomerInvitationInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 200,
+        "x-trim": true
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 200,
+        "x-trim": true,
+        "x-lowercase": true
+      },
+      "role": {
+        "type": "string",
+        "enum": [
+          "customer"
+        ]
+      },
+      "client_id": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "required": [
+      "name",
+      "email",
+      "role",
+      "client_id"
+    ]
+  },
+  "InvitationInput": {
+    "anyOf": [
+      {
+        "$ref": "#/components/schemas/StaffInvitationInput"
+      },
+      {
+        "$ref": "#/components/schemas/CustomerInvitationInput"
+      }
+    ]
+  },
+  "AcceptInvitationInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "token": {
+        "type": "string",
+        "pattern": "^[a-fA-F0-9]{64}$"
+      },
+      "password": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 128,
+        "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).*$"
+      }
+    },
+    "required": [
+      "token",
+      "password"
+    ]
+  },
+  "Invitation": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[0-9]+$"
+      },
+      "name": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 200
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 200
+      },
+      "role": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "manager",
+          "receptionist",
+          "customer"
+        ]
+      },
+      "client_id": {
+        "type": "integer",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "expires_at": {
+        "type": "string"
+      },
+      "used_at": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "email",
+      "role",
+      "expires_at"
+    ]
+  },
+  "InvitationResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "enum": [
+          true
+        ]
+      },
+      "data": {
+        "$ref": "#/components/schemas/Invitation"
+      },
+      "message": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "success",
+      "data"
+    ]
+  },
+  "BackupStatus": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "latest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "verified_at": {
+            "type": "string"
+          },
+          "archive": {
+            "type": "string"
+          },
+          "restored": {
+            "type": "boolean"
+          },
+          "offsite_verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "verified_at",
+          "archive",
+          "restored"
+        ],
+        "nullable": true
+      },
+      "status": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "attempted_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "attempted_at"
+        ],
+        "nullable": true
+      },
+      "storage": {
+        "type": "string"
+      },
+      "offsite_configured": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "latest",
+      "status",
+      "storage",
+      "offsite_configured"
+    ]
+  }
+}

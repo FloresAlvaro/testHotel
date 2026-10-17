@@ -43,7 +43,8 @@
 <script setup lang="ts">
 import type { Payment, Pagination } from '~/types';
 import { PAYMENT_STATUS_LABELS } from '~/utils/constants';
-import { formatCurrency, formatDate } from '~/utils/formatters';
+import { formatDate } from '~/utils/formatters';
+const { money: formatCurrency } = useHotelSettings();
 
 interface Props {
   payments: Payment[];

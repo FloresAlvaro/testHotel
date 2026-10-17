@@ -2,28 +2,13 @@
  * Tipos de autenticación
  */
 
-export type UserRole = 'admin' | 'receptionist' | 'manager';
+import type { SessionUser, SessionData, SessionLoginInput } from './generated/api';
+export type User = SessionUser;
+export type UserRole = User['role'];
 
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type LoginRequest = SessionLoginInput;
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  user: User;
-  token: string;
-  tokenType?: string;
-}
+export type LoginResponse = SessionData;
 
 export interface RegisterRequest {
   name: string;
@@ -41,7 +26,7 @@ export interface ChangePasswordRequest {
 
 export interface AuthState {
   user: User | null;
-  token: string | null;
+  csrfToken: string | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;

@@ -8,7 +8,6 @@ export const useAuth = () => {
   // ==================== STATE ====================
   const isAuthenticated = computed(() => authStore.isAuthenticated);
   const user = computed(() => authStore.user);
-  const token = computed(() => authStore.token);
   const loading = ref(false);
 
   // ==================== ROLES ====================
@@ -34,9 +33,7 @@ export const useAuth = () => {
   /**
    * Cerrar sesión
    */
-  const logout = () => {
-    authService.logout();
-  };
+  const logout = async () => { await authService.logout(); };
 
   /**
    * Verificar si tiene un rol específico
@@ -101,7 +98,7 @@ export const useAuth = () => {
       if (!userData) {
         throw new Error("No se pudo cargar el perfil del usuario");
       }
-      authStore.setAuth(userData, token.value || "");
+      authStore.setAuth(userData);
       return userData;
     } catch (error: unknown) {
       console.error("Error cargando perfil:", error);
@@ -115,7 +112,7 @@ export const useAuth = () => {
    * Verificar si la sesión es válida
    */
   const isSessionValid = () => {
-    return isAuthenticated.value && user.value && token.value;
+    return isAuthenticated.value;
   };
 
   /**
@@ -131,6 +128,7 @@ export const useAuth = () => {
       admin: "/dashboard",
       manager: "/dashboard",
       receptionist: "/dashboard",
+      customer: "/portal",
     };
 
     const route = roleRoutes[user.value?.role || "receptionist"] || "/";
@@ -140,16 +138,12 @@ export const useAuth = () => {
   /**
    * Cerrar sesión y redirigir
    */
-  const logoutAndRedirect = () => {
-    logout();
-    router.push("/auth/login");
-  };
+  const logoutAndRedirect = async () => { await logout(); };
 
   return {
     // State
     isAuthenticated,
     user,
-    token,
     loading: readonly(loading),
 
     // Computed

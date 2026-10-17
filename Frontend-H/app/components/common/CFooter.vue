@@ -2,7 +2,7 @@
   <footer class="footer">
     <div class="footer-content">
       <slot>
-        <p>&copy; 2026 HotelSys. Todos los derechos reservados.</p>
+        <p>&copy; 2026 Roomly. Todos los derechos reservados.</p>
       </slot>
     </div>
   </footer>

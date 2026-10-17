@@ -19,19 +19,15 @@
     </div>
 
     <div class="form-row">
-      <CInput
-        v-model="form.room_type_id"
-        label="Tipo de Habitación"
-        placeholder="1"
-        required
-      />
+      <label class="select-field"><span>Tipo de habitación</span><select v-model="form.room_type_id" required :disabled="optionsLoading"><option value="" disabled>{{ optionsLoading ? 'Cargando tipos…' : 'Seleccionar tipo' }}</option><option v-for="type in roomTypes" :key="type.id" :value="String(type.id)">{{ type.name }} · {{ hotelMoney(type.price) }} / noche</option></select></label>
     </div>
 
+    <p v-if="optionsError" class="form-error" role="alert">{{ optionsError }}</p>
     <div class="form-actions">
       <CButton variant="secondary" type="button" @click="handleCancel">
         Cancelar
       </CButton>
-      <CButton variant="primary" type="submit" :loading="loading">
+      <CButton variant="primary" type="submit" :loading="loading" :disabled="optionsLoading || !!optionsError">
         {{ isEditing ? 'Actualizar' : 'Guardar' }} Habitación
       </CButton>
     </div>
@@ -40,7 +36,10 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import type { Room, CreateRoomRequest } from '~/types';
+import { useApiClient } from '~/services/api';
+import type { RoomType, Room, CreateRoomRequest } from '~/types';
+const { money: hotelMoney } = useHotelSettings()
+
 
 interface Props {
   room?: Room | null;
@@ -57,6 +56,16 @@ const form = ref({
   number: '',
   floor: '',
   room_type_id: ''
+});
+
+const api = useApiClient();
+const roomTypes = ref<RoomType[]>([]);
+const optionsLoading = ref(true);
+const optionsError = ref('');
+onMounted(async () => {
+  try { roomTypes.value = (await api.getRoomTypes(1, 100)).data?.filter(type => type.is_active) || []; }
+  catch { optionsError.value = 'No se pudieron cargar los tipos de habitación. Cierra la ventana y vuelve a intentar.'; }
+  finally { optionsLoading.value = false; }
 });
 
 const isEditing = computed(() => !!props.room);

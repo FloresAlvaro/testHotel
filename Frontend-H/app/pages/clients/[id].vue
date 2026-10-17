@@ -1,30 +1,18 @@
 <template>
   <div class="space-y-6">
     <!-- Header con Botón Atrás -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <NuxtLink
-          to="/clients"
-          class="text-blue-500 hover:text-blue-600 flex items-center gap-2"
-        >
-          <Icon name="system-uicons:chevron-left" size="20" />
-          Volver
-        </NuxtLink>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Detalle del Cliente
-        </h1>
-      </div>
-      <div class="flex gap-2">
+    <CPageHeader title="Ficha del huésped" back-to="/clients"><div class="flex gap-2">
         <CButton variant="secondary" @click="editClient">
-          <Icon name="system-uicons:edit" size="18" class="mr-2" />
+          <Icon name="system-uicons:write" size="18" class="mr-2" />
           Editar
         </CButton>
         <CButton variant="danger" @click="confirmDelete">
           <Icon name="system-uicons:trash" size="18" class="mr-2" />
           Eliminar
         </CButton>
-      </div>
-    </div>
+      </div></CPageHeader>
+
+    <CGuestAccess v-if="authStore.isAdmin && client" :client-id="client.id" :email="client.email" />
 
     <!-- Información Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -150,7 +138,7 @@
                 Gasto Total
               </p>
               <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                Bs. {{ totalSpent }}
+                {{ hotelMoney(totalSpent) }}
               </p>
             </div>
             <div class="pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -172,7 +160,7 @@
               Nueva Reserva
             </CButton>
             <CButton variant="secondary" class="w-full">
-              <Icon name="system-uicons:envelope" size="18" class="mr-2" />
+              <Icon name="system-uicons:mail" size="18" class="mr-2" />
               Enviar Email
             </CButton>
           </div>
@@ -190,19 +178,19 @@
         <table class="w-full text-sm">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
-              <th class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
                 ID
               </th>
-              <th class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
                 Habitación
               </th>
-              <th class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
                 Fechas
               </th>
-              <th class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-2 px-4 font-semibold text-slate-900 dark:text-white">
                 Estado
               </th>
-              <th class="text-right py-2 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-right py-2 px-4 font-semibold text-slate-900 dark:text-white">
                 Monto
               </th>
             </tr>
@@ -233,7 +221,7 @@
                 </span>
               </td>
               <td class="py-2 px-4 text-right font-medium">
-                Bs. {{ res.total_price }}
+                {{ hotelMoney(res.total_price) }}
               </td>
             </tr>
           </tbody>
@@ -283,10 +271,13 @@ import { useClients } from '~/composables/useClients'
 import { formatDate } from '~/utils/formatters'
 import type { CreateClientRequest, Reservation } from '~/types'
 
+const { money: hotelMoney } = useHotelSettings()
+
 definePageMeta({
   middleware: ['auth', 'receptionist']
 })
 
+const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const clientsStore = useClientsStore()
@@ -312,10 +303,10 @@ const totalSpent = computed(() => {
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    confirmed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-    checked_in: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-    checked_out: 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300',
-    cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+    confirmed: 'status-badge status-confirmed',
+    checked_in: 'status-badge status-checked_in',
+    checked_out: 'status-badge status-checked_out',
+    cancelled: 'status-badge status-cancelled'
   }
   return colors[status] || colors.confirmed
 }

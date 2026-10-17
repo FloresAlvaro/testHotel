@@ -1,20 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <NuxtLink
-          to="/reservations"
-          class="text-blue-500 hover:text-blue-600 flex items-center gap-2"
-        >
-          <Icon name="system-uicons:chevron-left" size="20" />
-          Volver
-        </NuxtLink>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Reserva #{{ reservation?.id }}
-        </h1>
-      </div>
-      <div v-if="reservation?.status === 'confirmed'" class="flex gap-2">
+    <CPageHeader :title="`Reserva #${reservation?.id ?? ''}`" back-to="/reservations"><div v-if="reservation?.status === 'confirmed'" class="flex gap-2">
         <CButton variant="success" @click="performCheckIn">
           <Icon name="system-uicons:enter" size="18" class="mr-2" />
           Check-in
@@ -22,11 +9,10 @@
       </div>
       <div v-if="reservation?.status === 'checked_in'" class="flex gap-2">
         <CButton variant="primary" @click="performCheckOut">
-          <Icon name="system-uicons:exit" size="18" class="mr-2" />
+          <Icon name="system-uicons:exit-right" size="18" class="mr-2" />
           Check-out
         </CButton>
-      </div>
-    </div>
+      </div></CPageHeader>
 
     <!-- Contenido Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -116,10 +102,11 @@
               </div>
             </div>
 
+            <div class="pt-6 border-t border-slate-200 dark:border-slate-700 space-y-3"><h3 class="text-lg font-semibold">Ocupación y llegada</h3><p>{{ reservation.adults ?? 1 }} adultos · {{ reservation.children ?? 0 }} niños</p><p v-if="reservation.arrival_time">Hora estimada de llegada: {{ reservation.arrival_time.slice(0,5) }}</p><p v-if="reservation.special_requests">Solicitud del huésped: {{ reservation.special_requests }}</p></div>
             <!-- Solicitudes Especiales -->
             <div class="pt-6 border-t border-slate-200 dark:border-slate-700">
               <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-                Solicitudes Especiales
+                Notas internas
               </h3>
               <p class="text-slate-700 dark:text-slate-300">
                 {{ reservation.notes || 'Sin notas adicionales' }}
@@ -131,7 +118,7 @@
 
       <!-- Sidebar - Precios -->
       <div class="space-y-4">
-        <CCard class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30">
+        <CCard class="metric-card">
           <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
             Resumen de Precios
           </h3>
@@ -141,7 +128,7 @@
                 Total de la reserva
               </span>
               <span class="font-medium text-slate-900 dark:text-white">
-                Bs. {{ reservation?.total_price || '0.00' }}
+                {{ hotelMoney(reservation?.total_price || '0.00') }}
               </span>
             </div>
             <div class="flex items-center justify-between">
@@ -158,7 +145,7 @@
                   Total
                 </span>
                 <span class="text-xl font-bold text-slate-900 dark:text-white">
-                  Bs. {{ reservation?.total_price || '0.00' }}
+                  {{ hotelMoney(reservation?.total_price || '0.00') }}
                 </span>
               </div>
             </div>
@@ -175,10 +162,10 @@
               Total Pagado
             </p>
             <p class="text-2xl font-bold text-green-600 dark:text-green-400">
-              Bs. {{ totalPaid }}
+              {{ hotelMoney(totalPaid) }}
             </p>
             <p class="text-sm text-slate-600 dark:text-slate-400">
-              Pendiente: Bs. {{ pendingAmount }}
+              Pendiente: {{ hotelMoney(pendingAmount) }}
             </p>
             <CButton variant="primary" class="w-full mt-4" @click="goToPayments">
               <Icon name="system-uicons:coin" size="18" class="mr-2" />
@@ -202,6 +189,8 @@ import { useCheckIn } from '~/composables/useCheckIn'
 import { usePaymentsStore } from '~/stores/payments'
 import { usePayments } from '~/composables/usePayments'
 import { formatDate } from '~/utils/formatters'
+
+const { money: hotelMoney } = useHotelSettings()
 
 definePageMeta({
   middleware: ['auth', 'receptionist']
@@ -262,10 +251,10 @@ const getStatusLabel = (status: string) => {
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    confirmed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-    checked_in: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-    checked_out: 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300',
-    cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+    confirmed: 'status-badge status-confirmed',
+    checked_in: 'status-badge status-checked_in',
+    checked_out: 'status-badge status-checked_out',
+    cancelled: 'status-badge status-cancelled'
   }
   return colors[status] || colors.confirmed
 }

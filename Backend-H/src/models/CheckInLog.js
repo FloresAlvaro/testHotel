@@ -109,7 +109,8 @@ class CheckInLog {
   static async findPendingCheckOuts() {
     const query = `
       SELECT cil.*, c.name as client_name, rm.number as room_number,
-             r.check_out as scheduled_checkout_date
+             r.check_out as scheduled_checkout_date,
+             ((r.check_out + (SELECT check_out_time FROM hotel_settings WHERE id=1)) AT TIME ZONE (SELECT timezone FROM hotel_settings WHERE id=1)) AS scheduled_checkout_at
       FROM check_in_log cil
       JOIN reservation r ON cil.reservation_id = r.id
       JOIN client c ON r.client_id = c.id

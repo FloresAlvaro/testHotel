@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Senior"
+  short_description: "APIs, datos, arquitectura y seguridad backend"
+  default_prompt: "Usa $backend-senior para implementar o revisar esta funcionalidad del servidor con criterios de arquitectura, código limpio, seguridad y pruebas."

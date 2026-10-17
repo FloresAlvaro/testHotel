@@ -7,7 +7,7 @@
  */
 export const formatCurrency = (
   amount: number,
-  currency = "USD",
+  currency = "BOB",
   locale = "es-BO",
 ): string => {
   return new Intl.NumberFormat(locale, {

@@ -17,7 +17,6 @@
         label="Email"
         type="email"
         placeholder="correo@ejemplo.com"
-        required
         :error="errors.email"
         @blur="validateField('email')"
       />
@@ -33,12 +32,7 @@
     </div>
 
     <div class="form-row-2">
-      <CInput
-        v-model="form.document_type"
-        label="Tipo Documento"
-        placeholder="cedula"
-        required
-      />
+      <label class="select-field"><span>Tipo de documento</span><select v-model="form.document_type" required><option value="cedula">Cédula de identidad</option><option value="passport">Pasaporte</option><option value="license">Licencia</option><option value="other">Otro documento</option></select></label>
 
       <CInput
         v-model="form.document"
@@ -51,11 +45,7 @@
     </div>
 
     <div class="form-row-2">
-      <CInput
-        v-model="form.gender"
-        label="Género"
-        placeholder="M"
-      />
+      <label class="select-field"><span>Género</span><select v-model="form.gender"><option value="">Sin especificar</option><option value="M">Masculino</option><option value="F">Femenino</option></select></label>
 
       <CInput
         v-model="form.country"

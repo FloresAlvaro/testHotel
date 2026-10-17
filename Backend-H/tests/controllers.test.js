@@ -1,3 +1,4 @@
+jest.mock('../src/config/database', () => ({ transaction: (work) => work({ query: jest.fn().mockResolvedValue({rows:[],rowCount:0}) }) }));
 jest.mock('../src/models/Room', () => ({
   findById: jest.fn(),
   updateStatus: jest.fn(),
@@ -253,7 +254,7 @@ describe('PaymentController.update', () => {
     expect(Payment.update).toHaveBeenCalledWith('7', expect.objectContaining({
       amount: 45,
       status: 'pending'
-    }));
+    }), expect.any(Object));
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: updatedPayment }));
   });
 
@@ -275,12 +276,10 @@ describe('PaymentController.update', () => {
     const req = { params: { id: '7' }, body: { amount: 40 } };
     const res = responseMock();
 
-    await PaymentController.update(req, res, jest.fn());
+    const next = jest.fn();
+    await PaymentController.update(req, res, next);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'Monto insuficiente'
-    }));
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 409 }));
     expect(Payment.update).not.toHaveBeenCalled();
   });
 });

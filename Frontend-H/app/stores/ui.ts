@@ -108,7 +108,7 @@ export const useUiStore = defineStore("ui", () => {
     if (!import.meta.client) return;
 
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (savedTheme) {
+    if (savedTheme === "light" || savedTheme === "dark") {
       theme.value = savedTheme;
     }
   };

@@ -1,30 +1,20 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Pagos
-        </h1>
-        <p class="text-slate-600 dark:text-slate-400 mt-1">
-          Gestión de transacciones
-        </p>
-      </div>
-      <CButton variant="primary" @click="openAddModal">
+    <CPageHeader title="Pagos" description="Consulta cobros, saldos pendientes y reembolsos."><CButton variant="primary" @click="openAddModal">
         <Icon name="system-uicons:coin" size="18" class="mr-2" />
         Nuevo Pago
-      </CButton>
-    </div>
+      </CButton></CPageHeader>
 
     <!-- Estadísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <CCard class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30">
+    <div class="stat-grid">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Ingresos Totales
           </p>
           <p class="text-2xl font-bold text-slate-900 dark:text-white">
-            Bs. {{ totalIncome }}
+            {{ hotelMoney(totalIncome) }}
           </p>
           <p class="text-xs text-green-600 dark:text-green-400">
             {{ completedPayments }} transacciones
@@ -32,13 +22,13 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Pendiente de Cobro
           </p>
           <p class="text-2xl font-bold text-slate-900 dark:text-white">
-            Bs. {{ pendingAmount }}
+            {{ hotelMoney(pendingAmount) }}
           </p>
           <p class="text-xs text-amber-600 dark:text-amber-400">
             {{ pendingPayments }} pagos
@@ -46,13 +36,13 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Reembolsos
           </p>
           <p class="text-2xl font-bold text-slate-900 dark:text-white">
-            Bs. {{ refunds }}
+            {{ hotelMoney(refunds) }}
           </p>
           <p class="text-xs text-blue-600 dark:text-blue-400">
             {{ refundedPayments }} transacciones
@@ -60,7 +50,7 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Tasa de Conversión
@@ -90,7 +80,7 @@
           </CInput>
 
           <select
-            v-model="selectedStatus"
+            v-model="selectedStatus" aria-label="Filtrar por estado"
             class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos los Estados</option>
@@ -101,7 +91,7 @@
           </select>
 
           <select
-            v-model="selectedMethod"
+            v-model="selectedMethod" aria-label="Filtrar por método de pago"
             class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos los Métodos</option>
@@ -120,25 +110,25 @@
         <table class="w-full">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Reserva
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Cliente
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Método
               </th>
-              <th class="text-right py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-right py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Monto
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Estado
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Fecha
               </th>
-              <th class="text-center py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-center py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Acciones
               </th>
             </tr>
@@ -161,7 +151,7 @@
                 {{ getMethodLabel(payment.method) }}
               </td>
               <td class="py-3 px-4 text-right font-medium text-slate-900 dark:text-white">
-                Bs. {{ payment.amount }}
+                {{ hotelMoney(payment.amount) }}
               </td>
               <td class="py-3 px-4">
                 <span
@@ -179,7 +169,7 @@
                   <CButton
                     variant="ghost"
                     size="sm"
-                    @click="viewPayment(payment.id)"
+                    aria-label="Ver pago" @click="viewPayment(payment.id)"
                   >
                     <Icon name="system-uicons:eye" size="16" />
                   </CButton>
@@ -203,7 +193,7 @@
 
       <div v-else class="text-center py-12">
         <Icon
-          name="system-uicons:loading"
+          name="system-uicons:loader"
           size="32"
           class="mx-auto text-blue-500 animate-spin mb-4"
         />
@@ -229,6 +219,8 @@ import { useUIStore } from '~/stores/ui'
 import { usePayments } from '~/composables/usePayments'
 import { formatDate } from '~/utils/formatters'
 import type { CreatePaymentRequest } from '~/types'
+
+const { money: hotelMoney } = useHotelSettings()
 
 definePageMeta({
   middleware: ['auth', 'receptionist']
@@ -326,10 +318,10 @@ const getStatusLabel = (status: string) => {
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    pending: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
-    completed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-    failed: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-    refunded: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+    pending: 'status-badge status-pending',
+    completed: 'status-badge status-completed',
+    failed: 'status-badge status-failed',
+    refunded: 'status-badge status-refunded'
   }
   return colors[status] || colors.pending
 }
@@ -375,6 +367,7 @@ onMounted(async () => {
   loading.value = true
   try {
     await fetchPayments(1, 100)
+    if (reservationId.value) isModalOpen.value = true
   } finally {
     loading.value = false
   }

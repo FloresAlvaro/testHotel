@@ -5,7 +5,9 @@ const {
   DB_POOL_MIN,
   DB_POOL_MAX,
   DB_IDLE_TIMEOUT,
-  DB_CONNECT_TIMEOUT
+  DB_CONNECT_TIMEOUT,
+  ENABLE_HEALTH_CHECK,
+  HEALTH_CHECK_INTERVAL
 } = require('./environment');
 
 // ============================================
@@ -21,6 +23,13 @@ if (!DATABASE_URL) {
 // CONFIGURAR POOL DE CONEXIONES
 // ============================================
 
+const requestContext = require('../utils/requestContext');
+const applyContext = async (client) => {
+  const context = requestContext.getStore() || {};
+  await client.query("SELECT set_config('hotel.actor_id',$1,true), set_config('hotel.actor_ip',$2,true)", [String(context.userId || ''), context.ip || '']);
+  await client.query("SELECT set_config('TimeZone', timezone, true) FROM hotel_settings WHERE id=1");
+};
+
 const poolConfig = {
   connectionString: DATABASE_URL,
   max: DB_POOL_MAX,
@@ -32,6 +41,7 @@ const poolConfig = {
 };
 
 const pool = new Pool(poolConfig);
+const queryPool = pool.query.bind(pool);
 
 // ============================================
 // VALIDAR CONEXIÓN AL INICIAR
@@ -40,11 +50,10 @@ const pool = new Pool(poolConfig);
 let isConnected = false;
 
 const testConnection = async () => {
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    client.release();
-    
     console.log(`✅ Conexión a PostgreSQL establecida: ${result.rows[0].now}`);
     isConnected = true;
     return true;
@@ -52,11 +61,11 @@ const testConnection = async () => {
     console.error('❌ Error conectando a PostgreSQL:', error.message);
     isConnected = false;
     return false;
-  }
+  } finally { client?.release(); }
 };
 
 // Intentar conectar al iniciar
-testConnection();
+if (NODE_ENV !== 'test' && NODE_ENV !== 'testing') testConnection();
 
 // ============================================
 // MANEJADORES DE EVENTOS DEL POOL
@@ -122,27 +131,15 @@ const query = async (text, params) => {
     throw new Error('La base de datos no está disponible');
   }
 
-  const start = Date.now();
-  
+  const client = await pool.connect();
   try {
-    const result = await pool.query(text, params);
-    const duration = Date.now() - start;
-    
-    // Log de queries en desarrollo
-    if (NODE_ENV === 'development') {
-      console.log(`✓ Query ejecutada en ${duration}ms`);
-    }
-    
+    await client.query('BEGIN');
+    await applyContext(client);
+    const result = await client.query(text, params);
+    await client.query('COMMIT');
     return result;
-  } catch (error) {
-    console.error('Error en query:', {
-      query: text,
-      params: params,
-      error: error.message,
-      code: error.code
-    });
-    throw error;
-  }
+  } catch (error) { await client.query('ROLLBACK'); throw error; }
+  finally { client.release(); }
 };
 
 /**
@@ -153,6 +150,7 @@ const transaction = async (callback) => {
 
   try {
     await client.query('BEGIN');
+    await applyContext(client);
     const result = await callback(client);
     await client.query('COMMIT');
     return result;
@@ -185,11 +183,13 @@ const reconnect = async () => {
  */
 const close = async () => {
   try {
+    if(healthCheckTimer)clearInterval(healthCheckTimer);
     await pool.end();
     console.log('✓ Pool de conexiones cerrado correctamente');
     isConnected = false;
   } catch (error) {
-    console.error('Error cerrando pool:', error.message);
+    console.error(JSON.stringify({event:'database_close_failed'}));
+    throw error;
   }
 };
 
@@ -197,9 +197,9 @@ const close = async () => {
  * Verificar estado de la BD periódicamente
  */
 const startHealthCheck = (interval = 60000) => {
-  setInterval(async () => {
+  const timer=setInterval(async () => {
     try {
-      const result = await pool.query('SELECT 1');
+      const result = await queryPool('SELECT 1');
       if (!isConnected) {
         isConnected = true;
         console.log('✅ Conexión a BD restaurada');
@@ -211,26 +211,11 @@ const startHealthCheck = (interval = 60000) => {
       }
     }
   }, interval);
+  timer.unref();
+  return timer;
 };
 
-// Iniciar health check
-startHealthCheck();
-
-// ============================================
-// MANEJO DE CIERRE GRACEFUL
-// ============================================
-
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM recibido, cerrando pool...');
-  await close();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT recibido, cerrando pool...');
-  await close();
-  process.exit(0);
-});
+const healthCheckTimer=ENABLE_HEALTH_CHECK?startHealthCheck(HEALTH_CHECK_INTERVAL):null;
 
 // ============================================
 // EXPORTAR

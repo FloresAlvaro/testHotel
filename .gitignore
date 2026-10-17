@@ -28,3 +28,6 @@ Thumbs.db
 .vscode/
 .fleet/
 .idea/
+
+**/test-results/
+**/playwright-report/

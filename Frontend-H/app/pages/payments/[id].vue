@@ -1,21 +1,10 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <NuxtLink
-          to="/payments"
-          class="text-blue-500 hover:text-blue-600 flex items-center gap-2"
-        >
-          <Icon name="system-uicons:chevron-left" size="20" />
-          Volver
-        </NuxtLink>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Pago #{{ payment?.id }}
-        </h1>
-      </div>
-    </div>
+    <CPageHeader :title="`Pago #${payment?.id ?? ''}`" back-to="/payments"/>
 
+    <div v-if="payment && ['completed','refunded'].includes(payment.status)"><NuxtLink :to="`/payments/receipt/${payment.id}`" class="btn btn-secondary">Ver comprobante</NuxtLink></div>
+    <p class="text-sm text-slate-500">Para completar o reembolsar un pago, abre tu turno en <NuxtLink to="/operations/cash" class="underline">Caja</NuxtLink>.</p>
     <!-- Contenido Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Información del Pago -->
@@ -36,7 +25,7 @@
                 :class="getStatusColor(payment.status)"
                 class="px-4 py-2 rounded-lg font-medium"
               >
-                {{ payment.status }}
+                {{ getStatusLabel(payment.status) }}
               </span>
             </div>
 
@@ -131,7 +120,7 @@
                   class="flex items-start gap-4"
                 >
                   <div class="flex-shrink-0">
-                    <Icon name="system-uicons:edit" size="20" class="text-amber-500 mt-1" />
+                    <Icon name="system-uicons:write" size="20" class="text-amber-500 mt-1" />
                   </div>
                   <div>
                     <p class="font-medium text-slate-900 dark:text-white">
@@ -150,14 +139,14 @@
 
       <!-- Sidebar - Monto -->
       <div class="space-y-4">
-        <CCard class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30">
+        <CCard class="metric-card">
           <div class="space-y-4">
             <div>
               <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
                 Monto Pagado
               </p>
               <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">
-                Bs. {{ payment?.amount }}
+                {{ hotelMoney(payment?.amount) }}
               </p>
             </div>
 
@@ -165,7 +154,7 @@
         </CCard>
 
         <!-- Acciones -->
-        <CCard v-if="payment?.status === 'pending'">
+        <CCard v-if="canManagePayments && payment?.status === 'pending'">
           <div class="space-y-2">
             <CButton variant="success" class="w-full" :loading="isUpdating" @click="markCompleted">
               <Icon name="system-uicons:check" size="18" class="mr-2" />
@@ -174,7 +163,7 @@
           </div>
         </CCard>
 
-        <CCard v-if="payment?.status === 'completed'">
+        <CCard v-if="canManagePayments && payment?.status === 'completed'">
           <div class="space-y-2">
             <CButton variant="warning" class="w-full" :loading="isUpdating" @click="refund">
               <Icon name="system-uicons:undo" size="18" class="mr-2" />
@@ -194,12 +183,16 @@ import { usePaymentsStore } from '~/stores/payments'
 import { usePayments } from '~/composables/usePayments'
 import { formatDate } from '~/utils/formatters'
 
+const { money: hotelMoney } = useHotelSettings()
+
 definePageMeta({
   middleware: ['auth', 'receptionist']
 })
 
 const route = useRoute()
 const paymentsStore = usePaymentsStore()
+const authStore = useAuthStore()
+const canManagePayments = computed(() => authStore.isAdmin || authStore.isManager)
 const { fetchPayment, completePayment, refundPayment } = usePayments()
 
 const paymentId = Number(route.params.id)
@@ -240,10 +233,10 @@ const getStatusLabel = (status: string) => {
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    pending: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
-    completed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-    failed: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-    refunded: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+    pending: 'status-badge status-pending',
+    completed: 'status-badge status-completed',
+    failed: 'status-badge status-failed',
+    refunded: 'status-badge status-refunded'
   }
   return colors[status] || colors.pending
 }

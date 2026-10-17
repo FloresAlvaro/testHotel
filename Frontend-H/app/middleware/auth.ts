@@ -1,3 +1,4 @@
+import { postLoginPath } from '~/utils/authNavigation';
 /**
  * Middleware de autenticación
  * Protege rutas que requieren usuario autenticado
@@ -9,17 +10,9 @@ export default defineNuxtRouteMiddleware((to) => {
     "/auth/login",
     "/auth/register",
     "/auth/forgot-password",
+    "/auth/reset-password",
+    "/auth/accept-invitation",
   ];
-
-  if (import.meta.server) {
-    if (!publicRoutes.includes(to.path)) {
-      return navigateTo({
-        path: "/auth/login",
-        query: { redirect: to.fullPath },
-      });
-    }
-    return;
-  }
 
   const authStore = useAuthStore();
 
@@ -27,14 +20,14 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // Si está en ruta pública y ya está autenticado, redirigir a home
   if (publicRoutes.includes(to.path) && authStore.isAuthenticated) {
-    return navigateTo("/dashboard");
+    return navigateTo(postLoginPath(authStore.user?.role));
   }
 
   // Si intenta acceder a ruta privada sin autenticación
   if (!publicRoutes.includes(to.path) && !authStore.isAuthenticated) {
     // Guardar URL destino para redirigir después de login
     const redirectUrl = to.fullPath;
-    sessionStorage.setItem("redirectUrl", redirectUrl);
+    if(import.meta.client) sessionStorage.setItem("redirectUrl", redirectUrl);
 
     // Redirigir a login
     return navigateTo({
@@ -43,9 +36,10 @@ export default defineNuxtRouteMiddleware((to) => {
     });
   }
 
-  // Si está autenticado pero el token es inválido
-  if (authStore.isAuthenticated && !authStore.token) {
-    authStore.logout();
-    return navigateTo("/auth/login");
+  if (authStore.isAuthenticated && !publicRoutes.includes(to.path)) {
+    const portal = to.path === '/portal' || to.path.startsWith('/portal/');
+    if (authStore.isCustomer && !portal) return navigateTo('/portal');
+    if (!authStore.isCustomer && portal) return navigateTo('/dashboard');
   }
+
 });

@@ -1,28 +1,21 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div>
-      <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-        Configuración
-      </h1>
-      <p class="text-slate-600 dark:text-slate-400 mt-1">
-        Preferencias locales y administración de cuentas
-      </p>
-    </div>
+    <CPageHeader :title="activeTab === 'users' ? 'Equipo' : 'Configuración'" :description="activeTab === 'users' ? 'Personas, roles y accesos de tu hotel.' : 'Preferencias y opciones de tu espacio de trabajo.'" />
 
     <!-- Navegación de Pestañas -->
     <div class="border-b border-slate-200 dark:border-slate-700">
-      <div class="flex gap-8">
+      <div class="settings-tabs">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           :class="[
-            'pb-4 px-4 font-medium transition-colors border-b-2',
+            'settings-tab',
             activeTab === tab.id
-              ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
-              : 'text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white'
+              ? 'is-selected'
+              : ''
           ]"
-          @click="activeTab = tab.id"
+          :aria-pressed="activeTab === tab.id" @click="selectTab(tab.id)"
         >
           <Icon :name="tab.icon" size="18" class="inline mr-2" />
           {{ tab.label }}
@@ -34,13 +27,13 @@
 
     <!-- Tab: General -->
     <CCard v-if="activeTab === 'general'">
-      <div class="space-y-6">
+      <fieldset class="space-y-6" :disabled="!settingsLoaded || isSaving">
         <div>
           <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
             Información General
           </h2>
           <p class="mb-4 text-sm text-amber-800 dark:text-amber-200">
-            Estos datos se guardan en este navegador. La API todavía no ofrece ajustes globales del hotel.
+            Los cambios se guardan en el servidor y se comparten con todo el equipo.
           </p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <CInput
@@ -94,11 +87,9 @@
               type="time"
               label="Hora de Check-out"
             />
-            <CInput
-              v-model="settings.currency"
-              label="Moneda"
-              placeholder="Bs. (Bolivianos)"
-            />
+            <label class="flex flex-col gap-2 text-sm">Moneda
+              <select v-model="settings.currency" class="operation-filter"><option value="BOB">BOB · Boliviano</option><option value="USD">USD · Dólar</option><option value="EUR">EUR · Euro</option></select>
+            </label>
             <CInput
               v-model="settings.timezone"
               label="Zona Horaria"
@@ -109,14 +100,14 @@
 
         <div class="flex justify-end gap-2 pt-6">
           <CButton variant="secondary" @click="resetChanges">
-            Cancelar
+            Recargar configuración
           </CButton>
-          <CButton variant="primary" :loading="isSaving" @click="saveSettings">
+          <CButton variant="primary" :loading="isSaving" :disabled="!settingsLoaded" @click="saveSettings">
             <Icon name="system-uicons:check" size="18" class="mr-2" />
             Guardar Cambios
           </CButton>
         </div>
-      </div>
+      </fieldset>
     </CCard>
 
     <!-- Tab: Usuarios -->
@@ -128,27 +119,28 @@
           </h2>
           <CButton variant="primary" size="sm" @click="openCreateUser">
             <Icon name="system-uicons:user-add" size="16" class="mr-2" />
-            Crear usuario
+            Invitar persona
           </CButton>
         </div>
 
-        <div class="overflow-x-auto">
+        <CInvitationList :key="invitationsVersion" />
+        <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
           <table class="w-full">
             <thead class="border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                   Usuario
                 </th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                   Email
                 </th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                   Rol
                 </th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                   Estado
                 </th>
-                <th class="text-center py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                <th scope="col" class="text-center py-3 px-4 font-semibold text-slate-900 dark:text-white">
                   Acciones
                 </th>
               </tr>
@@ -181,7 +173,7 @@
                 <td class="py-3 px-4 text-center">
                   <div class="flex items-center justify-center gap-2">
                     <CButton variant="ghost" size="sm" aria-label="Editar usuario" @click="openEditUser(user)">
-                      <Icon name="system-uicons:edit" size="16" />
+                      <Icon name="system-uicons:write" size="16" />
                     </CButton>
                     <CButton
                       variant="ghost"
@@ -191,7 +183,7 @@
                       :aria-label="user.is_active ? 'Desactivar usuario' : 'Activar usuario'"
                       @click="toggleUserActive(user)"
                     >
-                      <Icon :name="user.is_active ? 'system-uicons:lock' : 'system-uicons:unlock'" size="16" />
+                      <Icon :name="user.is_active ? 'system-uicons:lock' : 'system-uicons:lock-open'" size="16" />
                     </CButton>
                   </div>
                 </td>
@@ -250,7 +242,7 @@
                     Autenticación de Dos Factores
                   </h3>
                   <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    La API no ofrece configuración de autenticación de dos factores.
+                    La verificación en dos pasos todavía no está disponible.
                   </p>
                 </div>
                 <label class="flex items-center gap-2 cursor-pointer">
@@ -263,7 +255,7 @@
               <h3 class="font-medium text-slate-900 dark:text-white mb-3">
                 Sesiones Activas
               </h3>
-              <p class="text-sm text-slate-600 dark:text-slate-400">La API no expone información ni revocación de sesiones.</p>
+              <p class="text-sm text-slate-600 dark:text-slate-400">La consulta y el cierre de otras sesiones todavía no están disponibles.</p>
             </div>
           </div>
         </div>
@@ -332,7 +324,7 @@
           Exportaciones locales
         </h2>
         <p class="text-sm text-amber-800 dark:text-amber-200">
-          No hay endpoint de respaldo/restauración de base de datos. Estas exportaciones contienen solo preferencias de este navegador.
+          Estas exportaciones incluyen la configuración y las preferencias de notificaciones; no incluyen reservas, huéspedes ni pagos.
         </p>
 
         <div class="space-y-4">
@@ -401,12 +393,12 @@
       </div>
     </CCard>
 
-    <CModal :is-open="isUserModalOpen" :title="userForm.id ? 'Editar usuario' : 'Crear usuario'" size="md" @close="isUserModalOpen = false">
+    <CModal :is-open="isUserModalOpen" :title="userForm.id ? 'Editar usuario' : 'Invitar persona'" size="md" @close="isUserModalOpen = false">
       <form class="space-y-4" @submit.prevent="saveUser">
         <CInput v-model="userForm.name" label="Nombre" required />
         <CInput v-model="userForm.email" type="email" label="Email" required />
-        <CInput v-if="!userForm.id" v-model="userForm.password" type="password" label="Contraseña temporal" required />
-        <label v-if="userForm.id" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <p v-if="!userForm.id" class="text-sm">Recibirá un enlace por correo para elegir su contraseña. La invitación vence en 48 horas.</p>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Rol
           <select v-model="userForm.role" class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-800">
             <option value="admin">Administrador</option>
@@ -414,7 +406,7 @@
             <option value="receptionist">Recepcionista</option>
           </select>
         </label>
-        <p v-else class="text-sm text-slate-600 dark:text-slate-400">El backend crea las cuentas nuevas con rol de recepcionista.</p>
+        <p class="text-sm text-slate-600 dark:text-slate-400">Solo los administradores pueden crear cuentas del personal.</p>
         <div class="flex justify-end gap-2 pt-3">
           <CButton type="button" variant="secondary" @click="isUserModalOpen = false">Cancelar</CButton>
           <CButton type="submit" variant="primary" :loading="isSavingUser">Guardar</CButton>
@@ -425,6 +417,7 @@
 </template>
 
 <script setup lang="ts">
+import type { StaffInvitationInput } from '~/types/generated/api'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useUIStore } from '~/stores/ui'
 import { useApiClient } from '~/services/api'
@@ -442,6 +435,7 @@ const route = useRoute()
 
 const activeTab = ref(route.query.tab === 'users' ? 'users' : 'general')
 const isSaving = ref(false)
+const settingsLoaded = ref(false)
 const isBackingUp = ref(false)
 const isSavingPassword = ref(false)
 const isSavingUser = ref(false)
@@ -455,7 +449,7 @@ const userForm = reactive<{ id: number | null; name: string; email: string; pass
 const defaultSettings = {
   hotel_name: 'Hotel Central La Paz', city: 'La Paz', email: 'info@hotelcentral.com',
   phone: '+591 2 123 4567', address: 'Calle Principal 123, Centro, La Paz',
-  check_in_time: '15:00', check_out_time: '11:00', currency: 'Bs. (Bolivianos)', timezone: 'America/La_Paz'
+  check_in_time: '15:00', check_out_time: '11:00', currency: 'BOB', timezone: 'America/La_Paz', version: 1
 }
 const defaultNotifications = [
   { id: 'new-reservation', title: 'Nueva Reserva', description: 'Notificaciones cuando se crea una nueva reserva', email: true, push: true },
@@ -466,22 +460,25 @@ const defaultNotifications = [
 
 const tabs = [
   { id: 'general', label: 'General', icon: 'system-uicons:settings' },
-  { id: 'users', label: 'Usuarios', icon: 'system-uicons:user' },
+  { id: 'users', label: 'Equipo', icon: 'system-uicons:user' },
   { id: 'security', label: 'Seguridad', icon: 'system-uicons:lock' },
   { id: 'notifications', label: 'Notificaciones', icon: 'system-uicons:bell' },
-  { id: 'backups', label: 'Respaldos', icon: 'system-uicons:save' }
+  { id: 'backups', label: 'Respaldos', icon: 'system-uicons:floppy' }
 ]
 
 watch(() => route.query.tab, (tab) => {
-  if (typeof tab === 'string' && tabs.some(item => item.id === tab)) activeTab.value = tab
-})
+  activeTab.value = typeof tab === 'string' && tabs.some(item => item.id === tab) ? tab : 'general'
+}, { immediate: true })
 
+const selectTab = (tab: string) => navigateTo({ path: '/admin/settings', query: tab === 'general' ? {} : { tab } })
+
+const hotel = useHotelSettings()
 const settings = ref({ ...defaultSettings })
 const notificationSettings = ref(defaultNotifications.map(item => ({ ...item })))
 interface BackupRecord { id: string; name: string; date: string; payload: string }
 const backupHistory = ref<BackupRecord[]>([])
 const lastBackup = computed(() => backupHistory.value[0]?.date || 'Todavía no hay exportaciones')
-const roleLabels: Record<UserRole, string> = { admin: 'Administrador', manager: 'Gerente', receptionist: 'Recepcionista' }
+const roleLabels: Record<UserRole, string> = { admin: 'Administrador', manager: 'Gerente', receptionist: 'Recepcionista', customer: 'Huésped' }
 
 const loadUsers = async () => {
   const response = await api.getUsers(1, 100)
@@ -491,19 +488,16 @@ const loadUsers = async () => {
 const saveSettings = async () => {
   isSaving.value = true
   try {
-    localStorage.setItem('hotel-settings', JSON.stringify(settings.value))
-    uiStore.success('Preferencias guardadas en este navegador')
-  } catch {
-    uiStore.error('No se pudieron guardar las preferencias locales')
-  } finally {
-    isSaving.value = false
-  }
+    settings.value = { ...await hotel.save(settings.value) }
+    uiStore.success('Configuración compartida guardada')
+  } catch (e: unknown) {
+    const failure = e as { data?: { message?: string } }
+    uiStore.error(failure.data?.message || 'No se pudo guardar la configuración')
+  } finally { isSaving.value = false }
 }
-
-const resetChanges = () => {
-  const saved = localStorage.getItem('hotel-settings')
-  settings.value = saved ? { ...defaultSettings, ...JSON.parse(saved) } : { ...defaultSettings }
-  uiStore.info('Se restauraron las preferencias guardadas')
+const resetChanges = async () => {
+  try { settings.value = { ...await hotel.load() }; settingsLoaded.value = true }
+  catch { uiStore.error('No se pudo cargar la configuración') }
 }
 
 const createBackup = async () => {
@@ -578,17 +572,21 @@ const openEditUser = (user: User) => {
   isUserModalOpen.value = true
 }
 
+const invitationsVersion=ref(0)
 const saveUser = async () => {
   isSavingUser.value = true
   try {
     if (userForm.id) {
       await api.updateUser(userForm.id, { name: userForm.name, email: userForm.email, role: userForm.role, is_active: userForm.is_active })
     } else {
-      await api.register({ name: userForm.name, email: userForm.email, password: userForm.password })
+      if(userForm.role==='customer') throw new Error('Invita huéspedes desde su ficha')
+      const body:StaffInvitationInput={name:userForm.name,email:userForm.email,role:userForm.role}
+      await api.request('/users/invitations', {method:'POST', body, retry:0})
+      invitationsVersion.value++
     }
     await loadUsers()
     isUserModalOpen.value = false
-    uiStore.success('Usuario guardado')
+    uiStore.success(userForm.id ? 'Usuario guardado' : 'Invitación enviada a la cola de correo')
   } catch (error) {
     uiStore.error(error instanceof Error ? error.message : 'No se pudo guardar el usuario')
   } finally {
@@ -607,10 +605,9 @@ const toggleUserActive = async (user: User) => {
 }
 
 onMounted(() => {
-  const storedSettings = localStorage.getItem('hotel-settings')
   const storedNotifications = localStorage.getItem('hotel-notifications')
   const storedBackups = localStorage.getItem('hotel-settings-exports')
-  if (storedSettings) settings.value = { ...defaultSettings, ...JSON.parse(storedSettings) }
+  resetChanges()
   if (storedNotifications) notificationSettings.value = JSON.parse(storedNotifications)
   if (storedBackups) backupHistory.value = JSON.parse(storedBackups)
   loadUsers().catch(() => uiStore.error('No se pudo cargar la lista de usuarios'))

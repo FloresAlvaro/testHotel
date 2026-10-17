@@ -39,8 +39,7 @@ export interface PaginatedApiResponse<T = unknown> extends ApiResponse<T[]> {
 
 export type LoginApiResponse = ApiResponse<{
   user: User;
-  token: string;
-  tokenType?: string;
+  csrfToken: string;
 }>;
 
 export type ClientsApiResponse = PaginatedApiResponse<Client>;

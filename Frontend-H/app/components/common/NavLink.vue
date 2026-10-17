@@ -1,45 +1,17 @@
 <template>
-  <NuxtLink :to="href" class="nav-link" :class="{ active }">
-    <span class="nav-link-icon" aria-hidden="true">{{ icon }}</span>
-    <span>{{ label }}</span>
+  <NuxtLink :to="href" class="workspace-navlink" :class="{ 'is-current': active }" :aria-current="active ? 'page' : undefined">
+    <Icon :name="icon" class="workspace-navlink-icon" aria-hidden="true" /><span>{{ label }}</span><span v-if="active" class="workspace-navlink-marker" aria-hidden="true" />
   </NuxtLink>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  icon: string;
-  label: string;
-  href: string;
-  active?: boolean;
-}>();
+defineProps<{ icon: string; label: string; href: string; active?: boolean }>();
 </script>
 
 <style scoped>
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  color: var(--text-primary);
-  text-decoration: none;
-  border-left: 3px solid transparent;
-  transition: background-color 160ms ease, color 160ms ease;
-}
-
-.nav-link:hover {
-  background: var(--bg-secondary);
-}
-
-.nav-link.active {
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.1);
-  border-left-color: #2563eb;
-  font-weight: 600;
-}
-
-.nav-link-icon {
-  width: 1.5rem;
-  flex: 0 0 1.5rem;
-  text-align: center;
-}
+.workspace-navlink { min-height: 39px; display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 3px 0; border-radius: 7px; color: var(--text-secondary); font-size: 12px; line-height: 1.4; text-decoration: none; transition: color .15s, background .15s; }
+.workspace-navlink:hover { background: var(--surface-subtle); color: var(--text-primary); }
+.workspace-navlink.is-current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.workspace-navlink-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.workspace-navlink-marker { width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin-left: auto; }
 </style>

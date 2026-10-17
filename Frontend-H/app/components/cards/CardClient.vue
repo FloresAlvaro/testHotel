@@ -57,12 +57,12 @@ const getInitials = (name: string) => {
 .card-client {
   background: var(--bg-secondary, #ffffff);
   border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   transition: all 0.2s;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
   }
 }
 
@@ -88,8 +88,8 @@ const getInitials = (name: string) => {
 .avatar {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: white;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;

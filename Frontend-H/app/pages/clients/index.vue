@@ -1,17 +1,8 @@
 <template>
 	<section class="space-y-6">
-		<header class="flex flex-wrap items-end justify-between gap-4">
-			<div>
-				<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Clientes</h1>
-				<p class="mt-1 text-slate-600 dark:text-slate-400">Huéspedes registrados</p>
-			</div>
-			<NuxtLink
-				to="/clients/create"
-				class="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-			>
-				Registrar cliente
-			</NuxtLink>
-		</header>
+    <CPageHeader title="Huéspedes" description="Los datos de tus clientes, en un solo lugar.">
+      <NuxtLink to="/clients/create" class="button-link"><Icon name="system-uicons:plus" />Nuevo huésped</NuxtLink>
+    </CPageHeader>
 
 		<label class="block max-w-md">
 			<span class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Buscar</span>
@@ -24,14 +15,14 @@
 		</label>
 
 		<p v-if="errorMessage" role="alert" class="text-red-700">{{ errorMessage }}</p>
-		<div v-else class="overflow-x-auto rounded border border-slate-200 dark:border-slate-700">
+		<div v-else class="guest-table overflow-x-auto rounded border border-slate-200 dark:border-slate-700">
 			<table class="w-full text-left">
 				<thead class="bg-slate-50 dark:bg-slate-800">
 					<tr>
-						<th class="px-4 py-3">Nombre</th>
-						<th class="px-4 py-3">Documento</th>
-						<th class="px-4 py-3">Contacto</th>
-						<th class="px-4 py-3">Acción</th>
+						<th scope="col" class="px-4 py-3">Nombre</th>
+						<th scope="col" class="px-4 py-3">Documento</th>
+						<th scope="col" class="px-4 py-3">Contacto</th>
+						<th scope="col" class="px-4 py-3">Acción</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-slate-200 dark:divide-slate-700">

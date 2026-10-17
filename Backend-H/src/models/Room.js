@@ -33,10 +33,10 @@ class Room {
       FROM room r
       JOIN room_type rt ON r.room_type_id = rt.id
       WHERE r.id = $1
-      ${forUpdate ? 'FOR UPDATE' : ''}
+      ${forUpdate ? 'FOR UPDATE OF r' : ''}
     `;
 
-    const result = await pool.query(query, [id]);
+    const result = await client.query(query, [id]);
     return result.rows[0] || null;
   }
 
@@ -115,7 +115,8 @@ class Room {
                       rt.id as room_type_id, rt.name as room_type_name, rt.price, rt.capacity
       FROM room r
       JOIN room_type rt ON r.room_type_id = rt.id
-      WHERE r.status = 'available'
+      WHERE r.status IN ('available', 'reserved', 'occupied')
+      AND rt.is_active = true
       AND NOT EXISTS (
         SELECT 1 FROM reservation res
         WHERE res.room_id = r.id
@@ -173,6 +174,22 @@ class Room {
     `;
 
     const result = await client.query(query, [status, id]);
+    return result.rows[0] || null;
+  }
+
+  // Recalcular sin liberar una habitación con otra estancia o reserva vigente.
+  static async syncReservationStatus(id, client = pool) {
+    const result = await client.query(`
+      UPDATE room SET status = CASE
+        WHEN status = 'maintenance' THEN 'maintenance'::room_status
+        WHEN EXISTS (SELECT 1 FROM reservation WHERE room_id = $1 AND status = 'checked_in')
+          THEN 'occupied'::room_status
+        WHEN EXISTS (SELECT 1 FROM reservation WHERE room_id = $1 AND status = 'confirmed' AND check_out > CURRENT_DATE)
+          THEN 'reserved'::room_status
+        ELSE 'available'::room_status END,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1 RETURNING *
+    `, [id]);
     return result.rows[0] || null;
   }
 

@@ -1,0 +1,29 @@
+# Cargar junto a docker-compose.yml con -p hotel-demo.
+# El volumen separado evita reutilizar la base habitual del hotel.
+services:
+  db:
+    container_name: hotel-demo-db
+    command: ["postgres", "-c", "timezone=America/La_Paz"]
+    volumes:
+      - postgres_demo_data:/var/lib/postgresql/data
+      - ./database/init/data_seed.sql:/docker-entrypoint-initdb.d/05-demo.sql:ro
+  backend:
+    container_name: hotel-demo-backend
+    environment:
+      TZ: America/La_Paz
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      MAIL_FROM: demo@hotel.test
+      MAIL_DEMO: 'true'
+      PAYMENT_PROVIDER: demo
+      ALLOW_DEMO_PAYMENTS: 'true'
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+  frontend:
+    container_name: hotel-demo-frontend
+
+volumes:
+  postgres_demo_data:

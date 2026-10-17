@@ -1,22 +1,12 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Reporte de Ingresos
-        </h1>
-        <p class="text-slate-600 dark:text-slate-400 mt-1">
-          Análisis de revenue y transacciones
-        </p>
-      </div>
-      <div class="flex gap-2">
+    <CPageHeader title="Reporte de Ingresos" description="Un resumen claro de los ingresos del hotel."><div class="flex gap-2">
         <CButton variant="secondary" :disabled="isLoading || transactions.length === 0" @click="downloadReport">
           <Icon name="system-uicons:download" size="18" class="mr-2" />
           Descargar
         </CButton>
-      </div>
-    </div>
+      </div></CPageHeader>
 
     <!-- Filtros -->
     <CCard>
@@ -26,7 +16,7 @@
             Fecha Inicio
           </label>
           <input
-            v-model="dateRange.start"
+            v-model="dateRange.start" aria-label="Fecha de inicio"
             type="date"
             class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
@@ -36,7 +26,7 @@
             Fecha Fin
           </label>
           <input
-            v-model="dateRange.end"
+            v-model="dateRange.end" aria-label="Fecha de fin"
             type="date"
             class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
@@ -46,7 +36,7 @@
             Método de Pago
           </label>
           <select
-            v-model="selectedMethod"
+            v-model="selectedMethod" aria-label="Filtrar por método de pago"
             class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos los Métodos</option>
@@ -60,14 +50,14 @@
     </CCard>
 
     <!-- Estadísticas Principales -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <CCard class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30">
+    <div class="stat-grid">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Ingresos Totales
           </p>
           <p class="text-3xl font-bold text-green-600 dark:text-green-400">
-            Bs. {{ totalRevenue }}
+            {{ hotelMoney(totalRevenue) }}
           </p>
           <p class="text-xs text-green-600 dark:text-green-400">
             {{ transactionCount }} transacciones
@@ -75,13 +65,13 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Promedio por Transacción
           </p>
           <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
-            Bs. {{ averageTransaction }}
+            {{ hotelMoney(averageTransaction) }}
           </p>
           <p class="text-xs text-blue-600 dark:text-blue-400">
             {{ transactionCount }} transacciones
@@ -89,13 +79,13 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Ingreso Máximo
           </p>
           <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">
-            Bs. {{ maxTransaction }}
+            {{ hotelMoney(maxTransaction) }}
           </p>
           <p class="text-xs text-purple-600 dark:text-purple-400">
             Mayor transacción
@@ -103,7 +93,7 @@
         </div>
       </CCard>
 
-      <CCard class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30">
+      <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
             Tasa de Conversión
@@ -120,28 +110,9 @@
 
     <!-- Gráficos -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Ingresos por Día -->
-      <CCard>
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-          Ingresos por Día
-        </h3>
-        <div class="h-80 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-          <div class="text-center">
-            <Icon
-              name="system-uicons:chart"
-              size="48"
-              class="mx-auto text-slate-400 mb-2"
-            />
-            <div v-if="dailyRevenue.length" class="flex h-full w-full items-end gap-2 overflow-x-auto px-4 pb-4">
-              <div v-for="day in dailyRevenue" :key="day.date" class="flex min-w-8 flex-1 flex-col items-center justify-end gap-2">
-                <span class="text-xs text-slate-600 dark:text-slate-300">{{ Number(day.total_amount || 0).toFixed(0) }}</span>
-                <div class="w-full rounded-t bg-emerald-600" :style="{ height: `${Math.max(4, Number(day.total_amount || 0) / maxDailyRevenue * 180)}px` }" :title="`${day.date}: Bs. ${day.total_amount || 0}`" />
-                <span class="text-xs text-slate-500">{{ day.date.slice(5) }}</span>
-              </div>
-            </div>
-            <p v-else class="text-slate-500 dark:text-slate-400">Sin ingresos para el período</p>
-          </div>
-        </div>
+      <CCard title="Ingresos por día">
+        <div v-if="dailyRevenue.length" class="revenue-chart" role="img" aria-label="Ingresos diarios del período seleccionado"><div v-for="day in [...dailyRevenue].reverse()" :key="day.date" class="revenue-column"><span>{{ Number(day.total_amount || 0).toFixed(0) }}</span><div :style="{ height: `${Math.max(2, Number(day.total_amount || 0) / maxDailyRevenue * 150)}px` }" :title="`${day.date}: ${hotelMoney(day.total_amount || 0)}`" /><small>{{ day.date.slice(5, 10) }}</small></div></div>
+        <CEmptyState v-else title="Sin ingresos en este período" description="Prueba otro rango de fechas para consultar los cobros." icon="system-uicons:graph-bar" />
       </CCard>
 
       <!-- Ingresos por Método -->
@@ -156,7 +127,7 @@
                 {{ method.name }}
               </span>
               <span class="text-sm font-bold text-slate-900 dark:text-white">
-                Bs. {{ method.amount }}
+                {{ hotelMoney(method.amount) }}
               </span>
             </div>
             <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
@@ -176,26 +147,26 @@
         Detalles de Transacciones
       </h2>
 
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
         <table class="w-full text-sm">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Fecha
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Cliente
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Reserva
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Método
               </th>
-              <th class="text-right py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-right py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Monto
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Estado
               </th>
             </tr>
@@ -218,17 +189,17 @@
                 </code>
               </td>
               <td class="py-3 px-4 text-slate-600 dark:text-slate-400">
-                {{ payment.method }}
+                {{ PAYMENT_METHOD_LABELS[payment.method] || payment.method }}
               </td>
               <td class="py-3 px-4 text-right font-medium text-slate-900 dark:text-white">
-                Bs. {{ payment.amount }}
+                {{ hotelMoney(payment.amount) }}
               </td>
               <td class="py-3 px-4">
                 <span
                   :class="getStatusColor(payment.status)"
                   class="px-2 py-1 rounded text-xs font-medium"
                 >
-                  {{ payment.status }}
+                  {{ PAYMENT_STATUS_LABELS[payment.status] || payment.status }}
                 </span>
               </td>
             </tr>
@@ -243,12 +214,18 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import type { Payment, PaymentMethod, RevenueByMethod, RevenueReport } from '~/types';
 import { useApiClient } from '~/services/api';
+import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '~/utils/constants';
+import { getTodayDateOnly, localDateOnly } from '~/utils/dates';
 import { formatDate } from '~/utils/formatters';
+const { money: hotelMoney } = useHotelSettings()
+
+
+const { settings: operatingSettings } = useHotelSettings();
 
 definePageMeta({ middleware: ['auth', 'manager'] });
 
 const api = useApiClient();
-const today = new Date().toISOString().slice(0, 10);
+const today = getTodayDateOnly(operatingSettings.value.timezone);
 const dateRange = ref({
   start: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   end: today
@@ -299,8 +276,8 @@ const loadReport = async () => {
     dailyRevenue.value = revenueResponse.data || [];
     methods.value = methodResponse.data || [];
     allTransactions.value = (paymentsResponse.data || []).filter(payment =>
-      payment.created_at.slice(0, 10) >= dateRange.value.start &&
-      payment.created_at.slice(0, 10) <= dateRange.value.end
+      localDateOnly(payment.created_at, operatingSettings.value.timezone) >= dateRange.value.start &&
+      localDateOnly(payment.created_at, operatingSettings.value.timezone) <= dateRange.value.end
     );
   } catch {
     errorMessage.value = 'No se pudieron cargar los datos del informe.';
@@ -310,10 +287,10 @@ const loadReport = async () => {
 };
 
 const getStatusColor = (status: string) => ({
-  completed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-  pending: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
-  failed: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-  refunded: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+  completed: 'status-badge status-completed',
+  pending: 'status-badge status-pending',
+  failed: 'status-badge status-failed',
+  refunded: 'status-badge status-refunded'
 }[status] || 'bg-slate-100 text-slate-700');
 
 const downloadReport = () => {

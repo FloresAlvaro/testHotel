@@ -1,3 +1,4 @@
+import type { SessionResponse } from '~/types/generated/api';
 import type {
   ApiResponse,
   CheckInLogData,
@@ -8,7 +9,6 @@ import type {
   CreateReservationRequest,
   CreateRoomRequest,
   LoginRequest,
-  LoginResponse,
   RegisterRequest,
   OccupancyStats,
   PaginatedApiResponse,
@@ -33,6 +33,7 @@ export const useApiClient = () => {
   const config = useRuntimeConfig();
   const authStore = useAuthStore();
 
+  const ssrHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined;
   // Configurar cliente HTTP con $fetch
   const api = $fetch.create({
     baseURL: import.meta.server
@@ -43,12 +44,11 @@ export const useApiClient = () => {
 
     // Interceptor de request
     onRequest({ request, options }) {
-      const token = authStore.token;
-      if (token) {
-        const headers = new Headers(options.headers);
-        headers.set("Authorization", `Bearer ${token}`);
-        options.headers = headers;
-      }
+      const headers = new Headers(options.headers);
+      if (ssrHeaders?.cookie) headers.set('cookie', ssrHeaders.cookie);
+      headers.set('X-Hotel-Request', '1');
+      if(authStore.csrfToken) headers.set('X-Hotel-CSRF', authStore.csrfToken);
+      options.headers = headers;
 
       // Log en desarrollo
       if (process.env.NODE_ENV === "development") {
@@ -64,12 +64,13 @@ export const useApiClient = () => {
     },
 
     // Interceptor de errores
-    onResponseError({ response, error }) {
-      console.error(`[API Error] ${response.status}:`, error);
+    onResponseError({ response }) {
+      const requestId=response.headers.get('X-Request-ID') || response._data?.requestId;
+      console.error(`[API Error] ${response.status}${requestId ? ` [${requestId}]` : ''}:`, response._data?.message || 'Error al procesar la solicitud');
 
       // Manejar errores comunes
       if (response.status === 401) {
-        authStore.logout();
+        authStore.clearSession();
         navigateTo("/auth/login");
       }
 
@@ -91,13 +92,13 @@ export const useApiClient = () => {
     request: api,
     // ==================== USUARIOS ====================
     login: (data: LoginRequest) =>
-      api<ApiResponse<LoginResponse>>("/users/login", {
+      api<SessionResponse>("/users/session", {
         method: "POST",
         body: data,
       }),
 
-    register: (data: Pick<RegisterRequest, "name" | "email" | "password">) =>
-      api<ApiResponse<LoginResponse>>("/users/register", {
+    register: (data: Pick<RegisterRequest, "name" | "email" | "password"> & { role?: User["role"] }) =>
+      api<ApiResponse<User>>("/users", {
         method: "POST",
         body: data,
       }),

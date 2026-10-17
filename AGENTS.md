@@ -1,0 +1,16 @@
+# Agentes del proyecto Hotel
+
+Comunícate en español salvo otra preferencia. El frontend está en `Frontend-H/`, el backend en `Backend-H/` y el esquema PostgreSQL en `database/init/`.
+
+## Skills locales
+
+- **frontend-senior**: para implementar, corregir o revisar Nuxt/Vue, TypeScript, componentes, estado y UX/UI, lee `.agents/skills/frontend-senior/SKILL.md`. Invocación: `$frontend-senior`.
+- **backend-senior**: para implementar, corregir o revisar Express, APIs, autorización, validación y PostgreSQL, lee `.agents/skills/backend-senior/SKILL.md`. Invocación: `$backend-senior`.
+
+En tareas que atraviesen ambas capas, aplica ambas especializaciones y comprueba los contratos. Estas skills instruyen al agente actual; no requieren crear subagentes ni chats nuevos.
+
+## Convenciones
+
+Conserva el stack y las convenciones existentes. Consulta dependencias y scripts de cada carpeta, el `README.md` raíz y `docker-compose.yml` para arranque. Mantén la separación entre URL interna SSR y URL pública de la API. No expongas secretos.
+
+Frontend: desde `Frontend-H/`, ejecuta `npm run lint`, `npm run typecheck` o `npm run build` según el cambio. Backend: desde `Backend-H/`, ejecuta `npm test -- --runInBand` con las variables de prueba del README. Informa las comprobaciones ejecutadas y las pendientes.

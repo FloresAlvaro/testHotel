@@ -16,13 +16,20 @@ const router = express.Router();
 // Rutas públicas
 router.use('/users', userRoutes);
 
+router.use('/portal', auth, authorize('customer'), require('./portal'));
+
+// La operación interna usa una lista explícita de roles de personal.
+router.use(auth, authorize('admin', 'manager', 'receptionist'));
+
 // Rutas protegidas
-router.use('/clients', auth, clientRoutes);
-router.use('/rooms', auth, roomRoutes);
-router.use('/room-types', auth, roomTypeRoutes);
-router.use('/reservations', auth, reservationRoutes);
-router.use('/check-in', auth, checkInRoutes);
-router.use('/payments', auth, paymentRoutes);
-router.use('/dashboard', auth, authorize('admin', 'manager'), dashboardRoutes);
+router.use('/clients', clientRoutes);
+router.use('/rooms', roomRoutes);
+router.use('/room-types', roomTypeRoutes);
+router.use('/reservations', reservationRoutes);
+router.use('/check-in', checkInRoutes);
+router.use('/payments', paymentRoutes);
+router.use('/dashboard', authorize('admin', 'manager'), dashboardRoutes);
+
+router.use('/operations', require('./operations'));
 
 module.exports = router;

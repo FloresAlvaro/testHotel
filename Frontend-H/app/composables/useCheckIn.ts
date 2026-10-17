@@ -8,6 +8,7 @@ import {
 import type { CheckInLogData, Reservation } from "~/types";
 
 export const useCheckIn = () => {
+  const { settings: operatingSettings } = useHotelSettings();
   const checkInService = useCheckInService();
   const reservationsStore = useReservationsStore();
   const roomsStore = useRoomsStore();
@@ -117,7 +118,7 @@ export const useCheckIn = () => {
 
     const checkInComparison = compareDateOnly(
       reservation.check_in,
-      getTodayDateOnly(),
+      getTodayDateOnly(operatingSettings.value.timezone),
     );
     if (checkInComparison === null || checkInComparison > 0) {
       uiStore.warning("Aún no es la fecha de check-in");
@@ -140,7 +141,7 @@ export const useCheckIn = () => {
   };
 
   const getTimeUntilCheckIn = (checkInDate: string): string => {
-    const days = daysBetweenDateOnly(getTodayDateOnly(), checkInDate);
+    const days = daysBetweenDateOnly(getTodayDateOnly(operatingSettings.value.timezone), checkInDate);
     if (days === null) return "Fecha inválida";
     if (days < 0) return "Hoy";
 
@@ -150,7 +151,7 @@ export const useCheckIn = () => {
   };
 
   const getCheckInOutStatus = (reservation: Reservation) => {
-    const today = getTodayDateOnly();
+    const today = getTodayDateOnly(operatingSettings.value.timezone);
     const checkInComparison = compareDateOnly(reservation.check_in, today);
     const checkOutComparison = compareDateOnly(reservation.check_out, today);
 

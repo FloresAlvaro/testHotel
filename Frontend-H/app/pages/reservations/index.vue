@@ -1,20 +1,10 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-          Reservas
-        </h1>
-        <p class="text-slate-600 dark:text-slate-400 mt-1">
-          Gestión de reservaciones
-        </p>
-      </div>
-      <CButton variant="primary" @click="openAddModal">
+    <CPageHeader title="Reservas" description="Organiza las estancias y consulta el estado de cada reserva."><CButton variant="primary" @click="openAddModal">
         <Icon name="system-uicons:calendar" size="18" class="mr-2" />
         Nueva Reserva
-      </CButton>
-    </div>
+      </CButton></CPageHeader>
 
     <!-- Filtros -->
     <CCard>
@@ -33,7 +23,7 @@
 
           <!-- Filtro por Estado -->
           <select
-            v-model="selectedStatus"
+            v-model="selectedStatus" aria-label="Filtrar por estado"
             class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos los Estados</option>
@@ -45,7 +35,7 @@
 
           <!-- Rango de Fechas -->
           <select
-            v-model="dateFilter"
+            v-model="dateFilter" aria-label="Filtrar por fecha"
             class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todas las Fechas</option>
@@ -78,28 +68,28 @@
         <table class="w-full">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 ID
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Cliente
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Habitación
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Check-in
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Check-out
               </th>
-              <th class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Estado
               </th>
-              <th class="text-right py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-right py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Total
               </th>
-              <th class="text-center py-3 px-4 font-semibold text-slate-900 dark:text-white">
+              <th scope="col" class="text-center py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Acciones
               </th>
             </tr>
@@ -136,23 +126,23 @@
                 </span>
               </td>
               <td class="py-3 px-4 text-right font-medium text-slate-900 dark:text-white">
-                Bs. {{ reservation.total_price }}
+                {{ hotelMoney(reservation.total_price) }}
               </td>
               <td class="py-3 px-4 text-center">
                 <div class="flex items-center justify-center gap-2">
                   <CButton
                     variant="ghost"
                     size="sm"
-                    @click="viewReservation(reservation.id)"
+                    aria-label="Ver reserva" @click="viewReservation(reservation.id)"
                   >
                     <Icon name="system-uicons:eye" size="16" />
                   </CButton>
                   <CButton
+                    v-if="reservation.status === 'confirmed' || reservation.status === 'checked_in'"
                     variant="ghost"
-                    size="sm"
-                    @click="editReservation(reservation.id)"
+                    size="sm" aria-label="Editar reserva" @click="editReservation(reservation.id)"
                   >
-                    <Icon name="system-uicons:edit" size="16" />
+                    <Icon name="system-uicons:write" size="16" />
                   </CButton>
                 </div>
               </td>
@@ -182,7 +172,7 @@
       <!-- Loading -->
       <div v-else class="text-center py-12">
         <Icon
-          name="system-uicons:loading"
+          name="system-uicons:loader"
           size="32"
           class="mx-auto text-blue-500 animate-spin mb-4"
         />
@@ -193,13 +183,15 @@
     </CCard>
 
     <!-- Modal de Reserva -->
+    <CModal :is-open="isModalOpen" :title="selectedReservation ? 'Editar reserva' : 'Nueva reserva'" @close="closeModal">
     <FReservationForm
-      :is-open="isModalOpen"
+v-if="isModalOpen"
       :reservation="selectedReservation"
       :loading="isSubmitting"
       @submit="handleSubmit"
       @cancel="closeModal"
     />
+    </CModal>
   </div>
 </template>
 
@@ -211,6 +203,8 @@ import { useUIStore } from '~/stores/ui'
 import { useReservations } from '~/composables/useReservations'
 import { formatDate } from '~/utils/formatters'
 import type { CreateReservationRequest, Reservation } from '~/types'
+
+const { money: hotelMoney } = useHotelSettings()
 
 definePageMeta({
   middleware: ['auth', 'receptionist']
@@ -288,10 +282,10 @@ const getStatusLabel = (status: string) => {
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    confirmed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-    checked_in: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-    checked_out: 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300',
-    cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+    confirmed: 'status-badge status-confirmed',
+    checked_in: 'status-badge status-checked_in',
+    checked_out: 'status-badge status-checked_out',
+    cancelled: 'status-badge status-cancelled'
   }
   return colors[status] || colors.confirmed
 }
@@ -319,7 +313,7 @@ const handleSubmit = async (data: CreateReservationRequest) => {
   isSubmitting.value = true
   try {
     if (selectedReservation.value) {
-      await updateReservation(selectedReservation.value.id, data)
+      await updateReservation(selectedReservation.value.id, { check_in: data.check_in, check_out: data.check_out, notes: data.notes })
       uiStore.success('Reserva actualizada exitosamente')
     } else {
       await createReservation(data)

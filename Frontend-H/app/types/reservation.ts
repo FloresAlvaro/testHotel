@@ -24,6 +24,10 @@ export interface Reservation {
   receptionist_name?: string;
   total_price: string;
   status: ReservationStatus;
+  adults?: number;
+  children?: number;
+  arrival_time?: string | null;
+  special_requests?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -56,6 +60,7 @@ export interface CheckInLogData {
   room_number?: string;
   room_type_name?: string;
   scheduled_checkout_date?: string;
+  scheduled_checkout_at?: string;
   total_price?: string;
   created_at: string;
   updated_at: string;

@@ -61,3 +61,15 @@ describe('Validacion Joi', () => {
     expect(result.error).toBeDefined();
   });
 });
+
+
+describe('Importes y cambios parciales', () => {
+  test('rechaza más de dos decimales sin redondear silenciosamente', () => {
+    expect(paymentSchema.validate({ reservation_id: 1, amount: 1.005, method: 'cash' }).error).toBeDefined();
+  });
+  test('admite actualizar solo notas pero no hacer check-in por el endpoint de edición', () => {
+    const { updateSchema } = require('../src/validators/reservationValidator');
+    expect(updateSchema.validate({ notes: 'Llegada por la tarde' }).error).toBeUndefined();
+    expect(updateSchema.validate({ status: 'checked_in' }).error).toBeDefined();
+  });
+});

@@ -13,9 +13,10 @@ const createSchema = Joi.object({
 });
 
 const updateSchema = Joi.object({
-	...dates,
-	total_price: Joi.number().min(0),
-	status: Joi.string().valid('confirmed', 'checked_in', 'checked_out', 'cancelled'),
+	check_in: Joi.date().iso(),
+	check_out: Joi.date().iso(),
+	total_price: Joi.number().min(0).max(99999999.99).precision(2).strict(),
+	status: Joi.string().valid('confirmed', 'cancelled'),
 	notes: Joi.string().trim().max(2000).allow('', null)
 }).min(1);
 

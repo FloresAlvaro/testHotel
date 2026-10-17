@@ -1,4 +1,5 @@
 import { useApiClient } from "./api";
+import { useHotelSettings } from "../composables/useHotelSettings";
 import type { RegisterRequest, UserRole } from "~/types";
 
 /**
@@ -9,6 +10,7 @@ export const useAuthService = () => {
   const router = useRouter();
   const api = useApiClient();
   const uiStore = useUiStore();
+  const hotel = useHotelSettings();
 
   const login = async (email: string, password: string) => {
     try {
@@ -16,13 +18,18 @@ export const useAuthService = () => {
       const response = await api.login({ email, password });
 
       if (response.success && response.data) {
-        authStore.setAuth(response.data.user, response.data.token);
+        authStore.setAuth(response.data.user, response.data.csrfToken);
+        await hotel.load().catch(() => uiStore.error("No se pudo cargar la configuración del hotel"));
         uiStore.success("Sesión iniciada correctamente");
         return response.data;
       }
     } catch (error: unknown) {
-      authStore.setError("Email o contraseña incorrectos");
-      uiStore.error("Email o contraseña incorrectos");
+      const failure = error as { statusCode?: number; data?: { message?: string } };
+      const message = failure.statusCode === 403
+        ? failure.data?.message || 'Tu acceso está desactivado. Contacta con recepción.'
+        : failure.statusCode === 401 ? 'Email o contraseña incorrectos' : 'No se pudo iniciar sesión. Intenta nuevamente.';
+      authStore.setError(message);
+      uiStore.error(message);
       throw error;
     } finally {
       uiStore.setLoading(false);
@@ -38,7 +45,6 @@ export const useAuthService = () => {
       if (!response.success || !response.data) {
         throw new Error(response.message || "No se pudo crear la cuenta");
       }
-      authStore.setAuth(response.data.user, response.data.token);
       uiStore.success("Cuenta creada correctamente");
       return response.data;
     } catch (error: unknown) {
@@ -51,10 +57,12 @@ export const useAuthService = () => {
     }
   };
 
-  const logout = () => {
-    authStore.logout();
-    router.push("/auth/login");
-    uiStore.success("Sesión cerrada");
+  const logout = async () => {
+    try {
+      await authStore.logout();
+      await router.push("/auth/login");
+      uiStore.success("Sesión cerrada");
+    } catch { uiStore.error("No se pudo cerrar la sesión. Revisa tu conexión e intenta de nuevo."); }
   };
 
   const getProfile = async () => {
