@@ -126,9 +126,9 @@ const getCellValue = (row: T, key: string): string | number | boolean | null | u
 .table-scroll { overflow-x: auto; }
 .table { min-width: 560px; }
 .table-toolbar { padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
-.th-content { display: flex; align-items: center; gap: 6px; }
+.th-content { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .sort-btn { display: inline-flex; border: 0; background: transparent; color: var(--text-tertiary); font-size: 16px; }
-.actions-col, .actions-cell { text-align: right; }
+.actions-col, .actions-cell { text-align: center; }
 .empty-state { padding: 36px 16px; text-align: center; color: var(--text-secondary); }
 .table-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border-color); padding: 14px 18px; font-size: 11px; color: var(--text-secondary); }
 .pagination-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }

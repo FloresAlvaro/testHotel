@@ -180,7 +180,7 @@
               <td class="py-3 px-4 text-slate-600 dark:text-slate-400">
                 {{ formatDate(payment.created_at) }}
               </td>
-              <td class="py-3 px-4 text-slate-900 dark:text-white font-medium">
+              <td class="py-3 px-4 text-slate-900 dark:text-white font-medium table-text-left">
                 {{ payment.client_name }}
               </td>
               <td class="py-3 px-4">

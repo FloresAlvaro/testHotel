@@ -70,7 +70,7 @@ const navigation = computed(() => {
     ] }] : []),
     ...(authStore.isAdmin ? [{ label: 'Administración', items: [
       { label: 'Equipo', href: '/admin/settings?tab=users', icon: 'system-uicons:user' },
-      { label: 'Presentación y correo', href: '/operations/property', icon: 'system-uicons:image' },
+      { label: 'Presentación y correo', href: '/operations/property', icon: 'system-uicons:picture' },
       { label: 'Configuración', href: '/admin/settings', icon: 'system-uicons:settings' }
     ] }] : [])
   ];
