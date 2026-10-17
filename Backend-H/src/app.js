@@ -11,22 +11,30 @@ const {
   CORS_ORIGIN,
   CORS_CREDENTIALS,
   RATE_LIMIT_WINDOW_MS,
-  RATE_LIMIT_MAX_REQUESTS
+  RATE_LIMIT_MAX_REQUESTS,
+  TRUST_PROXY
 } = require('./config/environment');
 
 const app = express();
+
+app.set('trust proxy',TRUST_PROXY);
+app.use(require('./middleware/requestId'));
+// Logging
+morgan.token('request-id',req=>req.requestId);
+app.use(morgan((tokens,req,res)=>JSON.stringify({requestId:req.requestId,method:req.method,path:req.originalUrl.split('?')[0],status:Number(tokens.status(req,res)),durationMs:Number(tokens['response-time'](req,res))})));
 
 // Seguridad
 app.use(helmet());
 const allowedOrigins = CORS_ORIGIN.split(',').map(origin => origin.trim()).filter(Boolean);
 app.use(cors({
+  exposedHeaders: ['X-Request-ID'],
   credentials: CORS_CREDENTIALS && !allowedOrigins.includes('*'),
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    return callback(new Error('Origen CORS no permitido'));
+    return callback(Object.assign(new Error('Origen CORS no permitido'),{statusCode:403}));
   }
 }));
 
@@ -38,9 +46,6 @@ const limiter = rateLimit({
   message: { success: false, message: 'Demasiadas solicitudes. Espera unos minutos antes de volver a intentar.' }
 });
 app.use('/api/', limiter);
-
-// Logging
-app.use(morgan('combined'));
 
 // La firma de Stripe se comprueba contra los bytes originales, antes de express.json.
 app.post('/api/webhooks/stripe', express.raw({type:'application/json',limit:'256kb'}), async(req,res,next)=>{
@@ -64,8 +69,9 @@ app.get('/api-docs.json', (req, res) => {
 app.use('/api', routes);
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+app.get('/health', async (req,res)=>{
+  const ready=await require('./config/database').testConnection();
+  res.status(ready?200:503).json({status:ready?'OK':'unavailable',database:ready?'available':'unavailable',timestamp:new Date()});
 });
 
 // Manejo de errores

@@ -155,3 +155,32 @@ Los clientes disponen de acceso propio en `/portal` para crear reservas y consul
 ### Solicitudes, correo, pagos y respaldos
 
 El template incluye solicitudes con aprobación del hotel, SMTP con cola y recuperación de contraseña, checkout configurable (Stripe o demo), presentación editable y copias PostgreSQL con restauración de prueba. Consulta [configuración, límites y operación](docs/servicios-huesped.md). El modo demo no cobra dinero ni entrega correos a Internet.
+
+### Verificaciones automáticas y protección operativa
+
+La primera integración incorpora CI para backend, frontend y E2E, identificadores de petición y logs JSON, protección concurrente del último administrador, validación de configuración y cierre ordenado. Consulta [el detalle de implementación y comprobaciones](docs/entrega-calidad-operacion.md). El workflow se ejecutará al publicar estos archivos en GitHub.
+
+### Historial de migraciones
+
+Tras instalar el esquema inicial (o actualizar una instalación existente), ejecuta
+`npm run db:migrate` desde `Backend-H/`, con `DATABASE_URL` apuntando a la base que
+vas a actualizar. En Docker: `docker compose exec backend npm run db:migrate`.
+El inicio de la API no ejecuta migraciones automáticamente.
+
+El ejecutor guarda nombre, SHA-256 y fecha en `schema_migrations`. La primera
+vez vuelve a ejecutar las migraciones históricas idempotentes y registra cada
+una únicamente al confirmarse. Conserva los datos existentes. El esquema inicial
+y el seed no forman parte de este historial; no vuelvas a cargar el seed sobre
+una base con datos reales.
+
+Cada archivo se confirma por separado, junto con su registro, para permitir que
+el rol `customer` exista antes de utilizarlo. Un bloqueo PostgreSQL serializa
+los ejecutores concurrentes (espera máxima de bloqueo: 30 segundos). Si falla
+un archivo, se revierte ese archivo; los anteriores permanecen confirmados y
+el siguiente intento continúa desde allí. Haz un respaldo antes de actualizar.
+
+No edites, renombres ni elimines archivos ya registrados: un checksum diferente
+o un archivo ausente detiene la actualización. Restaura el archivo original y
+crea una migración con un número posterior al último. Las nuevas migraciones
+no deben controlar transacciones internas ni usar operaciones que requieran
+salir de una transacción (por ejemplo `CREATE INDEX CONCURRENTLY`).

@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
+const migrate = require('../src/database/migrations');
 require('dotenv').config();
 
 (async () => {
@@ -9,10 +10,7 @@ require('dotenv').config();
   const local = path.join(__dirname, '../../database/migrations');
   const directory = fs.existsSync(local) ? local : path.join(__dirname, '../migrations');
   try {
-    // Cada archivo se confirma por separado: PostgreSQL exige confirmar ADD VALUE antes de usarlo.
-    for (const file of fs.readdirSync(directory).filter(name => /^\d+.*\.sql$/.test(name)).sort()) {
-      await pool.query(fs.readFileSync(path.join(directory, file), 'utf8'));
-      console.log(`Migración aplicada: ${file}`);
-    }
+    await migrate(pool, directory, console.log);
+    console.log('Migraciones verificadas; base actualizada');
   } finally { await pool.end(); }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

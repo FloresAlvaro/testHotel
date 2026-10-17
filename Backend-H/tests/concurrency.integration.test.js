@@ -88,6 +88,7 @@ describeDb('Concurrencia real PostgreSQL y altas de empleados', () => {
       await pool.query(fs.readFileSync(path.join(__dirname, '../../database/migrations',file), 'utf8'));
     }
     const app = express();
+    app.use(require('../src/middleware/requestId'));
     app.use(express.json());
     app.use('/users', userRoutes);
     app.use('/api', require('../src/routes'));
@@ -580,6 +581,40 @@ describeDb('Concurrencia real PostgreSQL y altas de empleados', () => {
       expect((await fetch(url,{method:'POST',headers,body:payload})).status).toBe(200);
       expect((await pool.query('SELECT * FROM payment_webhook WHERE id=$1',['evt_signature_test'])).rowCount).toBe(1);
     }finally{await new Promise(resolve=>http.close(resolve));delete process.env.PAYMENT_PROVIDER;delete process.env.STRIPE_SECRET_KEY;delete process.env.STRIPE_WEBHOOK_SECRET;}
+  });
+
+  test('último administrador: PUT y PATCH impiden perder acceso y mantienen roles customer aislados',async()=>{
+    expect((await api(`/users/${userId}`,'PUT',{name:'Admin',email:'admin@example.com',role:'manager',is_active:true})).status).toBe(409);
+    expect((await api(`/users/${userId}/deactivate`,'PATCH',{})).status).toBe(409);
+    expect((await pool.query('SELECT is_active,role FROM "user" WHERE id=$1',[userId])).rows[0]).toMatchObject({is_active:true,role:'admin'});
+    const guest=await customer(clientId);
+    expect((await api(`/users/${guest.user.id}/deactivate`,'PATCH',{})).status).toBe(409);
+    expect((await api('/portal/profile','GET',undefined,guest.token)).status).toBe(200);
+  });
+  test('dos administradores se desactivan simultáneamente: queda exactamente uno activo',async()=>{
+    const second=(await pool.query(`INSERT INTO "user"(name,email,password,role) VALUES('Admin dos','admin2@test.example','hash','admin') RETURNING id`)).rows[0];
+    const service=require('../src/services/userAdministrationService');
+    const results=await Promise.allSettled([service.edit(userId,{is_active:false}),service.edit(second.id,{is_active:false})]);
+    expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+    expect(results.find(r=>r.status==='rejected').reason.statusCode).toBe(409);
+    expect((await pool.query(`SELECT COUNT(*)::int AS count FROM "user" WHERE role='admin' AND is_active`)).rows[0].count).toBe(1);
+  });
+  test('cambio de permisos revoca JWT previo y errores incluyen el ID de petición',async()=>{
+    const second=(await pool.query(`INSERT INTO "user"(name,email,password,role) VALUES('Admin dos','second-admin@example.com','hash','admin') RETURNING id`)).rows[0];
+    const token=createToken({id:second.id,role:'admin'});
+    expect((await api(`/users/${second.id}`,'PUT',{name:'Admin dos',email:'second-admin@example.com',role:'manager',is_active:true})).status).toBe(200);
+    const response=await fetch(`${base}/api/users/profile`,{headers:{Authorization:`Bearer ${token}`,'X-Request-ID':'id-del-cliente'}});
+    expect(response.status).toBe(401);
+    const body=await response.json();expect(body.requestId).toBe(response.headers.get('X-Request-ID'));expect(body.requestId).not.toBe('id-del-cliente');
+  });
+  test('salud responde 503 si falla PostgreSQL y recupera 200',async()=>{
+    const original=pool.testConnection;pool.testConnection=jest.fn().mockResolvedValue(false);
+    const healthServer=require('../src/app').listen(0,'127.0.0.1');await new Promise(resolve=>healthServer.once('listening',resolve));
+    try{
+      const url=`http://127.0.0.1:${healthServer.address().port}/health`;
+      const down=await fetch(url);expect(down.status).toBe(503);expect((await down.json()).database).toBe('unavailable');
+      pool.testConnection.mockResolvedValue(true);const up=await fetch(url);expect(up.status).toBe(200);expect((await up.json()).database).toBe('available');
+    }finally{await new Promise(resolve=>healthServer.close(resolve));if(original)pool.testConnection=original;else delete pool.testConnection;}
   });
 
 });

@@ -4,7 +4,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.code === '23P01') {
     err = Object.assign(new Error('Habitación no disponible para las fechas seleccionadas'), { statusCode: 409 });
   }
-  console.error(err);
+  console.error(JSON.stringify({event:'request_error',requestId:req.requestId,method:req.method,path:req.originalUrl?.split('?')[0],status:err.statusCode||err.status||500,code:err.code}));
 
   const requestedStatus = err.statusCode || err.status;
   const statusCode = Number.isInteger(requestedStatus) && requestedStatus >= 400 && requestedStatus <= 599

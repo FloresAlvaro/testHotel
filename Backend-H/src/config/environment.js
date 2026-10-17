@@ -207,7 +207,7 @@ if (isDevelopment) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`NODE_ENV: ${NODE_ENV}`);
   console.log(`PORT: ${PORT}`);
-  console.log(`DATABASE: ${DATABASE_URL.split('@')[1]}`); // Solo mostrar host
+  console.log(`DATABASE: ${new URL(DATABASE_URL).host + new URL(DATABASE_URL).pathname}`); // Solo mostrar host
   console.log(`JWT_EXPIRE: ${JWT_EXPIRE}`);
   console.log(`BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}`);
   console.log(`LOG_LEVEL: ${LOG_LEVEL}`);
@@ -217,6 +217,8 @@ if (isDevelopment) {
 // ============================================
 // EXPORTAR CONFIGURACIÓN
 // ============================================
+
+const runtimeSettings=require('./runtimeSettings')(process.env);
 
 module.exports = {
   // Básico
@@ -273,5 +275,6 @@ module.exports = {
   // Banderas de entorno
   isDevelopment,
   isProduction,
-  isTesting
+  isTesting,
+  ...runtimeSettings
 };

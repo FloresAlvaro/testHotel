@@ -1,0 +1,122 @@
+name: Verificaciones del hotel
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Backend-H
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://hotel_test:ci-test-only@127.0.0.1:5432/hotel_test
+      TEST_DATABASE_URL: postgresql://hotel_test:ci-test-only@127.0.0.1:5432/hotel_test
+      JWT_SECRET: isolated-ci-secret-at-least-32-characters-long
+      ENABLE_HEALTH_CHECK: 'false'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hotel_test
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: hotel_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hotel_test -d hotel_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Backend-H/package-lock.json
+      - run: npm ci
+      - name: Exigir pruebas PostgreSQL
+        run: node -e "if (!process.env.TEST_DATABASE_URL) throw new Error('TEST_DATABASE_URL es obligatoria en CI')"
+      - run: npm run test:ci
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Frontend-H
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Frontend-H/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://hotel_test:ci-test-only@127.0.0.1:5432/hotel_e2e
+      E2E_DATABASE_URL: postgresql://hotel_test:ci-test-only@127.0.0.1:5432/hotel_e2e
+      JWT_SECRET: isolated-ci-secret-at-least-32-characters-long
+      ENABLE_HEALTH_CHECK: 'false'
+      PORT: '3300'
+      APP_URL: http://127.0.0.1:3311
+      CORS_ORIGIN: http://127.0.0.1:3311
+      CORS_CREDENTIALS: 'true'
+      PAYMENT_PROVIDER: demo
+      ALLOW_DEMO_PAYMENTS: 'true'
+      E2E_ALLOW_WRITES: '1'
+      E2E_BASE_URL: http://127.0.0.1:3311
+      E2E_API_URL: http://127.0.0.1:3300/api
+      NUXT_PUBLIC_API_BASE: http://127.0.0.1:3300/api
+      NUXT_API_INTERNAL_BASE: http://127.0.0.1:3300/api
+      E2E_BROWSER: chromium
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hotel_test
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: hotel_e2e
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hotel_test -d hotel_e2e"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            Backend-H/package-lock.json
+            Frontend-H/package-lock.json
+      - run: npm ci --prefix Backend-H
+      - run: npm ci --prefix Frontend-H
+      - run: npx playwright install --with-deps chromium
+        working-directory: Frontend-H
+      - run: npm run e2e:prepare --prefix Backend-H
+      - run: npm run build --prefix Frontend-H
+      - name: Iniciar API y frontend aislados
+        run: |
+          node Backend-H/server.js > /tmp/hotel-api.log 2>&1 &
+          NITRO_HOST=127.0.0.1 NITRO_PORT=3311 node Frontend-H/.output/server/index.mjs > /tmp/hotel-frontend.log 2>&1 &
+          node Backend-H/scripts/wait-e2e.js
+      - run: npm run test:e2e --prefix Frontend-H
+      - name: Adjuntar diagnóstico si falla
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hotel-e2e-diagnostics
+          path: |
+            Frontend-H/test-results/
+            /tmp/hotel-api.log
+            /tmp/hotel-frontend.log
+          retention-days: 7

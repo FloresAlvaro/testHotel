@@ -5,7 +5,9 @@ const {
   DB_POOL_MIN,
   DB_POOL_MAX,
   DB_IDLE_TIMEOUT,
-  DB_CONNECT_TIMEOUT
+  DB_CONNECT_TIMEOUT,
+  ENABLE_HEALTH_CHECK,
+  HEALTH_CHECK_INTERVAL
 } = require('./environment');
 
 // ============================================
@@ -48,11 +50,10 @@ const queryPool = pool.query.bind(pool);
 let isConnected = false;
 
 const testConnection = async () => {
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    client.release();
-    
     console.log(`✅ Conexión a PostgreSQL establecida: ${result.rows[0].now}`);
     isConnected = true;
     return true;
@@ -60,11 +61,11 @@ const testConnection = async () => {
     console.error('❌ Error conectando a PostgreSQL:', error.message);
     isConnected = false;
     return false;
-  }
+  } finally { client?.release(); }
 };
 
 // Intentar conectar al iniciar
-testConnection();
+if (NODE_ENV !== 'test' && NODE_ENV !== 'testing') testConnection();
 
 // ============================================
 // MANEJADORES DE EVENTOS DEL POOL
@@ -182,11 +183,13 @@ const reconnect = async () => {
  */
 const close = async () => {
   try {
+    if(healthCheckTimer)clearInterval(healthCheckTimer);
     await pool.end();
     console.log('✓ Pool de conexiones cerrado correctamente');
     isConnected = false;
   } catch (error) {
-    console.error('Error cerrando pool:', error.message);
+    console.error(JSON.stringify({event:'database_close_failed'}));
+    throw error;
   }
 };
 
@@ -194,7 +197,7 @@ const close = async () => {
  * Verificar estado de la BD periódicamente
  */
 const startHealthCheck = (interval = 60000) => {
-  setInterval(async () => {
+  const timer=setInterval(async () => {
     try {
       const result = await queryPool('SELECT 1');
       if (!isConnected) {
@@ -208,26 +211,11 @@ const startHealthCheck = (interval = 60000) => {
       }
     }
   }, interval);
+  timer.unref();
+  return timer;
 };
 
-// Iniciar health check
-startHealthCheck();
-
-// ============================================
-// MANEJO DE CIERRE GRACEFUL
-// ============================================
-
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM recibido, cerrando pool...');
-  await close();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT recibido, cerrando pool...');
-  await close();
-  process.exit(0);
-});
+const healthCheckTimer=ENABLE_HEALTH_CHECK?startHealthCheck(HEALTH_CHECK_INTERVAL):null;
 
 // ============================================
 // EXPORTAR

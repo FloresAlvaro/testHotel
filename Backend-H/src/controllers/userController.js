@@ -151,11 +151,11 @@ class UserController {
 
       if (user.role === 'customer') return sendError(res, 'Administra esta cuenta desde la ficha del huésped', HTTP_STATUS.CONFLICT);
       // Actualizar
-      const updatedUser = await User.update(id, { name, email, role, is_active });
+      const updatedUser = await require('../services/userAdministrationService').edit(id, Object.fromEntries(Object.entries({name,email,role,is_active}).filter(([,value])=>value!==undefined)));
 
       sendUpdated(res, updatedUser, SUCCESS_MESSAGES.USER_UPDATED);
     } catch (error) {
-      if (error.message.includes('email ya está')) {
+      if (error.code==='23505' || error.message.includes('email ya está')) {
         return sendError(res, ERROR_MESSAGES.EMAIL_ALREADY_EXISTS, HTTP_STATUS.CONFLICT);
       }
       next(error);
@@ -205,7 +205,7 @@ class UserController {
     try {
       const { id } = req.params;
 
-      const user = await User.deactivate(id);
+      const user = await require('../services/userAdministrationService').edit(id,{is_active:false});
       if (!user) {
         return sendError(res, ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
       }
@@ -223,7 +223,7 @@ class UserController {
     try {
       const { id } = req.params;
 
-      const user = await User.activate(id);
+      const user = await require('../services/userAdministrationService').edit(id,{is_active:true});
       if (!user) {
         return sendError(res, ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
       }

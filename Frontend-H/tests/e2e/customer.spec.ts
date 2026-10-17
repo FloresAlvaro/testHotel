@@ -6,7 +6,7 @@ const customerEmail=process.env.E2E_CUSTOMER_EMAIL||'customer@hotel.com'
 const customerPassword=process.env.E2E_CUSTOMER_PASSWORD||'Customer123!'
 
 test('huésped: login, estancias propias, comprobante y bloqueo del panel interno',async({page,request})=>{
-  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
+  const errors:string[]=[],diagnostics:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',entry=>{if(entry.type()==='error')diagnostics.push(entry.text())})
   await page.setViewportSize({width:390,height:844})
   await page.goto('/auth/login?redirect=/operations/calendar')
   await page.getByLabel('Correo electrónico',{exact:true}).fill(customerEmail)
@@ -37,8 +37,13 @@ test('huésped: login, estancias propias, comprobante y bloqueo del panel intern
   const secondToken=(await second.json()).data.token
   const others=await request.get(`${api}/portal/reservations`,{headers:{Authorization:`Bearer ${secondToken}`}})
   const foreignId=(await others.json()).data[0].id
+  const rejected=page.waitForResponse(r=>r.url()===`${api}/portal/reservations/${foreignId}` && r.status()===404)
   await page.goto(`/portal/reservations/${foreignId}`)
   await expect(page.getByRole('alert')).toContainText('Reserva no encontrada')
+  const failure=await rejected,requestId=failure.headers()['x-request-id']
+  expect(requestId).toBeTruthy()
+  expect((await failure.json()).requestId).toBe(requestId)
+  await expect.poll(()=>diagnostics.some(message=>message.includes(`[${requestId}]`))).toBe(true)
   await expect(page.getByRole('heading',{name:/Habitación/})).toHaveCount(0)
   await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click()
   await expect(page).toHaveURL(/\/auth\/login/)
