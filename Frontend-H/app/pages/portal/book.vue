@@ -1,7 +1,11 @@
 <template>
   <div class="space-y-6">
     <CPageHeader title="Nueva reserva" description="Elige tus fechas, encuentra una habitación y confirma tu próxima estancia." back-to="/portal" />
-    <p v-if="error" class="operation-error" role="alert">{{ error }}</p>
+    <ol class="booking-progress" aria-label="Pasos de tu reserva">
+      <li :class="{'is-current':!quote}" :aria-current="!quote?'step':undefined"><span>1</span><div>Tu viaje<small>Fechas y huéspedes</small></div></li>
+      <li :class="{'is-current':quote&&!selected}" :aria-current="quote&&!selected?'step':undefined"><span>2</span><div>Tu habitación<small>Compara y elige</small></div></li>
+      <li :class="{'is-current':!!selected}" :aria-current="selected?'step':undefined"><span>3</span><div>Tu estancia<small>Revisa y confirma</small></div></li>
+    </ol>    <p v-if="error" class="operation-error" role="alert">{{ error }}</p>
     <p v-if="!ready" role="status">Preparando tu reserva… <button v-if="error" class="underline" @click="initialize">Reintentar</button></p>
     <CCard>
       <h2 class="booking-dates-title">1. Fechas y huéspedes</h2>
@@ -71,14 +75,21 @@ onMounted(initialize)
 
 .booking-room-image{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:7px}
 
-.booking-dates-title{text-align:center;margin-bottom:24px}
-.booking-date-form{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,.7fr) minmax(0,.7fr);align-items:end;gap:16px;max-width:900px;margin-inline:auto}
+.booking-dates-title{text-align:left;margin-bottom:20px}
+.booking-date-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(90px,.5fr) minmax(90px,.5fr) minmax(180px,.9fr);align-items:end;gap:16px;width:100%}
 .booking-date-form label{min-width:0}
 .booking-date-form input{width:100%;min-width:0;height:44px;box-sizing:border-box}
-.booking-search-button{min-height:44px;grid-column:1/-1;justify-self:center;width:min(100%,300px);margin-top:8px}
-.booking-date-help{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 20px;text-align:center}
-@media(max-width:760px){.booking-date-form{grid-template-columns:repeat(2,minmax(0,1fr));max-width:480px}.booking-search-button{grid-column:1/-1;width:100%}}
+.booking-search-button{min-height:44px;width:100%;margin:0}
+.booking-date-help{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px 20px;text-align:left}
+@media(max-width:1000px){.booking-date-form{grid-template-columns:repeat(2,minmax(0,1fr))}.booking-search-button{grid-column:1/-1;width:100%}}
 @media(max-width:360px){.booking-date-form{grid-template-columns:minmax(0,1fr)}}
 
 .booking-note{font-size:12px;color:var(--text-secondary);line-height:1.8;margin-top:18px}.booking-rooms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.booking-room{padding:20px;border:1px solid var(--border-color);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:12px}.booking-room.is-selected{border-color:#535ed6;box-shadow:0 0 0 1px #535ed6;background:var(--accent-soft)}.booking-room-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.booking-room h3{font-size:14px;font-weight:500}.booking-room p,.booking-room small{font-size:12px;color:var(--text-secondary)}.booking-room strong{font-size:22px;font-weight:500;margin-top:auto}.booking-room input{accent-color:#535ed6;width:18px;height:18px;flex-shrink:0}.booking-summary{display:grid;grid-template-columns:1fr 1fr;gap:20px}.booking-summary dt{font-size:12px;color:var(--text-secondary);margin-bottom:6px}.booking-summary dd{font-size:14px;overflow-wrap:anywhere}.booking-actions{display:flex;align-items:center;gap:20px;margin-top:24px;font-size:12px}.booking-actions a{color:#535ed6}@media(max-width:760px){.booking-rooms{grid-template-columns:1fr 1fr}}@media(max-width:520px){.booking-rooms,.booking-summary{grid-template-columns:1fr}.booking-actions{align-items:flex-start;flex-direction:column}}
-</style>
+.booking-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;padding:0;margin:0 0 24px}
+.booking-progress li{display:flex;align-items:center;gap:12px;border:1px solid var(--border-color);background:var(--bg-secondary);padding:18px;border-radius:12px;color:var(--text-secondary);font-size:13px}
+.booking-progress li>span{display:grid;place-items:center;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--surface-subtle);font-size:12px}
+.booking-progress .is-current{border-color:var(--accent);color:var(--text-primary);background:var(--accent-soft)}.booking-progress .is-current>span{background:var(--accent);color:var(--bg-secondary)}
+.booking-progress small{display:block;font-size:10px;margin-top:4px;color:var(--text-secondary)}
+.booking-room{background:var(--bg-secondary);transition:border-color .15s,box-shadow .15s}.booking-room:hover{border-color:var(--accent)}.booking-room:focus-within{outline:2px solid var(--ring);outline-offset:3px}
+.booking-room.is-selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+@media(max-width:520px){.booking-progress{gap:6px}.booking-progress li{padding:12px 6px;gap:6px;flex-direction:column;text-align:center;font-size:11px}.booking-progress small{display:none}}</style>
