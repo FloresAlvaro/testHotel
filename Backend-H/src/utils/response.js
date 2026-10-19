@@ -73,7 +73,7 @@ const sendDeleted = (res, message = SUCCESS_MESSAGES.DELETED_SUCCESS) => {
  * @param {number} pageSize - Tamaño de página
  * @param {string} message - Mensaje personalizado
  */
-const sendPaginated = (res, data, total, page = 1, pageSize = 10, message = SUCCESS_MESSAGES.OPERATION_SUCCESS) => {
+const sendPaginated = (res, data, total, page = 1, pageSize = 10, message = SUCCESS_MESSAGES.OPERATION_SUCCESS, metadata = {}) => {
   const currentPage = Math.max(Number.parseInt(page, 10) || 1, 1);
   const currentPageSize = Math.min(Math.max(Number.parseInt(pageSize, 10) || 10, 1), 100);
   const totalRecords = Number(total) || 0;
@@ -83,6 +83,7 @@ const sendPaginated = (res, data, total, page = 1, pageSize = 10, message = SUCC
     success: true,
     message,
     data,
+    ...metadata,
     pagination: {
       total: totalRecords,
       page: currentPage,

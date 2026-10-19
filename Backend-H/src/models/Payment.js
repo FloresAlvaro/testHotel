@@ -133,7 +133,7 @@ class Payment {
   /**
    * Obtener ingresos por período
    */
-  static async getRevenueByPeriod(startDate, endDate) {
+  static async getRevenueByPeriod(startDate, endDate, method = null) {
     const query = `
       SELECT 
         DATE(p.created_at) as date,
@@ -141,31 +141,31 @@ class Payment {
         COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'completed'), 0) as total_amount,
         COUNT(CASE WHEN p.status = 'completed' THEN 1 END) as completed_payments
       FROM payment p
-      WHERE p.created_at >= $1::date AND p.created_at < ($2::date + INTERVAL '1 day')
+      WHERE p.created_at >= $1::date AND p.created_at < ($2::date + INTERVAL '1 day') AND ($3::text IS NULL OR p.method::text=$3)
       GROUP BY DATE(p.created_at)
       ORDER BY date DESC
     `;
 
-    const result = await pool.query(query, [startDate, endDate]);
+    const result = await pool.query(query, [startDate, endDate, method]);
     return result.rows;
   }
 
   /**
    * Obtener ingresos por método de pago
    */
-  static async getRevenueByMethod(startDate, endDate) {
+  static async getRevenueByMethod(startDate, endDate, method = null) {
     const query = `
       SELECT 
         method,
         COUNT(id) as total_transactions,
         SUM(amount) as total_amount
       FROM payment
-      WHERE status = 'completed' AND created_at >= $1::date AND created_at < ($2::date + INTERVAL '1 day')
+      WHERE status = 'completed' AND created_at >= $1::date AND created_at < ($2::date + INTERVAL '1 day') AND ($3::text IS NULL OR method::text=$3)
       GROUP BY method
       ORDER BY total_amount DESC
     `;
 
-    const result = await pool.query(query, [startDate, endDate]);
+    const result = await pool.query(query, [startDate, endDate, method]);
     return result.rows;
   }
 

@@ -159,22 +159,20 @@
               <Icon name="system-uicons:calendar" size="18" class="mr-2" />
               Nueva Reserva
             </CButton>
-            <CButton variant="secondary" class="w-full">
-              <Icon name="system-uicons:mail" size="18" class="mr-2" />
-              Enviar Email
-            </CButton>
+            <a v-if="client?.email" :href="`mailto:${client.email}`" class="button-link justify-center">Enviar correo a {{ client?.name }}</a>
           </div>
         </CCard>
       </div>
     </div>
 
+    <p v-if="historyError" role="alert" class="operation-error">{{ historyError }}</p>
     <!-- Historial de Reservas -->
     <CCard>
       <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
         Historial de Reservas
       </h2>
 
-      <div v-if="reservationHistory.length > 0" class="overflow-x-auto">
+      <CTablePagination :pagination="historyPagination" :loading="loading" @change="historyPage=$event" /><CTableHint /><div v-if="reservationHistory.length > 0" class="overflow-x-auto" tabindex="0" role="region" aria-label="Historial de reservas">
         <table class="w-full text-sm">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
@@ -197,13 +195,13 @@
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
             <tr
-              v-for="res in reservationHistory"
+              v-for="res in visibleHistory"
               :key="res.id"
               class="hover:bg-slate-50 dark:hover:bg-slate-800/50"
             >
               <td class="py-2 px-4">
                 <code class="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
-                  #{{ res.id }}
+                  <NuxtLink :to="`/reservations/${res.id}`" class="underline">#{{ res.id }}</NuxtLink>
                 </code>
               </td>
               <td class="py-2 px-4">
@@ -217,7 +215,7 @@
                   class="px-2 py-1 rounded text-xs font-medium"
                   :class="getStatusColor(res.status)"
                 >
-                  {{ res.status }}
+                  {{ RESERVATION_STATUS_LABELS[res.status] || res.status }}
                 </span>
               </td>
               <td class="py-2 px-4 text-right font-medium">
@@ -268,6 +266,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useClientsStore } from '~/stores/clients'
 import { useUIStore } from '~/stores/ui'
 import { useClients } from '~/composables/useClients'
+import { useApiClient } from '~/services/api'
+import { RESERVATION_STATUS_LABELS } from '~/utils/constants'
 import { formatDate } from '~/utils/formatters'
 import type { CreateClientRequest, Reservation } from '~/types'
 
@@ -282,7 +282,7 @@ const router = useRouter()
 const route = useRoute()
 const clientsStore = useClientsStore()
 const uiStore = useUIStore()
-const { fetchClient, deleteClient, updateClient, getClientReservations } = useClients()
+const { fetchClient, deleteClient, updateClient } = useClients()
 
 const clientId = Number(route.params.id)
 const loading = ref(false)
@@ -293,6 +293,10 @@ const isDeleteModalOpen = ref(false)
 
 const client = computed(() => clientsStore.currentClient)
 const reservationHistory = ref<Reservation[]>([])
+const historyPage=ref(1)
+const visibleHistory=computed(()=>reservationHistory.value.slice((historyPage.value-1)*10,historyPage.value*10))
+const historyPagination=computed(()=>({page:historyPage.value,pageSize:10,total:reservationHistory.value.length,totalPages:Math.ceil(reservationHistory.value.length/10)}))
+const historyError=ref(''),api=useApiClient()
 
 const totalReservations = computed(() => reservationHistory.value.length)
 const totalSpent = computed(() => {
@@ -359,9 +363,11 @@ onMounted(async () => {
   loading.value = true
   try {
     await fetchClient(clientId)
-    const history = await getClientReservations(clientId)
-    reservationHistory.value = history.data || []
-  } finally {
+    let page=1,totalPages=1;
+    const history:Reservation[]=[];
+    do{const response=await api.request<import('~/types').PaginatedApiResponse<Reservation>>('/reservations',{query:{clientId,page:page++,pageSize:100}});history.push(...(response.data||[]));totalPages=response.pagination.totalPages}while(page<=totalPages)
+    reservationHistory.value=history
+  } catch {historyError.value='No se pudo cargar la ficha completa del huésped. Vuelve a intentar.'} finally {
     loading.value = false
   }
 })

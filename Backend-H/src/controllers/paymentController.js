@@ -49,14 +49,9 @@ class PaymentController {
    */
   static async getAll(req, res, next) {
     try {
-      const { page = 1, pageSize = 10, status } = req.query;
-
-      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
-
-      const payments = await Payment.findAll(limit, offset, status);
-      const total = await Payment.countAll(status);
-
-      sendPaginated(res, payments, total, currentPage, limit);
+      const { page = 1, pageSize = 10 } = req.query;
+      const result = await require('../services/tableListService').list('payments', req.query);
+      sendPaginated(res, result.rows, result.total, page, pageSize, undefined, result.summary ? { summary: result.summary } : {});
     } catch (error) {
       next(error);
     }
@@ -135,7 +130,8 @@ class PaymentController {
    */
   static async getRevenueByPeriod(req, res, next) {
     try {
-      const { startDate, endDate } = req.query;
+      const { startDate, endDate, method } = req.query;
+      if (method && !require('../validators/listValidator').methods.includes(method)) return sendError(res, 'Método no válido', 400);
 
       if (!startDate || !endDate) {
         return sendError(res, 'Fechas de inicio y fin requeridas', HTTP_STATUS.BAD_REQUEST);
@@ -145,7 +141,7 @@ class PaymentController {
         return sendError(res, 'El período debe contener fechas válidas (AAAA-MM-DD) en orden cronológico', HTTP_STATUS.BAD_REQUEST);
       }
 
-      const revenue = await Payment.getRevenueByPeriod(startDate, endDate);
+      const revenue = await Payment.getRevenueByPeriod(startDate, endDate, method || null);
 
       sendSuccess(res, revenue);
     } catch (error) {
@@ -158,7 +154,8 @@ class PaymentController {
    */
   static async getRevenueByMethod(req, res, next) {
     try {
-      const { startDate, endDate } = req.query;
+      const { startDate, endDate, method } = req.query;
+      if (method && !require('../validators/listValidator').methods.includes(method)) return sendError(res, 'Método no válido', 400);
 
       if (!startDate || !endDate) {
         return sendError(res, 'Fechas de inicio y fin requeridas', HTTP_STATUS.BAD_REQUEST);
@@ -168,7 +165,7 @@ class PaymentController {
         return sendError(res, 'El período debe contener fechas válidas (AAAA-MM-DD) en orden cronológico', HTTP_STATUS.BAD_REQUEST);
       }
 
-      const revenue = await Payment.getRevenueByMethod(startDate, endDate);
+      const revenue = await Payment.getRevenueByMethod(startDate, endDate, method || null);
 
       sendSuccess(res, revenue);
     } catch (error) {

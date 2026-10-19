@@ -99,15 +99,18 @@
             <option value="credit_card">Tarjeta Crédito</option>
             <option value="debit_card">Tarjeta Débito</option>
             <option value="transfer">Transferencia</option>
+            <option value="check">Cheque</option>
           </select>
         </div>
       </div>
     </CCard>
 
+    <div class="flex flex-wrap items-center justify-between gap-3 text-sm"><p>Indicadores de todos los resultados que coinciden con los filtros.</p><CButton v-if="searchQuery || selectedStatus || selectedMethod" variant="secondary" @click="clearFilters">Limpiar filtros</CButton></div>
+    <p v-if="error" role="alert" class="operation-error">{{ error }} <button class="underline" @click="load">Reintentar</button></p>
     <!-- Tabla de Pagos -->
     <CCard>
-      <div v-if="!loading" class="overflow-x-auto">
-        <table class="w-full">
+      <CTableHint /><div v-if="!loading && !error" class="overflow-x-auto" tabindex="0" role="region" aria-label="Pagos">
+        <table class="table-data-centered w-full table-with-actions">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
               <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
@@ -171,7 +174,7 @@
                     size="sm"
                     aria-label="Ver pago" @click="viewPayment(payment.id)"
                   >
-                    <Icon name="system-uicons:eye" size="16" />
+                    <Icon name="system-uicons:eye" size="16" />Ver
                   </CButton>
                 </div>
               </td>
@@ -186,12 +189,12 @@
             class="mx-auto text-slate-400 mb-4"
           />
           <p class="text-slate-600 dark:text-slate-400">
-            No hay pagos registrados
+            {{ searchQuery || selectedStatus || selectedMethod ? 'No se encontraron pagos con estos filtros.' : 'Aún no hay pagos registrados.' }}
           </p>
         </div>
       </div>
 
-      <div v-else class="text-center py-12">
+      <div v-else-if="loading" role="status" class="text-center py-12">
         <Icon
           name="system-uicons:loader"
           size="32"
@@ -200,6 +203,7 @@
       </div>
     </CCard>
 
+    <CTablePagination :pagination="pagination" :loading="loading" @change="page=$event" />
     <!-- Modal de Pago -->
     <FPaymentForm
       :is-open="isModalOpen"
@@ -214,7 +218,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { usePaymentsStore } from '~/stores/payments'
 import { useUIStore } from '~/stores/ui'
 import { usePayments } from '~/composables/usePayments'
 import { formatDate } from '~/utils/formatters'
@@ -228,11 +231,9 @@ definePageMeta({
 
 const router = useRouter()
 const route = useRoute()
-const paymentsStore = usePaymentsStore()
 const uiStore = useUIStore()
-const { fetchPayments, createPayment } = usePayments()
+const { createPayment } = usePayments()
 
-const loading = ref(false)
 const isSubmitting = ref(false)
 const isModalOpen = ref(false)
 const searchQuery = ref('')
@@ -243,68 +244,15 @@ const reservationId = computed(() => {
   return Number.isInteger(value) && value > 0 ? value : undefined
 })
 
-const payments = computed(() => paymentsStore.payments)
-
-const filteredPayments = computed(() => {
-  let filtered = payments.value
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(
-      p =>
-        String(p.reservation_id).includes(query) ||
-        p.client_name?.toLowerCase().includes(query)
-    )
-  }
-
-  if (selectedStatus.value) {
-    filtered = filtered.filter(p => p.status === selectedStatus.value)
-  }
-
-  if (selectedMethod.value) {
-    filtered = filtered.filter(p => p.method === selectedMethod.value)
-  }
-
-  return filtered
-})
-
-const totalIncome = computed(() => {
-  return payments.value
-    .filter(p => p.status === 'completed')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0)
-    .toFixed(2)
-})
-
-const pendingAmount = computed(() => {
-  return payments.value
-    .filter(p => p.status === 'pending')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0)
-    .toFixed(2)
-})
-
-const refunds = computed(() => {
-  return payments.value
-    .filter(p => p.status === 'refunded')
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0)
-    .toFixed(2)
-})
-
-const completedPayments = computed(() =>
-  payments.value.filter(p => p.status === 'completed').length
-)
-
-const pendingPayments = computed(() =>
-  payments.value.filter(p => p.status === 'pending').length
-)
-
-const refundedPayments = computed(() =>
-  payments.value.filter(p => p.status === 'refunded').length
-)
-
-const conversionRate = computed(() => {
-  if (payments.value.length === 0) return 0
-  return Math.round((completedPayments.value / payments.value.length) * 100)
-})
+const {rows:filteredPayments,loading,error,pagination,page,summary,load}=useTableList<import('~/types').Payment>('/payments',()=>({q:searchQuery.value.trim(),status:selectedStatus.value,method:selectedMethod.value}))
+const totalIncome=computed(()=>summary.value?.income||'0')
+const pendingAmount=computed(()=>summary.value?.pending||'0')
+const refunds=computed(()=>summary.value?.refunds||'0')
+const completedPayments=computed(()=>summary.value?.completed_count||0)
+const pendingPayments=computed(()=>summary.value?.pending_count||0)
+const refundedPayments=computed(()=>summary.value?.refunded_count||0)
+const conversionRate=computed(()=>summary.value?.total?Math.round(completedPayments.value/summary.value.total*100):0)
+const clearFilters=()=>{searchQuery.value='';selectedStatus.value='';selectedMethod.value=''}
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
@@ -355,7 +303,7 @@ const handleSubmit = async (data: CreatePaymentRequest) => {
     await createPayment(data)
     uiStore.success('Pago registrado exitosamente')
     closeModal()
-    await fetchPayments(1, 100)
+    await load()
   } catch (error: unknown) {
     uiStore.error(error instanceof Error ? error.message : 'Error al registrar el pago')
   } finally {
@@ -363,13 +311,5 @@ const handleSubmit = async (data: CreatePaymentRequest) => {
   }
 }
 
-onMounted(async () => {
-  loading.value = true
-  try {
-    await fetchPayments(1, 100)
-    if (reservationId.value) isModalOpen.value = true
-  } finally {
-    loading.value = false
-  }
-})
+onMounted(()=>{if(reservationId.value)isModalOpen.value=true})
 </script>

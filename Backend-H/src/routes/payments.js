@@ -11,7 +11,7 @@ router.get('/revenue/period', authorize('admin', 'manager'), PaymentController.g
 router.get('/revenue/method', authorize('admin', 'manager'), PaymentController.getRevenueByMethod);
 router.get('/reservation/:reservationId', PaymentController.getByReservation);
 router.get('/:id', PaymentController.getById);
-router.get('/', PaymentController.getAll);
+router.get('/', validate(require('../validators/listValidator').schema(['pending', 'completed', 'failed', 'refunded']), 'query'), PaymentController.getAll);
 router.post('/', authorize('admin', 'manager', 'receptionist'), validate(createSchema), PaymentController.create);
 router.put('/:id', authorize('admin', 'manager'), validate(updateSchema), PaymentController.update);
 router.patch('/:id/status', authorize('admin', 'manager'), validate(updateStatusSchema), PaymentController.updateStatus);

@@ -145,11 +145,11 @@ const query = async (text, params) => {
 /**
  * Ejecutar una transacción
  */
-const transaction = async (callback) => {
+const transaction = async (callback, { readOnly = false } = {}) => {
   const client = await getConnection();
 
   try {
-    await client.query('BEGIN');
+    await client.query(readOnly ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY' : 'BEGIN');
     await applyContext(client);
     const result = await callback(client);
     await client.query('COMMIT');

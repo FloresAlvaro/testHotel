@@ -50,7 +50,7 @@ router.post('/login', loginLimiter, validate(loginSchema), UserController.login)
 // Protegidas
 router.get('/profile', auth, UserController.getProfile);
 router.get('/search', auth, authorize('admin'), UserController.search);
-router.get('/', auth, authorize('admin'), UserController.getAll);
+router.get('/', auth, authorize('admin'), validate(require('../validators/listValidator').schema(['active','inactive']), 'query'), UserController.getAll);
 router.get('/:id', auth, authorize('admin'), UserController.getById);
 router.put('/:id', auth, authorize('admin'), validate(updateSchema), UserController.update);
 router.patch('/:id/password', auth, authorizeSelfOrAdmin, validate(changePasswordSchema), UserController.changePassword);

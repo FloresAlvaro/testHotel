@@ -26,7 +26,7 @@
         </article>
       </div>
       <CEmptyState v-if="!requests.length && !busy && !error" title="No hay solicitudes" description="Las solicitudes de este estado aparecerán aquí." icon="system-uicons:inbox" />
-      <div class="operation-pager"><CButton variant="secondary" :disabled="page===1||busy" @click="page--;load()">Anterior</CButton><span>Página {{ page }}</span><CButton variant="secondary" :disabled="requests.length<20||busy" @click="page++;load()">Siguiente</CButton></div>
+      <CTablePagination :pagination="pagination" :loading="busy" @change="page=$event;load()" />
     </CCard>
     <CModal :is-open="!!selected" :title="selected?.kind==='dates'?'Cambio de fechas':'Solicitud de cancelación'" size="lg" :close-on-overlay="!busy" @close="close">
       <template v-if="selected">
@@ -54,18 +54,19 @@
 <script setup lang="ts">
 import type {ReservationRequest} from '~/types/guestServices'
 definePageMeta({middleware:'auth'})
-const {get,post,run,error,busy}=useOperations()
+const {list,post,run,error,busy}=useOperations()
 const {dateTime,settings}=useHotelSettings()
 const auth=useAuthStore()
 const manager=computed(()=>auth.isAdmin||auth.isManager)
 const status=ref('pending'),page=ref(1),requests=ref<ReservationRequest[]>([])
+const pagination=ref({page:1,pageSize:20,total:0,totalPages:0})
 const selected=ref<ReservationRequest|null>(null),notice=ref('')
 const responses=reactive<Record<number,string>>({}),decisions=reactive<Record<number,string>>({}),totals=reactive<Record<number,number>>({})
 const stateLabels={pending:'Pendiente',approved:'Aprobada',rejected:'Rechazada'}
 const dateOnly=(value:string)=>value.slice(0,10).split('-').reverse().join('/')
 const open=(request:ReservationRequest)=>{error.value='';notice.value='';selected.value=request}
 const close=()=>{if(!busy.value){selected.value=null;error.value=''}}
-const fetchRequests=async()=>{requests.value=(await get<ReservationRequest[]>('reservation-requests',{status:status.value,page:page.value})).data||[];for(const r of requests.value){decisions[r.id]??='approved';totals[r.id]??=Number(r.total_price)}}
+const fetchRequests=async()=>{const result=await list<ReservationRequest>('reservation-requests',{status:status.value,page:page.value,pageSize:20});requests.value=result.data||[];pagination.value=result.pagination;if(page.value>1&&!requests.value.length&&result.pagination.total>0){page.value=Math.max(1,result.pagination.totalPages);await fetchRequests();return};for(const r of requests.value){decisions[r.id]??='approved';totals[r.id]??=Number(r.total_price)}}
 const load=()=>run(fetchRequests)
 const review=(r:ReservationRequest)=>run(async()=>{
  await post(`reservation-requests/${r.id}/review`,{decision:decisions[r.id],response:responses[r.id],...(r.kind==='dates'&&decisions[r.id]==='approved'?{total_price:totals[r.id]}:{})})

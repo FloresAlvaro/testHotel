@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Header -->
     <CPageHeader title="Reporte de Ocupación" description="Distribución actual y disponibilidad de habitaciones."><div class="flex gap-2">
-        <CButton variant="secondary" :disabled="isLoading || roomDetails.length === 0" @click="downloadReport">
+        <CButton variant="secondary" :disabled="isLoading || !!errorMessage || filteredRoomDetails.length === 0" @click="downloadReport">
           <Icon name="system-uicons:download" size="18" class="mr-2" />
           Descargar
         </CButton>
@@ -26,6 +26,9 @@
       </div>
     </CCard>
 
+    <p v-if="errorMessage" role="alert" class="operation-error">{{ errorMessage }} <button class="underline" @click="loadReport">Reintentar</button></p>
+    <p v-if="isLoading" role="status">Cargando ocupación…</p>
+    <CButton v-if="selectedRoomType" variant="secondary" @click="selectedRoomType=''">Limpiar filtro de tipo</CButton>
     <!-- Estadísticas Principales -->
     <div class="stat-grid">
       <CCard class="metric-card">
@@ -117,14 +120,15 @@
       </CCard>
     </div>
 
+    <p class="text-sm">La ocupación refleja huéspedes alojados actualmente. Una reserva futura no cuenta como ocupación.</p>
     <!-- Tabla de Ocupación por Habitación -->
     <CCard>
       <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
         Detalle de Ocupación por Habitación
       </h2>
 
-      <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
-        <table class="w-full text-sm">
+      <CTableHint /><div v-if="!isLoading && !errorMessage" class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
+        <table class="table-data-centered w-full text-sm">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
               <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
@@ -146,7 +150,7 @@
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
             <tr
-              v-for="room in filteredRoomDetails"
+              v-for="room in visibleRoomDetails"
               :key="room.id"
               class="hover:bg-slate-50 dark:hover:bg-slate-800/50"
             >
@@ -182,12 +186,14 @@
           </tbody>
         </table>
       </div>
+      <CEmptyState v-if="!isLoading && !errorMessage && !filteredRoomDetails.length" title="No hay habitaciones para este filtro" />
+      <CTablePagination :pagination="pagination" :loading="isLoading" @change="page=$event" />
     </CCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import type { Room } from '~/types';
 import { useApiClient } from '~/services/api';
 import { getTodayDateOnly } from '~/utils/dates';
@@ -200,7 +206,7 @@ const api = useApiClient();
 const rooms = ref<Room[]>([]);
 const occupancy = ref<{ total_rooms: string; occupied: string; available: string; maintenance: string; reserved: string } | null>(null);
 const selectedRoomType = ref('');
-const isLoading = ref(false);
+const isLoading = ref(true);
 const errorMessage = ref('');
 
 const totalRooms = computed(() => Number(occupancy.value?.total_rooms || 0));
@@ -215,11 +221,15 @@ const averageOccupancy = computed(() => totalRooms.value
 
 const roomDetails = computed(() => rooms.value.map(room => ({
   ...room,
-  occupancy: room.status === 'occupied' ? 100 : room.status === 'reserved' ? 100 : 0
+  occupancy: room.status === 'occupied' ? 100 : 0
 })));
+const page=ref(1);
 const filteredRoomDetails = computed(() => roomDetails.value.filter(room =>
   !selectedRoomType.value || room.room_type_name === selectedRoomType.value
 ));
+const visibleRoomDetails=computed(()=>filteredRoomDetails.value.slice((page.value-1)*20,page.value*20));
+const pagination=computed(()=>({page:page.value,pageSize:20,total:filteredRoomDetails.value.length,totalPages:Math.ceil(filteredRoomDetails.value.length/20)}));
+watch(selectedRoomType,()=>{page.value=1});
 const roomTypes = computed(() => {
   const groups = new Map<string, { name: string; count: number; occupied: number }>();
   for (const room of roomDetails.value) {
@@ -242,7 +252,7 @@ const loadReport = async () => {
     const today = getTodayDateOnly(operatingSettings.value.timezone);
     const [summary, roomResponse] = await Promise.all([
       api.getDashboardSummary(today, today),
-      api.getRooms(1, 100)
+      (async()=>{const data:Room[]=[];let page=1,totalPages=1;do{const response=await api.getRooms(page++,100);data.push(...(response.data||[]));totalPages=response.pagination.totalPages}while(page<=totalPages);return {data}})()
     ]);
     occupancy.value = summary.data?.occupancy || null;
     rooms.value = roomResponse.data || [];

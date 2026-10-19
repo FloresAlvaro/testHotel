@@ -1,0 +1,2 @@
+<template><p class="table-scroll-hint"><Icon name="system-uicons:arrow-left" aria-hidden="true" />Desplaza la tabla horizontalmente para ver todas las columnas.<Icon name="system-uicons:arrow-right" aria-hidden="true" /></p></template>
+<style scoped>.table-scroll-hint{display:none;font-size:12px;color:var(--text-secondary);margin:0 0 12px;align-items:center;gap:6px}@media(max-width:1100px){.table-scroll-hint{display:flex}}</style>

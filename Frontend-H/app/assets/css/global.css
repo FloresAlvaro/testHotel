@@ -38,13 +38,15 @@ h1, h2, h3, p { overflow-wrap: anywhere; }
 .workspace-page > :first-child > .page-heading { margin-top: 0; }
 .workspace-page h2 { font-size: 16px; letter-spacing: -.25px; font-weight: 600; }
 .workspace-page h3 { font-size: 14px; font-weight: 600; }
-table th, table td { text-align: center; }
+table th, table td { text-align: left; }
+table thead th { text-align: center; }
+table thead th > .flex { justify-content: center; }
 table .table-text-left { text-align: left; }
-table th > .flex, table td > .flex { justify-content: center; }
-table th > .flex-col, table td > .flex-col { align-items: center; }
-.workspace-page table, .table { width: 100%; border-collapse: collapse; font-size: 12px; }
+table th > .flex, table td > .flex { justify-content: flex-start; }
+table th > .flex-col, table td > .flex-col { align-items: flex-start; }
+.workspace-page table, .table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .workspace-page thead, .table thead { background: var(--surface-subtle); }
-.workspace-page th, .table th { padding: 13px 18px; color: var(--text-secondary); font-size: 11px; font-weight: 500; white-space: nowrap; border-bottom: 1px solid var(--border-color); }
+.workspace-page th, .table th { padding: 13px 18px; color: var(--text-secondary); font-size: 12px; font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--border-color); }
 .workspace-page td, .table td { padding: 17px 18px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
 .workspace-page tbody tr:last-child td, .table tbody tr:last-child td { border-bottom: 0; }
 .workspace-page tbody tr:hover, .table tbody tr:hover { background: var(--surface-subtle); }
@@ -126,7 +128,7 @@ table th > .flex-col, table td > .flex-col { align-items: center; }
 .operation-heading,.operation-stats { display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:20px; }
 .operation-heading h2 { margin:0; }
 .operation-scroll { overflow:auto; }
-.operation-table { width:100%;border-collapse:collapse;text-align:center;font-size:12px; }
+.operation-table { width:100%;border-collapse:collapse;text-align:left;font-size:13px; }
 .operation-table th { color:var(--text-secondary);font-weight:500;white-space:nowrap; }
 .operation-table th,.operation-table td { padding:14px 12px;border-bottom:1px solid var(--border-color);vertical-align:top; }
 .operation-table a { color:var(--accent-primary,#535ed6);text-decoration:underline; }
@@ -143,3 +145,23 @@ select:not([multiple]):not([size]) {
 /* Acceso directo al contenido, compartido por los layouts del personal y de huéspedes. */
 .skip-link { position:fixed;top:12px;left:16px;z-index:3000;transform:translateY(calc(-100% - 24px));padding:12px 20px;background:var(--accent,#535ed6);color:white;border-radius:8px;text-decoration:none; }
 .skip-link:focus { transform:translateY(0);outline:2px solid currentColor;outline-offset:3px; }
+
+/* Las acciones permanecen visibles al explorar tablas anchas. */
+.workspace-page td.text-right,.operation-table td.text-right {text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.workspace-page th.text-center,.workspace-page td.text-center {text-align:center}
+.table-with-actions th:last-child,.table-with-actions td:last-child {position:sticky;right:0;z-index:1;background:var(--bg-secondary);box-shadow:-4px 0 8px -7px var(--text-secondary);white-space:nowrap}
+.table-with-actions thead th:last-child {background:var(--surface-subtle);z-index:2}
+.table-with-actions td:last-child .flex {flex-wrap:wrap;justify-content:flex-start}
+.operation-scroll,.table-scroll,.overflow-x-auto {scrollbar-gutter:stable}
+.operation-table td {overflow-wrap:break-word}
+[aria-busy=true] table {opacity:.65}
+.cash-difference {display:block;padding:6px 8px;margin:6px 0;border-radius:6px;background:var(--success-soft);color:var(--success);font-weight:600;white-space:nowrap}
+.cash-difference[data-mismatch=true] {background:var(--danger-soft);color:var(--danger)}
+
+@media(max-width:640px){.table-with-actions td:last-child>.flex{flex-direction:column;align-items:stretch}.workspace-page td,.operation-table td{padding:12px 10px}.table-with-actions th:last-child,.table-with-actions td:last-child{max-width:170px}.calendar-table th:first-child{width:125px}}
+
+/* Alineación optativa de datos; los encabezados conservan el centrado compartido. */
+.workspace-page table.table-data-centered tbody td { text-align: center; }
+.workspace-page table.table-data-centered tbody td > .flex { justify-content: center; }
+.workspace-page table.table-data-centered tbody td > .flex-col { align-items: center; }
+.workspace-page table.table-client-left tbody td:nth-child(2) { text-align: left; }

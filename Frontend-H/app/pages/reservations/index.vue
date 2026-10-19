@@ -48,7 +48,7 @@
 
         <div class="flex items-center justify-between">
           <p class="text-sm text-slate-600 dark:text-slate-400">
-            Mostrando {{ filteredReservations.length }} de {{ totalReservations }} reservas
+            {{ loading ? 'Consultando reservas…' : `Mostrando ${filteredReservations.length} de ${totalReservations} reservas` }}
           </p>
           <CButton
             v-if="searchQuery || selectedStatus || dateFilter"
@@ -62,10 +62,11 @@
       </div>
     </CCard>
 
+    <p v-if="error" role="alert" class="operation-error">{{ error }} <button class="underline" @click="load">Reintentar</button></p>
     <!-- Tabla de Reservas -->
     <CCard>
-      <div v-if="!loading" class="overflow-x-auto">
-        <table class="w-full">
+      <CTableHint /><div v-if="!loading && !error" class="overflow-x-auto" tabindex="0" role="region" aria-label="Reservas">
+        <table class="w-full table-with-actions reservations-table">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
               <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
@@ -135,14 +136,14 @@
                     size="sm"
                     aria-label="Ver reserva" @click="viewReservation(reservation.id)"
                   >
-                    <Icon name="system-uicons:eye" size="16" />
+                    <Icon name="system-uicons:eye" size="16" />Ver
                   </CButton>
                   <CButton
                     v-if="reservation.status === 'confirmed' || reservation.status === 'checked_in'"
                     variant="ghost"
                     size="sm" aria-label="Editar reserva" @click="editReservation(reservation.id)"
                   >
-                    <Icon name="system-uicons:write" size="16" />
+                    <Icon name="system-uicons:write" size="16" />Editar
                   </CButton>
                 </div>
               </td>
@@ -162,15 +163,15 @@
               : 'No hay reservas registradas'
             }}
           </p>
-          <CButton variant="primary" @click="openAddModal">
+          <CButton v-if="!searchQuery && !selectedStatus && !dateFilter" variant="primary" @click="openAddModal">
             <Icon name="system-uicons:calendar" size="18" class="mr-2" />
-            Crear Primera Reserva
+            Crear primera reserva
           </CButton>
         </div>
       </div>
 
       <!-- Loading -->
-      <div v-else class="text-center py-12">
+      <div v-else-if="loading" role="status" class="text-center py-12">
         <Icon
           name="system-uicons:loader"
           size="32"
@@ -182,6 +183,7 @@
       </div>
     </CCard>
 
+    <CTablePagination :pagination="pagination" :loading="loading" @change="page=$event" />
     <!-- Modal de Reserva -->
     <CModal :is-open="isModalOpen" :title="selectedReservation ? 'Editar reserva' : 'Nueva reserva'" @close="closeModal">
     <FReservationForm
@@ -196,26 +198,24 @@ v-if="isModalOpen"
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useReservationsStore } from '~/stores/reservations'
 import { useUIStore } from '~/stores/ui'
 import { useReservations } from '~/composables/useReservations'
 import { formatDate } from '~/utils/formatters'
+import { getTodayDateOnly, reservationRange } from '~/utils/dates'
 import type { CreateReservationRequest, Reservation } from '~/types'
 
-const { money: hotelMoney } = useHotelSettings()
+const { money: hotelMoney, settings } = useHotelSettings()
 
 definePageMeta({
   middleware: ['auth', 'receptionist']
 })
 
 const router = useRouter()
-const reservationsStore = useReservationsStore()
 const uiStore = useUIStore()
-const { fetchReservations, createReservation, updateReservation } = useReservations()
+const { createReservation, updateReservation } = useReservations()
 
-const loading = ref(false)
 const isSubmitting = ref(false)
 const isModalOpen = ref(false)
 const searchQuery = ref('')
@@ -223,52 +223,10 @@ const selectedStatus = ref('')
 const dateFilter = ref('')
 const selectedReservation = ref<Reservation | null>(null)
 
-const reservations = computed(() => reservationsStore.reservations)
-const totalReservations = computed(() => reservations.value.length)
-
-const filteredReservations = computed(() => {
-  let filtered = reservations.value
-
-  // Búsqueda
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(
-      r =>
-        r.client_name?.toLowerCase().includes(query) ||
-        r.room_number?.toLowerCase().includes(query)
-    )
-  }
-
-  // Estado
-  if (selectedStatus.value) {
-    filtered = filtered.filter(r => r.status === selectedStatus.value)
-  }
-
-  // Fechas
-  if (dateFilter.value) {
-    const today = new Date()
-    filtered = filtered.filter(r => {
-      const checkIn = new Date(r.check_in)
-      switch (dateFilter.value) {
-        case 'today':
-          return checkIn.toDateString() === today.toDateString()
-        case 'week':
-          {
-          const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-          return checkIn >= today && checkIn <= nextWeek
-          }
-        case 'month':
-          return checkIn.getMonth() === today.getMonth()
-        case 'upcoming':
-          return checkIn > today
-        default:
-          return true
-      }
-    })
-  }
-
-  return filtered
-})
+const range = computed(()=>reservationRange(dateFilter.value,getTodayDateOnly(settings.value.timezone)))
+const {rows:reservations,loading,error,pagination,page,load} = useTableList<Reservation>('/reservations',()=>({q:searchQuery.value.trim(),status:selectedStatus.value,...range.value}))
+const filteredReservations=reservations
+const totalReservations=computed(()=>pagination.value.total)
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
@@ -320,7 +278,7 @@ const handleSubmit = async (data: CreateReservationRequest) => {
       uiStore.success('Reserva creada exitosamente')
     }
     closeModal()
-    await fetchReservations()
+    await load()
   } catch (error: unknown) {
     uiStore.error(error instanceof Error ? error.message : 'Error al guardar la reserva')
   } finally {
@@ -334,12 +292,10 @@ const clearFilters = () => {
   dateFilter.value = ''
 }
 
-onMounted(async () => {
-  loading.value = true
-  try {
-    await fetchReservations()
-  } finally {
-    loading.value = false
-  }
-})
 </script>
+
+<style scoped>
+.reservations-table tbody td { text-align: center; }
+.reservations-table tbody td:nth-child(2) { text-align: left; }
+.reservations-table tbody td:last-child > .flex { justify-content: center; }
+</style>

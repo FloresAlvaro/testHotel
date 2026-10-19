@@ -93,14 +93,9 @@ class ReservationController {
    */
   static async getAll(req, res, next) {
     try {
-      const { page = 1, pageSize = 10, status } = req.query;
-
-      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
-
-      const reservations = await Reservation.findAll(limit, offset, status);
-      const total = await Reservation.countAll(status);
-
-      sendPaginated(res, reservations, total, currentPage, limit);
+      const { page = 1, pageSize = 10 } = req.query;
+      const result = await require('../services/tableListService').list('reservations', req.query);
+      sendPaginated(res, result.rows, result.total, page, pageSize, undefined, result.summary ? { summary: result.summary } : {});
     } catch (error) {
       next(error);
     }

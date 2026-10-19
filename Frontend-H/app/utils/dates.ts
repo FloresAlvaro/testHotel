@@ -60,3 +60,20 @@ export const localDateOnly = (value: string, timezone = 'America/La_Paz'): strin
   if (!Number.isFinite(date.getTime())) return '';
   return new Intl.DateTimeFormat('en-CA', {timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
 };
+
+export const addDateDays=(date:string,days:number):string=>{
+  const value=new Date(`${date}T12:00:00Z`);value.setUTCDate(value.getUTCDate()+days);return value.toISOString().slice(0,10)
+}
+export const reservationRange=(filter:string,today:string):{startDate?:string;endDate?:string}=>{
+  if(filter==='today')return {startDate:today,endDate:today}
+  if(filter==='upcoming')return {startDate:addDateDays(today,1)}
+  if(filter==='week'){
+    const weekday=new Date(`${today}T12:00:00Z`).getUTCDay()
+    const start=addDateDays(today,-((weekday+6)%7));return {startDate:start,endDate:addDateDays(start,6)}
+  }
+  if(filter==='month'){
+    const start=today.slice(0,7)+'-01';const next=new Date(`${start}T12:00:00Z`);next.setUTCMonth(next.getUTCMonth()+1)
+    return {startDate:start,endDate:addDateDays(next.toISOString().slice(0,10),-1)}
+  }
+  return {}
+}

@@ -599,6 +599,53 @@
           "storage",
           "offsite_configured"
         ]
+      },
+      "PaymentListSummary": {
+        "type": "object",
+        "required": [
+          "total",
+          "income",
+          "pending",
+          "refunds",
+          "completed_count",
+          "pending_count",
+          "refunded_count",
+          "max_income"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pending_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "refunded_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "income": {
+            "type": "string",
+            "description": "Importe decimal exacto en la moneda del hotel"
+          },
+          "pending": {
+            "type": "string",
+            "description": "Importe decimal exacto en la moneda del hotel"
+          },
+          "refunds": {
+            "type": "string",
+            "description": "Importe decimal exacto en la moneda del hotel"
+          },
+          "max_income": {
+            "type": "string",
+            "description": "Importe decimal exacto en la moneda del hotel"
+          }
+        }
       }
     }
   },
@@ -693,6 +740,96 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Listado paginado",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "manager",
+                "receptionist"
+              ]
+            }
+          }
+        ],
+        "description": " Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel."
       }
     },
     "/api/users/register": {
@@ -1080,9 +1217,57 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de clientes"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "description": " Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel."
       },
       "post": {
         "tags": [
@@ -1688,9 +1873,78 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de reservas"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "confirmed",
+                "checked_in",
+                "checked_out",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": " Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel."
       },
       "post": {
         "tags": [
@@ -1898,9 +2152,134 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de pagos"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination; summary contiene los agregados de todos los resultados filtrados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "pagination",
+                    "summary"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Payment"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "required": [
+                        "total",
+                        "page",
+                        "pageSize",
+                        "totalPages"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "summary": {
+                      "$ref": "#/components/schemas/PaymentListSummary"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "completed",
+                "failed",
+                "refunded"
+              ]
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "credit_card",
+                "debit_card",
+                "transfer",
+                "check"
+              ]
+            }
+          }
+        ],
+        "description": " Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel."
       },
       "post": {
         "tags": [
@@ -2109,6 +2488,20 @@
               "type": "string",
               "format": "date"
             }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "credit_card",
+                "debit_card",
+                "transfer",
+                "check"
+              ]
+            }
           }
         ],
         "responses": {
@@ -2159,6 +2552,20 @@
             "schema": {
               "type": "string",
               "format": "date"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "credit_card",
+                "debit_card",
+                "transfer",
+                "check"
+              ]
             }
           }
         ],
@@ -4104,7 +4511,7 @@
           "Guest services"
         ],
         "summary": "Solicitudes de huéspedes",
-        "description": "Personal. Páginas de 20 registros.",
+        "description": "Personal. Listado paginado con total de resultados. Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel.",
         "security": [
           {
             "bearerAuth": []
@@ -4115,6 +4522,51 @@
         ],
         "parameters": [
           {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
             "name": "status",
             "in": "query",
             "schema": {
@@ -4123,23 +4575,13 @@
                 "pending",
                 "approved",
                 "rejected"
-              ],
-              "default": "pending"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "default": 1
+              ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Operación completada; success/data o mensaje"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
           },
           "201": {
             "description": "Registro creado"
@@ -4443,7 +4885,7 @@
           "Guest services"
         ],
         "summary": "Últimos pagos en línea",
-        "description": "Admin/manager. Máximo 100 registros.",
+        "description": "Admin/manager. Listado paginado con huésped, identificador, fechas y filtros. Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel.",
         "security": [
           {
             "bearerAuth": []
@@ -4452,10 +4894,71 @@
             "cookieAuth": []
           }
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "paid",
+                "expired",
+                "refunded",
+                "refund_pending",
+                "failed"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Operación completada; success/data o mensaje"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
           },
           "201": {
             "description": "Registro creado"
@@ -4752,7 +5255,7 @@
           "Guest services"
         ],
         "summary": "Estado de correo",
-        "description": "Admin. Estado SMTP y últimos 50 mensajes, sin cuerpo ni enlaces de recuperación.",
+        "description": "Admin. Estado SMTP y mensajes paginados, con búsqueda y filtro de estado; sin cuerpo ni enlaces de recuperación. Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel.",
         "security": [
           {
             "bearerAuth": []
@@ -4761,10 +5264,68 @@
             "cookieAuth": []
           }
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "sent",
+                "queued",
+                "failed"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Operación completada; success/data o mensaje"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
           },
           "201": {
             "description": "Registro creado"

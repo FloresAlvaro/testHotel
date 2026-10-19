@@ -49,7 +49,7 @@ withDefaults(defineProps<Props>(), {
 .btn-success { background: #27765a; color: white; }
 .btn-success:hover:not(:disabled) { background: #1f6149; }
 .btn-warning { background: var(--warning-soft); color: var(--warning); }
-.btn-sm { min-height: 30px; padding: 6px 10px; font-size: 11px; border-radius: 6px; }
+.btn-sm { min-height: 36px; padding: 7px 11px; font-size: 12px; border-radius: 6px; }
 .btn-lg { min-height: 44px; padding: 12px 20px; font-size: 13px; }
 .btn-disabled { opacity: .5; cursor: not-allowed; }
 .btn-spinner { width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }

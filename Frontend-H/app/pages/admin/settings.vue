@@ -124,8 +124,10 @@
         </div>
 
         <CInvitationList :key="invitationsVersion" />
+        <div class="operation-form"><label>Buscar persona o correo<input v-model="userSearch" type="search" maxlength="200"></label><label>Rol<select v-model="userRole"><option value="">Todos</option><option value="admin">Administrador</option><option value="manager">Gerente</option><option value="receptionist">Recepcionista</option></select></label><label>Estado<select v-model="userStatus"><option value="">Todos</option><option value="active">Activo</option><option value="inactive">Inactivo</option></select></label><CButton v-if="userSearch||userRole||userStatus" variant="secondary" @click="userSearch='';userRole='';userStatus=''">Limpiar filtros</CButton></div>
+        <p v-if="usersError" role="alert" class="operation-error">{{ usersError }} <button class="underline" @click="loadUsers">Reintentar</button></p><p v-if="usersLoading" role="status">Cargando equipo…</p><CTableHint />
         <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
-          <table class="w-full">
+          <table class="table-data-centered w-full table-with-actions">
             <thead class="border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
@@ -173,17 +175,17 @@
                 <td class="py-3 px-4 text-center">
                   <div class="flex items-center justify-center gap-2">
                     <CButton variant="ghost" size="sm" aria-label="Editar usuario" @click="openEditUser(user)">
-                      <Icon name="system-uicons:write" size="16" />
+                      <Icon name="system-uicons:write" size="16" />Editar
                     </CButton>
                     <CButton
                       variant="ghost"
                       size="sm"
-                      :disabled="user.id === authStore.user?.id || isSavingUser"
+                      :disabled="user.id === authStore.user?.id || changingUserId!==null || isSavingUser"
                       :class="user.is_active ? 'text-red-500 hover:text-red-600' : 'text-green-600 hover:text-green-700'"
                       :aria-label="user.is_active ? 'Desactivar usuario' : 'Activar usuario'"
-                      @click="toggleUserActive(user)"
+                      @click="selectedAccessUser=user"
                     >
-                      <Icon :name="user.is_active ? 'system-uicons:lock' : 'system-uicons:lock-open'" size="16" />
+                      <Icon :name="user.is_active ? 'system-uicons:lock' : 'system-uicons:lock-open'" size="16" />{{ user.is_active ? 'Desactivar' : 'Activar' }}
                     </CButton>
                   </div>
                 </td>
@@ -191,9 +193,11 @@
             </tbody>
           </table>
         </div>
+        <CEmptyState v-if="!usersLoading && !usersError && !users.length" title="No hay personas con estos filtros" />
+        <CTablePagination :pagination="usersPagination" :loading="usersLoading" @change="usersPage=$event" />
       </div>
     </CCard>
-
+    <MConfirmModal :is-open="!!selectedAccessUser" :message="selectedAccessUser ? `${selectedAccessUser.is_active?'Se desactivará':'Se activará'} el acceso de ${selectedAccessUser.name} (${selectedAccessUser.email}). ${selectedAccessUser.is_active?'No podrá iniciar sesión hasta que lo actives de nuevo.':''}` : ''" :danger="!!selectedAccessUser?.is_active" :loading="changingUserId!==null" :confirm-text="selectedAccessUser?.is_active?'Desactivar acceso':'Activar acceso'" @cancel="changingUserId===null && (selectedAccessUser=null)" @confirm="selectedAccessUser && toggleUserActive(selectedAccessUser)" />
     <!-- Tab: Seguridad -->
     <CCard v-if="activeTab === 'security'">
       <div class="space-y-6">
@@ -440,7 +444,9 @@ const isBackingUp = ref(false)
 const isSavingPassword = ref(false)
 const isSavingUser = ref(false)
 const isUserModalOpen = ref(false)
-const users = ref<User[]>([])
+const userSearch=ref(''),userStatus=ref(''),userRole=ref('')
+const {rows:users,loading:usersLoading,error:usersError,pagination:usersPagination,page:usersPage,load:loadUsers}=useTableList<User>('/users',()=>({q:userSearch.value.trim(),status:userStatus.value,role:userRole.value||undefined}))
+const selectedAccessUser=ref<User|null>(null),changingUserId=ref<number|null>(null)
 const passwordForm = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
 const userForm = reactive<{ id: number | null; name: string; email: string; password: string; role: UserRole; is_active: boolean }>({
   id: null, name: '', email: '', password: '', role: 'receptionist', is_active: true
@@ -480,10 +486,7 @@ const backupHistory = ref<BackupRecord[]>([])
 const lastBackup = computed(() => backupHistory.value[0]?.date || 'Todavía no hay exportaciones')
 const roleLabels: Record<UserRole, string> = { admin: 'Administrador', manager: 'Gerente', receptionist: 'Recepcionista', customer: 'Huésped' }
 
-const loadUsers = async () => {
-  const response = await api.getUsers(1, 100)
-  users.value = response.data || []
-}
+
 
 const saveSettings = async () => {
   isSaving.value = true
@@ -595,13 +598,16 @@ const saveUser = async () => {
 }
 
 const toggleUserActive = async (user: User) => {
+  if(changingUserId.value!==null)return
+  changingUserId.value=user.id
   try {
     await api.setUserActive(user.id, !user.is_active)
     await loadUsers()
+    selectedAccessUser.value=null
     uiStore.success(user.is_active ? 'Usuario desactivado' : 'Usuario activado')
   } catch (error) {
     uiStore.error(error instanceof Error ? error.message : 'No se pudo actualizar el usuario')
-  }
+  } finally { changingUserId.value=null }
 }
 
 onMounted(() => {
@@ -610,6 +616,5 @@ onMounted(() => {
   resetChanges()
   if (storedNotifications) notificationSettings.value = JSON.parse(storedNotifications)
   if (storedBackups) backupHistory.value = JSON.parse(storedBackups)
-  loadUsers().catch(() => uiStore.error('No se pudo cargar la lista de usuarios'))
 })
 </script>

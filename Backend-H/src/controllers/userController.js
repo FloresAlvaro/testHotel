@@ -109,14 +109,8 @@ class UserController {
    */
   static async getAll(req, res, next) {
     try {
-      const { page = 1, pageSize = 10, role } = req.query;
-      
-      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
-
-      const users = await User.findAll(limit, offset, role);
-      const total = await User.countAll(role);
-
-      sendPaginated(res, users, total, currentPage, limit);
+      const result=await require('../services/tableListService').list('users',req.query);
+      sendPaginated(res,result.rows,result.total,req.query.page,req.query.pageSize);
     } catch (error) {
       next(error);
     }

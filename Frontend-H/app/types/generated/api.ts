@@ -80,3 +80,14 @@ export type BackupStatus = {
   "storage": string;
   "offsite_configured": boolean;
 };
+
+export type PaymentListSummary = {
+  "total": number;
+  "completed_count": number;
+  "pending_count": number;
+  "refunded_count": number;
+  "income": string;
+  "pending": string;
+  "refunds": string;
+  "max_income": string;
+};

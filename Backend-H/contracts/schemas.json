@@ -344,5 +344,52 @@
       "storage",
       "offsite_configured"
     ]
+  },
+  "PaymentListSummary": {
+    "type": "object",
+    "required": [
+      "total",
+      "income",
+      "pending",
+      "refunds",
+      "completed_count",
+      "pending_count",
+      "refunded_count",
+      "max_income"
+    ],
+    "properties": {
+      "total": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "completed_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "pending_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "refunded_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "income": {
+        "type": "string",
+        "description": "Importe decimal exacto en la moneda del hotel"
+      },
+      "pending": {
+        "type": "string",
+        "description": "Importe decimal exacto en la moneda del hotel"
+      },
+      "refunds": {
+        "type": "string",
+        "description": "Importe decimal exacto en la moneda del hotel"
+      },
+      "max_income": {
+        "type": "string",
+        "description": "Importe decimal exacto en la moneda del hotel"
+      }
+    }
   }
 }

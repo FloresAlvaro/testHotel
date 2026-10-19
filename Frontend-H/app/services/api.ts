@@ -156,14 +156,14 @@ export const useApiClient = () => {
         `/dashboard?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
       ),
 
-    getRevenueByPeriod: (startDate: string, endDate: string) =>
+    getRevenueByPeriod: (startDate: string, endDate: string, method = '') =>
       api<ApiResponse<RevenueReport[]>>(
-        `/payments/revenue/period?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+        `/payments/revenue/period?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&method=${encodeURIComponent(method)}`,
       ),
 
-    getRevenueByMethod: (startDate: string, endDate: string) =>
+    getRevenueByMethod: (startDate: string, endDate: string, method = '') =>
       api<ApiResponse<RevenueByMethod[]>>(
-        `/payments/revenue/method?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+        `/payments/revenue/method?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&method=${encodeURIComponent(method)}`,
       ),
 
     // ==================== CLIENTES ====================
@@ -291,9 +291,9 @@ export const useApiClient = () => {
       api<ApiResponse<CheckInLogData[]>>("/check-in/pending-check-outs"),
 
     // ==================== PAGOS ====================
-    getPayments: (page = 1, pageSize = 10, status?: Payment["status"]) =>
-      api<PaginatedApiResponse<Payment>>(
-        `/payments?page=${page}&pageSize=${pageSize}${status ? `&status=${status}` : ""}`,
+    getPayments: (page = 1, pageSize = 10, status?: Payment["status"], filters: Record<string,string|undefined> = {}) =>
+      api<PaginatedApiResponse<Payment> & {summary: import('~/composables/useTableList').PaymentSummary}>(
+        "/payments", {query:{page,pageSize,status,...filters}},
       ),
 
     getPayment: (id: number) => api<ApiResponse<Payment>>(`/payments/${id}`),

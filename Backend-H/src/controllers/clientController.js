@@ -68,13 +68,8 @@ class ClientController {
   static async getAll(req, res, next) {
     try {
       const { page = 1, pageSize = 10 } = req.query;
-
-      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
-
-      const clients = await Client.findAll(limit, offset);
-      const total = await Client.countAll();
-
-      sendPaginated(res, clients, total, currentPage, limit);
+      const result = await require('../services/tableListService').list('clients', req.query);
+      sendPaginated(res, result.rows, result.total, page, pageSize, undefined, result.summary ? { summary: result.summary } : {});
     } catch (error) {
       next(error);
     }

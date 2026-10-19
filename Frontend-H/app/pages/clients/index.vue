@@ -14,9 +14,10 @@
 			>
 		</label>
 
-		<p v-if="errorMessage" role="alert" class="text-red-700">{{ errorMessage }}</p>
-		<div v-else class="guest-table overflow-x-auto rounded border border-slate-200 dark:border-slate-700">
-			<table class="w-full text-left">
+		<p v-if="errorMessage" role="alert" class="operation-error">{{ errorMessage }} <button class="underline" @click="loadPage">Reintentar</button></p>
+    <CTableHint />
+		<div v-if="!errorMessage" tabindex="0" role="region" aria-label="Huéspedes" class="guest-table overflow-x-auto rounded border border-slate-200 dark:border-slate-700">
+			<table class="table-data-centered w-full text-left">
 				<thead class="bg-slate-50 dark:bg-slate-800">
 					<tr>
 						<th scope="col" class="px-4 py-3">Nombre</th>
@@ -29,13 +30,13 @@
 					<tr v-for="client in visibleClients" :key="client.id">
 						<td class="px-4 py-3">{{ client.name }}</td>
 						<td class="px-4 py-3">{{ client.document }}</td>
-						<td class="px-4 py-3">{{ client.email || client.phone || 'Sin contacto' }}</td>
+						<td class="px-4 py-3"><div v-if="client.email"><a :href="`mailto:${client.email}`">{{ client.email }}</a></div><div v-if="client.phone"><a :href="`tel:${client.phone}`">{{ client.phone }}</a></div><span v-if="!client.email && !client.phone">Sin contacto</span></td>
 						<td class="px-4 py-3">
 							<NuxtLink :to="`/clients/${client.id}`" class="text-blue-700 hover:underline">Ver ficha</NuxtLink>
 						</td>
 					</tr>
 					<tr v-if="!loading && visibleClients.length === 0">
-						<td colspan="4" class="px-4 py-8 text-center text-slate-500">No hay clientes para mostrar.</td>
+						<td colspan="4" class="px-4 py-8 text-center text-slate-500">{{ query ? 'No se encontraron huéspedes con esta búsqueda.' : 'Aún no hay huéspedes registrados.' }}</td>
 					</tr>
 					<tr v-if="loading">
 						<td colspan="4" class="px-4 py-8 text-center text-slate-500">Cargando clientes…</td>
@@ -44,48 +45,15 @@
 			</table>
 		</div>
 
-		<nav v-if="pagination.totalPages > 1" class="flex items-center justify-end gap-3" aria-label="Paginación">
-			<button
-				class="rounded border px-3 py-2 disabled:opacity-50"
-				:disabled="loading || pagination.page <= 1"
-				@click="loadPage(pagination.page - 1)"
-			>Anterior</button>
-			<span>Página {{ pagination.page }} de {{ pagination.totalPages }}</span>
-			<button
-				class="rounded border px-3 py-2 disabled:opacity-50"
-				:disabled="loading || pagination.page >= pagination.totalPages"
-				@click="loadPage(pagination.page + 1)"
-			>Siguiente</button>
-		</nav>
+    <CTablePagination :pagination="pagination" :loading="loading" @change="page=$event" />
 	</section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
 definePageMeta({ middleware: ['auth', 'receptionist'] });
 
-const { clients, loading, pagination, fetchClients } = useClients();
-const query = ref('');
-const errorMessage = ref('');
-
-const visibleClients = computed(() => {
-	const search = query.value.trim().toLowerCase();
-	if (!search) return clients.value;
-	return clients.value.filter((client) =>
-		[client.name, client.document, client.email, client.phone]
-			.some((value) => value?.toLowerCase().includes(search))
-	);
-});
-
-const loadPage = async (page: number) => {
-	errorMessage.value = '';
-	try {
-		await fetchClients(page, pagination.value.pageSize);
-	} catch {
-		errorMessage.value = 'No se pudo cargar la lista de clientes.';
-	}
-};
-
-onMounted(() => loadPage(1));
+const query=ref('')
+const {rows:visibleClients,loading,error:errorMessage,pagination,page,load:loadPage}=useTableList<import('~/types').Client>('/clients',()=>({q:query.value.trim()}))
 </script>

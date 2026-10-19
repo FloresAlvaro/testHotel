@@ -4,11 +4,11 @@
       <slot name="toolbar" />
     </div>
 
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Tabla de resultados">
-    <table class="table">
+    <p v-if="loading" role="status">Cargando resultados…</p><p v-if="error" role="alert" class="operation-error">{{ error }}</p><CTableHint /><div class="table-scroll" :aria-busy="loading" tabindex="0" role="region" aria-label="Tabla de resultados">
+    <table :class="['table', {'table-with-actions':$slots.actions}]">
       <thead>
         <tr>
-          <th v-for="col in columns" :key="col.key" :style="{ width: col.width }">
+          <th v-for="col in columns" :key="col.key" scope="col" :aria-sort="col.sortable ? (sortColumn===col.key ? sortDirection : 'none') : undefined" :style="{ width: col.width }">
             <div class="th-content">
               <span>{{ col.label }}</span>
               <button v-if="col.sortable" :aria-label="`Ordenar por ${col.label}`" class="sort-btn" @click="handleSort(col.key)">
@@ -16,12 +16,12 @@
               </button>
             </div>
           </th>
-          <th v-if="$slots['actions']" class="actions-col">Acciones</th>
+          <th v-if="$slots['actions']" scope="col" class="actions-col">Acciones</th>
         </tr>
       </thead>
 
       <tbody>
-        <tr v-for="(row, index) in rows" :key="index" class="table-row">
+        <tr v-for="(row, index) in rows" :key="rowKey(row,index)" class="table-row">
           <td v-for="col in columns" :key="col.key">
             <slot :name="`cell-${col.key}`" :row="row" :value="getCellValue(row, col.key)">
               {{ getCellValue(row, col.key) }}
@@ -32,7 +32,7 @@
           </td>
         </tr>
 
-        <tr v-if="rows.length === 0" class="empty-row">
+        <tr v-if="rows.length === 0 && !loading && !error" class="empty-row">
           <td :colspan="columns.length + ($slots['actions'] ? 1 : 0)">
             <div class="empty-state">
               <p>{{ emptyText }}</p>
@@ -53,7 +53,7 @@
 
       <div class="pagination-controls">
         <button
-          :disabled="pagination.page === 1"
+          :disabled="loading || pagination.page === 1"
           class="pagination-btn"
           @click="$emit('prev-page')"
         >
@@ -65,7 +65,7 @@
         </span>
 
         <button
-          :disabled="pagination.page >= pagination.totalPages"
+          :disabled="loading || pagination.page >= pagination.totalPages"
           class="pagination-btn"
           @click="$emit('next-page')"
         >
@@ -92,6 +92,8 @@ interface Pagination {
 }
 
 interface Props {
+  loading?: boolean;
+  error?: string;
   columns: Column[];
   rows: T[];
   emptyText?: string;
@@ -100,6 +102,7 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
+  loading:false,error:'',
   emptyText: 'No hay datos disponibles',
   showPagination: false,
   pagination: null
@@ -111,7 +114,10 @@ const emit = defineEmits<{
   'next-page': [];
 }>();
 
+const sortColumn=ref(''),sortDirection=ref<'ascending'|'descending'>('ascending');
+const rowKey=(row:T,index:number)=>{const id=(row as Record<string,unknown>).id;return typeof id==='string'||typeof id==='number'?id:index};
 const handleSort = (column: string) => {
+  sortDirection.value=sortColumn.value===column && sortDirection.value==='ascending'?'descending':'ascending';sortColumn.value=column;
   emit('sort', column);
 };
 

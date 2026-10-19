@@ -10,7 +10,7 @@ router.get('/active', ReservationController.getActive);
 router.get('/upcoming', ReservationController.getUpcoming);
 router.get('/client/:clientId', ReservationController.getByClient);
 router.get('/:id', ReservationController.getById);
-router.get('/', ReservationController.getAll);
+router.get('/', validate(require('../validators/listValidator').schema(['confirmed', 'checked_in', 'checked_out', 'cancelled']), 'query'), ReservationController.getAll);
 router.post('/', authorize('admin', 'manager', 'receptionist'), validate(createSchema), ReservationController.create);
 router.put('/:id', authorize('admin', 'manager'), validate(updateSchema), ReservationController.update);
 router.patch('/:id/cancel', authorize('admin', 'manager', 'receptionist'), ReservationController.cancel);

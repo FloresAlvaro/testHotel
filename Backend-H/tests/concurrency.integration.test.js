@@ -111,6 +111,24 @@ describeDb('Concurrencia real PostgreSQL y altas de empleados', () => {
     await pool.end();
   });
 
+  test('listas globales: búsqueda fuera de página, resumen completo y fechas antiguas con más de 100 pagos', async()=>{
+    const service=require('../src/services/tableListService');
+    await pool.query(`INSERT INTO client(name,document) SELECT 'Huésped extra '||n,'extra-'||n FROM generate_series(1,25) n`);
+    const guestPage=await service.list('clients',{page:2,pageSize:10});
+    expect(guestPage.rows).toHaveLength(10);expect(guestPage.total).toBe(26);
+    const found=await service.list('clients',{q:'extra-1',page:1,pageSize:10});
+    expect(found.total).toBe(11);
+    const stay=await reserve('2030-01-01','2030-01-03','500.00');
+    await pool.query(`INSERT INTO payment(reservation_id,amount,method,status,created_at) SELECT $1,1,'cash','completed','2020-01-15 12:00:00' FROM generate_series(1,105)`,[stay.id]);
+    await pool.query(`INSERT INTO payment(reservation_id,amount,method,status,created_at) VALUES ($1,9,'transfer','pending','2026-10-19 12:00:00')`,[stay.id]);
+    const all=await service.list('payments',{page:1,pageSize:10});
+    expect(all.total).toBe(106);expect(all.rows).toHaveLength(10);expect(all.summary.income).toBe('105.00');expect(all.summary.pending).toBe('9.00');
+    const historical=await service.list('payments',{page:2,pageSize:100,startDate:'2020-01-15',endDate:'2020-01-15',method:'cash'});
+    expect(historical.total).toBe(105);expect(historical.rows).toHaveLength(5);expect(historical.summary.completed_count).toBe(105);
+    const invalid=await fetch(base+'/api/payments?pageSize=101',{headers:{Authorization:`Bearer ${createToken({id:userId})}`}});
+    expect(invalid.status).toBe(422);
+  });
+
   test('dos creaciones simultáneas de la misma habitación: solo una gana', async () => {
     const create = () => invoke(ReservationController.create, { user: { id: userId }, body: {
       check_in: '2030-01-01', check_out: '2030-01-03', client_id: clientId, room_id: roomId, notes: 'Bienvenida'

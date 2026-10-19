@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Header -->
     <CPageHeader title="Reporte de Ingresos" description="Un resumen claro de los ingresos del hotel."><div class="flex gap-2">
-        <CButton variant="secondary" :disabled="isLoading || transactions.length === 0" @click="downloadReport">
+        <CButton variant="secondary" :disabled="isLoading || exporting || !!errorMessage || pagination.total === 0" :loading="exporting" @click="downloadReport">
           <Icon name="system-uicons:download" size="18" class="mr-2" />
           Descargar
         </CButton>
@@ -43,12 +43,15 @@
             <option value="cash">Efectivo</option>
             <option value="credit_card">Tarjeta Crédito</option>
             <option value="debit_card">Tarjeta Débito</option>
-            <option value="transfer">Transferencia</option>
+            <option value="transfer">Transferencia</option><option value="check">Cheque</option>
           </select>
         </div>
       </div>
     </CCard>
 
+    <p v-if="errorMessage" role="alert" class="operation-error">{{ errorMessage }} <button class="underline" @click="loadReport">Reintentar</button></p>
+    <p v-if="isLoading" role="status">Cargando informe…</p>
+    <CButton v-if="selectedMethod" variant="secondary" @click="selectedMethod=''">Limpiar filtro de método</CButton>
     <!-- Estadísticas Principales -->
     <div class="stat-grid">
       <CCard class="metric-card">
@@ -68,13 +71,13 @@
       <CCard class="metric-card">
         <div class="space-y-2">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-400">
-            Promedio por Transacción
+            Promedio por cobro completado
           </p>
           <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
             {{ hotelMoney(averageTransaction) }}
           </p>
           <p class="text-xs text-blue-600 dark:text-blue-400">
-            {{ transactionCount }} transacciones
+            {{ completedCount }} cobros completados
           </p>
         </div>
       </CCard>
@@ -147,8 +150,8 @@
         Detalles de Transacciones
       </h2>
 
-      <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
-        <table class="w-full text-sm">
+      <CTableHint /><div v-if="!errorMessage && !isLoading" class="overflow-x-auto" tabindex="0" role="region" aria-label="Resultados">
+        <table class="table-data-centered table-client-left w-full text-sm">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
               <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
@@ -206,6 +209,8 @@
           </tbody>
         </table>
       </div>
+      <CEmptyState v-if="!isLoading && !errorMessage && !transactions.length" title="No hay transacciones para este período" description="Prueba otras fechas o limpia el filtro de método." />
+      <CTablePagination :pagination="pagination" :loading="isLoading" @change="page=$event" />
     </CCard>
   </div>
 </template>
@@ -215,7 +220,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import type { Payment, PaymentMethod, RevenueByMethod, RevenueReport } from '~/types';
 import { useApiClient } from '~/services/api';
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '~/utils/constants';
-import { getTodayDateOnly, localDateOnly } from '~/utils/dates';
+import { getTodayDateOnly, addDateDays } from '~/utils/dates';
 import { formatDate } from '~/utils/formatters';
 const { money: hotelMoney } = useHotelSettings()
 
@@ -227,26 +232,27 @@ definePageMeta({ middleware: ['auth', 'manager'] });
 const api = useApiClient();
 const today = getTodayDateOnly(operatingSettings.value.timezone);
 const dateRange = ref({
-  start: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+  start: addDateDays(today,-29),
   end: today
 });
 const selectedMethod = ref<PaymentMethod | ''>('');
+const page=ref(1), pagination=ref({page:1,pageSize:20,total:0,totalPages:0})
+const summary=ref<import('~/composables/useTableList').PaymentSummary>()
 const allTransactions = ref<Payment[]>([]);
+const exporting=ref(false)
+const reportFilters=()=>({startDate:dateRange.value.start,endDate:dateRange.value.end,method:selectedMethod.value||undefined})
 const dailyRevenue = ref<RevenueReport[]>([]);
 const methods = ref<RevenueByMethod[]>([]);
-const isLoading = ref(false);
+const isLoading = ref(true);
 const errorMessage = ref('');
 
-const filteredTransactions = computed(() => allTransactions.value.filter(payment =>
-  !selectedMethod.value || payment.method === selectedMethod.value
-));
-const transactions = computed(() => filteredTransactions.value);
-const totalRevenue = computed(() => dailyRevenue.value.reduce((sum, row) => sum + Number(row.total_amount || 0), 0).toFixed(2));
-const transactionCount = computed(() => dailyRevenue.value.reduce((sum, row) => sum + Number(row.total_payments), 0));
-const completedCount = computed(() => dailyRevenue.value.reduce((sum, row) => sum + Number(row.completed_payments), 0));
-const averageTransaction = computed(() => transactionCount.value ? (Number(totalRevenue.value) / transactionCount.value).toFixed(2) : '0.00');
-const maxTransaction = computed(() => Math.max(0, ...filteredTransactions.value.map(payment => Number(payment.amount))).toFixed(2));
-const conversionRate = computed(() => transactionCount.value ? Math.round(completedCount.value / transactionCount.value * 100) : 0);
+const transactions = allTransactions;
+const totalRevenue = computed(()=>summary.value?.income||'0');
+const transactionCount = computed(()=>summary.value?.total||0);
+const completedCount = computed(()=>summary.value?.completed_count||0);
+const averageTransaction = computed(()=>completedCount.value?(Number(totalRevenue.value)/completedCount.value).toFixed(2):'0.00');
+const maxTransaction = computed(()=>summary.value?.max_income||'0');
+const conversionRate = computed(()=>transactionCount.value?Math.round(completedCount.value/transactionCount.value*100):0);
 const maxDailyRevenue = computed(() => Math.max(1, ...dailyRevenue.value.map(row => Number(row.total_amount || 0))));
 const paymentMethods = computed(() => {
   const labels: Record<PaymentMethod, string> = {
@@ -260,8 +266,11 @@ const paymentMethods = computed(() => {
   }));
 });
 
+let reportVersion=0;
 const loadReport = async () => {
+  const version=++reportVersion;
   if (dateRange.value.start > dateRange.value.end) {
+    isLoading.value=false;
     errorMessage.value = 'La fecha inicial debe ser anterior o igual a la fecha final.';
     return;
   }
@@ -269,20 +278,20 @@ const loadReport = async () => {
   errorMessage.value = '';
   try {
     const [revenueResponse, methodResponse, paymentsResponse] = await Promise.all([
-      api.getRevenueByPeriod(dateRange.value.start, dateRange.value.end),
-      api.getRevenueByMethod(dateRange.value.start, dateRange.value.end),
-      api.getPayments(1, 100)
+      api.getRevenueByPeriod(dateRange.value.start, dateRange.value.end,selectedMethod.value),
+      api.getRevenueByMethod(dateRange.value.start, dateRange.value.end,selectedMethod.value),
+      api.getPayments(page.value,20,undefined,reportFilters())
     ]);
+    if(version!==reportVersion)return;
     dailyRevenue.value = revenueResponse.data || [];
     methods.value = methodResponse.data || [];
-    allTransactions.value = (paymentsResponse.data || []).filter(payment =>
-      localDateOnly(payment.created_at, operatingSettings.value.timezone) >= dateRange.value.start &&
-      localDateOnly(payment.created_at, operatingSettings.value.timezone) <= dateRange.value.end
-    );
+    allTransactions.value=paymentsResponse.data||[];
+    pagination.value=paymentsResponse.pagination;
+    summary.value=paymentsResponse.summary;
   } catch {
-    errorMessage.value = 'No se pudieron cargar los datos del informe.';
+    if(version===reportVersion)errorMessage.value = 'No se pudieron cargar los datos del informe.';
   } finally {
-    isLoading.value = false;
+    if(version===reportVersion)isLoading.value = false;
   }
 };
 
@@ -293,23 +302,31 @@ const getStatusColor = (status: string) => ({
   refunded: 'status-badge status-refunded'
 }[status] || 'bg-slate-100 text-slate-700');
 
-const downloadReport = () => {
+const downloadReport = async () => {
+  exporting.value=true;errorMessage.value='';
+  const filters={...reportFilters()};
+  try {
+  const data:Payment[]=[];
+  let current=1,totalPages=1;
+  do {const response=await api.getPayments(current,100,undefined,filters);data.push(...(response.data||[]));totalPages=response.pagination.totalPages;current++}while(current<=totalPages);
   const rows = [
     ['Fecha', 'Cliente', 'Reserva', 'Método', 'Monto', 'Estado'],
-    ...filteredTransactions.value.map(payment => [
+    ...data.map(payment => [
       payment.created_at, payment.client_name || '', String(payment.reservation_id), payment.method,
       payment.amount, payment.status
     ])
   ];
-  const csv = rows.map(row => row.map(value => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n');
+  const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n');
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = `reporte-ingresos-${dateRange.value.start}-${dateRange.value.end}.csv`;
+  link.download = `reporte-ingresos-${filters.startDate}-${filters.endDate}.csv`;
   link.click();
   URL.revokeObjectURL(url);
+  }catch{errorMessage.value='No se pudo completar la exportación. Intenta de nuevo.'}finally{exporting.value=false}
 };
 
-watch([() => dateRange.value.start, () => dateRange.value.end], loadReport);
+watch([() => dateRange.value.start, () => dateRange.value.end,selectedMethod],()=>{if(page.value===1)loadReport();else page.value=1});
+watch(page,loadReport);
 onMounted(loadReport);
 </script>

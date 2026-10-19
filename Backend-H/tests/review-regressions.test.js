@@ -28,7 +28,7 @@ describe.each(['getRevenueByPeriod', 'getRevenueByMethod'])('%s', (method) => {
     const res = response();
     await Controller[method]({ query: { startDate: '2026-10-17', endDate: '2026-10-17' } }, res, jest.fn());
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(Payment[method]).toHaveBeenCalledWith('2026-10-17', '2026-10-17');
+    expect(Payment[method]).toHaveBeenCalledWith('2026-10-17', '2026-10-17', null);
   });
 });
 
