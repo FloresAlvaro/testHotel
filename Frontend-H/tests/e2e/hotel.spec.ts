@@ -85,7 +85,9 @@ test('huésped → reserva → entrada → cobro → comprobante → salida → 
   await expect(page.getByRole('heading',{name:'Calendario de habitaciones',exact:true})).toBeVisible()
   await page.getByLabel('Desde',{exact:true}).fill('2035-05-01')
   await page.getByRole('button',{name:'Consultar',exact:true}).click()
-  await expect(page.getByRole('link',{name:`#${reservation.id} ${guest}`,exact:true}).first()).toBeVisible()
+  const calendarBooking=page.getByRole('link',{name:`#${reservation.id} ${guest} Finalizada`,exact:true}).first()
+  await expect(calendarBooking).toBeVisible()
+  await expect(calendarBooking).toHaveAttribute('href',`/reservations/${reservation.id}`)
 })
 
 test('configuración compartida entre sesiones y navegación móvil',async({page,browser})=>{
