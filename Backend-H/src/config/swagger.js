@@ -105,7 +105,7 @@ const swaggerSpec = {
         tags: ['Users'],
         summary: 'Crear empleado (solo administrador)',
         security: [{ bearerAuth: [] }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'password'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, maxLength: 128 }, role: { type: 'string', enum: ['admin', 'manager', 'receptionist'], default: 'receptionist' } } } } } },
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'password'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, maxLength: 72, description: 'Máximo 72 bytes UTF-8' }, role: { type: 'string', enum: ['admin', 'manager', 'receptionist'], default: 'receptionist' } } } } } },
         responses: { 201: { description: 'Empleado creado sin token de sesión' }, 401: { description: 'No autenticado' }, 403: { description: 'Solo administrador' }, 409: { description: 'Email registrado' }, 422: { description: 'Datos invalidos', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } }
       }
     },
@@ -114,7 +114,7 @@ const swaggerSpec = {
         tags: ['Users'],
         summary: 'Crear empleado (solo administrador)',
         security: [{ bearerAuth: [] }],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'password'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, maxLength: 128 }, role: { type: 'string', enum: ['admin', 'manager', 'receptionist'], default: 'receptionist' } } } } } },
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'password'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 8, maxLength: 72, description: 'Máximo 72 bytes UTF-8' }, role: { type: 'string', enum: ['admin', 'manager', 'receptionist'], default: 'receptionist' } } } } } },
         responses: { 201: { description: 'Empleado creado sin token de sesión' }, 401: { description: 'No autenticado' }, 403: { description: 'Solo administrador' }, 409: { description: 'Email registrado' }, 422: { description: 'Datos invalidos', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } }
       }
     },

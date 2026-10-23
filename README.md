@@ -52,6 +52,14 @@ Para la contraseña PostgreSQL, usa letras y números o codifica los caracteres
 reservados de URL. Los siguientes comandos sirven en Bash, zsh y PowerShell salvo
 los bloques que indiquen otro intérprete.
 
+## Seguridad de accesos y PostgreSQL
+
+Las contraseñas deben tener al menos 8 caracteres y no superar 72 bytes UTF-8; letras acentuadas y emojis pueden ocupar varios bytes. Este límite se valida antes de usar bcrypt para evitar truncamientos. Las cuentas existentes con contraseñas superiores a ese límite deben restablecerlas por correo o solicitar asistencia al administrador.
+
+Cambiar la activación del acceso de un huésped revoca sus sesiones y tokens anteriores; al reactivarlo debe iniciar sesión nuevamente.
+
+Docker Compose exige `POSTGRES_PASSWORD` sin valor predeterminado. El puerto de PostgreSQL se publica únicamente en `127.0.0.1`; los contenedores siguen accediendo mediante `db:5432`. Para administración remota utiliza un túnel SSH. En bases existentes, cambiar la variable no cambia la contraseña almacenada: coordina la rotación en PostgreSQL antes de actualizar los servicios.
+
 ## Ejecutar el sistema sin datos de demo
 
 Después de preparar `.env`. Si la demo está usando los mismos puertos, detenla

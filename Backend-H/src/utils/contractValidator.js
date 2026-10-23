@@ -15,6 +15,7 @@ function schema(schema) {
   if(schema.format==='email')result=result.email({tlds:false});
   if(schema.minLength!==undefined)result=result.min(schema.minLength);
   if(schema.maxLength!==undefined)result=result.max(schema.maxLength);
+  if(schema['x-maxBytes']!==undefined)result=result.max(schema['x-maxBytes'],'utf8').messages({'string.max':'La contraseña no puede superar 72 bytes UTF-8'});
   if(schema.pattern)result=result.pattern(new RegExp(schema.pattern));
  } else if(schema.type==='integer')result=Joi.number().integer();
  else if(schema.type==='boolean')result=Joi.boolean();

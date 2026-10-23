@@ -1,8 +1,8 @@
 <template>
  <main class="auth-help"><section class="space-y-5">
-  <h1 class="text-2xl font-bold">Activa tu cuenta</h1><p>Elige una contraseña de 8 a 128 caracteres, con mayúscula, minúscula y número. La invitación vence a las 48 horas y se usa una sola vez.</p>
+  <h1 class="text-2xl font-bold">Activa tu cuenta</h1><p>Elige una contraseña de al menos 8 caracteres y como máximo 72 bytes UTF-8, con mayúscula, minúscula y número. La invitación vence a las 48 horas y se usa una sola vez.</p>
   <form v-if="!message && token" class="space-y-4" @submit.prevent="submit">
-   <label class="block">Nueva contraseña<input v-model="password" class="operation-filter block w-full mt-2" type="password" autocomplete="new-password" minlength="8" maxlength="128" required :disabled="busy"></label>
+   <label class="block">Nueva contraseña<input v-model="password" class="operation-filter block w-full mt-2" type="password" autocomplete="new-password" minlength="8" maxlength="72" required :disabled="busy"></label>
    <label class="block">Confirmar contraseña<input v-model="confirmation" class="operation-filter block w-full mt-2" type="password" autocomplete="new-password" required :disabled="busy"></label>
    <CButton type="submit" :loading="busy">Activar mi cuenta</CButton>
   </form>
@@ -12,13 +12,14 @@
  </section></main>
 </template>
 <script setup lang="ts">
+import { isValidPasswordLength } from '~/utils/validators'
 import type {AcceptInvitationInput} from '~/types/generated/api'
 definePageMeta({layout:false})
 useHead({meta:[{name:'referrer',content:'no-referrer'}]})
 const route=useRoute(),config=useRuntimeConfig(),token=ref(typeof route.query.token==='string'?route.query.token:''),password=ref(''),confirmation=ref(''),busy=ref(false),message=ref(''),error=ref('')
 onMounted(()=>{if(route.query.token)void navigateTo('/auth/accept-invitation',{replace:true})})
 const submit=async()=>{
- error.value='';if(password.value!==confirmation.value){error.value='Las contraseñas no coinciden';return}
+ error.value='';if(!isValidPasswordLength(password.value)){error.value='Usa al menos 8 caracteres y como máximo 72 bytes UTF-8';return}if(password.value!==confirmation.value){error.value='Las contraseñas no coinciden';return}
  busy.value=true
  try{
   const body:AcceptInvitationInput={token:token.value,password:password.value}

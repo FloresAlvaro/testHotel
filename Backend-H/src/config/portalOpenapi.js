@@ -22,7 +22,7 @@ module.exports={
  '/api/portal/receipts/{id}':{get:operation('Mi comprobante por ID de pago','Solo customer. Comprueba pertenencia de la reserva en SQL. Devuelve instantánea pública, estado actual y marca histórica; excluye notas, referencias bancarias y emisor interno.',[id])},
  '/api/clients/{id}/account':{
   get:operation('Consultar acceso del huésped','Solo admin. Devuelve cuenta vinculada o null; nunca devuelve contraseña.',[id]),
-  post:operation('Crear acceso del huésped','Solo admin. Una cuenta por ficha activa; no emite token ni envía correo. Rol customer fijado en servidor; no acepta role ni client_id en el cuerpo.',[id],{type:'object',additionalProperties:false,required:['email','password'],properties:{email:{type:'string',format:'email',maxLength:200},password:{type:'string',minLength:8,maxLength:128}}}),
+  post:operation('Crear acceso del huésped','Solo admin. Una cuenta por ficha activa; no emite token ni envía correo. Rol customer fijado en servidor; no acepta role ni client_id en el cuerpo.',[id],{type:'object',additionalProperties:false,required:['email','password'],properties:{email:{type:'string',format:'email',maxLength:200},password:{type:'string',minLength:8,maxLength:72,description:'Máximo 72 bytes UTF-8'}}}),
   patch:operation('Activar o desactivar acceso','Solo admin. La desactivación se comprueba también en cada petición con un token existente.',[id],{type:'object',additionalProperties:false,required:['is_active'],properties:{is_active:{type:'boolean'}}})
  }
 };

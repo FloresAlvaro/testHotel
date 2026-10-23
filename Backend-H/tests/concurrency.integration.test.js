@@ -424,14 +424,23 @@ describeDb('Concurrencia real PostgreSQL y altas de empleados', () => {
   });
   test('alta controlada: vínculo único, sin token, y desactivación invalida sesiones',async()=>{
     const guest=await customer(clientId);
+    const browser=await fetch(`${base}/users/session`,{method:'POST',headers:{'Content-Type':'application/json','X-Hotel-Request':'1'},body:JSON.stringify({email:'guest@sample.com',password:'Customer123!'})});
+    expect(browser.status).toBe(200);
+    const cookie=browser.headers.get('set-cookie').split(';')[0];
     expect(guest.user).not.toHaveProperty('password');expect(guest.user).not.toHaveProperty('token');
     expect((await api(`/clients/${clientId}/account`,'POST',{email:'another@sample.com',password:'Customer123!'})).status).toBe(409);
     expect((await api(`/clients/${clientId}/account`,'PATCH',{is_active:false})).status).toBe(200);
-    expect((await api('/portal/reservations','GET',undefined,guest.token)).status).toBe(403);
+    expect((await api('/portal/reservations','GET',undefined,guest.token)).status).toBe(401);
+    expect((await pool.query('SELECT 1 FROM web_session WHERE user_id=$1',[guest.user.id])).rowCount).toBe(0);
     expect((await api('/users/login','POST',{email:'guest@sample.com',password:'Customer123!'})).status).toBe(403);
     await api(`/clients/${clientId}/account`,'PATCH',{is_active:true});
+    expect((await api('/portal/profile','GET',undefined,guest.token)).status).toBe(401);
+    expect((await fetch(`${base}/api/portal/profile`,{headers:{Cookie:cookie}})).status).toBe(401);
+    const fresh=await api('/users/login','POST',{email:'guest@sample.com',password:'Customer123!'});
+    expect(fresh.status).toBe(200);
+    expect((await api('/portal/profile','GET',undefined,fresh.body.data.token)).status).toBe(200);
     await pool.query('UPDATE client SET is_active=false WHERE id=$1',[clientId]);
-    expect((await api('/portal/profile','GET',undefined,guest.token)).status).toBe(403);
+    expect((await api('/portal/profile','GET',undefined,fresh.body.data.token)).status).toBe(403);
     expect((await api('/users/login','POST',{email:'guest@sample.com',password:'Customer123!'})).status).toBe(403);
     await expect(pool.query(`INSERT INTO "user"(name,email,password,role) VALUES('No vinculado','unlinked@sample.com','hash','customer')`)).rejects.toMatchObject({code:'23514'});
   });

@@ -24,7 +24,7 @@ router.post('/forgot-password',limiter,validate(Joi.object({email:Joi.string().e
  });
  res.json({success:true,message:'Si la cuenta existe, recibirás un enlace para restablecer tu contraseña.'});
 }));
-router.post('/reset-password',limiter,validate(Joi.object({token:Joi.string().hex().length(64).required(),password:Joi.string().min(8).max(128).pattern(/[A-Z]/).pattern(/[a-z]/).pattern(/[0-9]/).required()})),wrap(async(req,res)=>{
+router.post('/reset-password',limiter,validate(Joi.object({token:Joi.string().hex().length(64).required(),password:require('../validators/passwordValidator').pattern(/[A-Z]/).pattern(/[a-z]/).pattern(/[0-9]/).required()})),wrap(async(req,res)=>{
  const password=await hashPassword(req.body.password);
  await db.transaction(async c=>{
   const row=(await c.query('SELECT user_id FROM password_reset WHERE token_hash=$1',[hash(req.body.token)])).rows[0];

@@ -16,7 +16,7 @@ const wrap = handler => (req,res,next) => Promise.resolve(handler(req,res)).catc
 router.get('/:id/account', authorize('admin'), wrap(async(req,res)=>sendSuccess(res,await account.findAccount(req.params.id))));
 router.post('/:id/account', authorize('admin'), validate(Joi.object({
   email: Joi.string().trim().lowercase().email().max(200).required(),
-  password: Joi.string().min(8).max(128).required()
+  password: require('../validators/passwordValidator')
 })), wrap(async(req,res)=>sendCreated(res,await account.createAccount(req.params.id,req.body))));
 router.patch('/:id/account', authorize('admin'), validate(Joi.object({is_active:Joi.boolean().required()})),
   wrap(async(req,res)=>sendSuccess(res,await account.changeAccess(req.params.id,req.body.is_active))));

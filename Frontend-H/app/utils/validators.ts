@@ -18,8 +18,11 @@ export const isValidDocument = (document: string): boolean => {
   return docRegex.test(document.replace(/\D/g, ""));
 };
 
+export const isValidPasswordLength = (password: string): boolean =>
+  password.length >= 8 && new TextEncoder().encode(password).length <= 72;
+
 export const isStrongPassword = (password: string): boolean => {
-  if (password.length < 8) return false;
+  if (!isValidPasswordLength(password)) return false;
   return (
     /[A-Z]/.test(password) &&
     /[a-z]/.test(password) &&

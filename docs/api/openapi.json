@@ -322,7 +322,9 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 128
+            "maxLength": 72,
+            "x-maxBytes": 72,
+            "description": "Mínimo 8 caracteres y máximo 72 bytes UTF-8"
           }
         },
         "required": [
@@ -460,7 +462,9 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 128,
+            "maxLength": 72,
+            "x-maxBytes": 72,
+            "description": "Mínimo 8 caracteres y máximo 72 bytes UTF-8",
             "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).*$"
           }
         },
@@ -700,7 +704,8 @@
                   "password": {
                     "type": "string",
                     "minLength": 8,
-                    "maxLength": 128
+                    "maxLength": 72,
+                    "description": "Máximo 72 bytes UTF-8"
                   },
                   "role": {
                     "type": "string",
@@ -869,7 +874,8 @@
                   "password": {
                     "type": "string",
                     "minLength": 8,
-                    "maxLength": 128
+                    "maxLength": 72,
+                    "description": "Máximo 72 bytes UTF-8"
                   },
                   "role": {
                     "type": "string",
@@ -4094,7 +4100,8 @@
                   "password": {
                     "type": "string",
                     "minLength": 8,
-                    "maxLength": 128
+                    "maxLength": 72,
+                    "description": "Máximo 72 bytes UTF-8"
                   }
                 }
               }
@@ -4284,7 +4291,8 @@
                   "password": {
                     "type": "string",
                     "minLength": 8,
-                    "maxLength": 128
+                    "maxLength": 72,
+                    "description": "Máximo 72 bytes UTF-8"
                   }
                 }
               }

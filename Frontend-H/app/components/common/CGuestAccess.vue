@@ -12,7 +12,7 @@
       </form>
       <details class="access-note"><summary class="cursor-pointer">Crear acceso con contraseña inicial</summary>
         <form class="space-y-4 mt-4" @submit.prevent="create">
-          <CInput v-model="form.password" label="Contraseña inicial del huésped" type="password" autocomplete="new-password" minlength="8" maxlength="128" required :disabled="saving" />
+          <CInput v-model="form.password" label="Contraseña inicial del huésped" type="password" autocomplete="new-password" minlength="8" maxlength="72" required :disabled="saving" />
           <p>Se usará el correo indicado arriba. Comparte las credenciales por un medio seguro.</p>
           <CButton type="submit" variant="secondary" :loading="saving">Crear acceso del huésped</CButton>
         </form>
@@ -23,6 +23,7 @@
   </CCard>
 </template>
 <script setup lang="ts">
+import { isValidPasswordLength } from '~/utils/validators'
 import { useApiClient } from '~/services/api'
 import type { CustomerInvitationInput } from '~/types/generated/api'
 import type { ApiResponse } from '~/types'
@@ -33,7 +34,7 @@ const message=(e:unknown)=>{const failure=e as {data?:{message?:string}};return 
 const load=async()=>{loading.value=true;error.value='';try{account.value=(await api.request<ApiResponse<CustomerAccount|null>>(`/clients/${props.clientId}/account`)).data||null}catch(e){error.value=message(e)}finally{loading.value=false}}
 const invitationSent=ref(false),invitationVersion=ref(0)
 const invite=async()=>{saving.value=true;error.value='';try{const client=await api.getClient(props.clientId);if(!client.data)throw new Error('Huésped no encontrado');const body:CustomerInvitationInput={name:client.data.name,email:form.email,role:'customer',client_id:props.clientId};await api.request('/users/invitations',{method:'POST',body,retry:0});invitationSent.value=true;invitationVersion.value++}catch(e){error.value=message(e)}finally{saving.value=false}}
-const create=async()=>{saving.value=true;error.value='';try{account.value=(await api.request<ApiResponse<CustomerAccount>>(`/clients/${props.clientId}/account`,{method:'POST',body:form})).data||null;form.password='';ui.success('Acceso del huésped creado')}catch(e){error.value=message(e)}finally{saving.value=false}}
+const create=async()=>{error.value='';if(!isValidPasswordLength(form.password)){error.value='Usa al menos 8 caracteres y como máximo 72 bytes UTF-8';return}saving.value=true;try{account.value=(await api.request<ApiResponse<CustomerAccount>>(`/clients/${props.clientId}/account`,{method:'POST',body:form})).data||null;form.password='';ui.success('Acceso del huésped creado')}catch(e){error.value=message(e)}finally{saving.value=false}}
 const toggle=async()=>{if(!account.value)return;saving.value=true;error.value='';try{account.value=(await api.request<ApiResponse<CustomerAccount>>(`/clients/${props.clientId}/account`,{method:'PATCH',body:{is_active:!account.value.is_active}})).data||null;ui.success('Acceso actualizado')}catch(e){error.value=message(e)}finally{saving.value=false}}
 onMounted(load)
 </script>

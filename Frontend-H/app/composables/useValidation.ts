@@ -45,6 +45,10 @@ export const useValidation = () => {
       errors.push("Mínimo 8 caracteres");
     }
 
+    if (new TextEncoder().encode(password).length > 72) {
+      errors.push("Máximo 72 bytes UTF-8");
+    }
+
     if (!/[A-Z]/.test(password)) {
       errors.push("Debe contener mayúscula");
     }

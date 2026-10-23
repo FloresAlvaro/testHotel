@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const password = Joi.string().min(8).max(128).required();
+const password = require('./passwordValidator');
 
 const registerSchema = Joi.object({
 	name: Joi.string().trim().min(2).max(200).required(),

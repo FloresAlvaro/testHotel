@@ -99,7 +99,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "~/stores/auth";
 import { useUIStore } from "~/stores/ui";
 import { useAuthService } from "~/services/auth";
-import { isValidEmail, isValidLength } from "~/utils/validators";
+import { isValidEmail, isValidPasswordLength } from "~/utils/validators";
 
 definePageMeta({
   layout: "auth",
@@ -130,8 +130,8 @@ const validateField = (field: "email" | "password") => {
 
   errors.value.password = !form.value.password
     ? "La contraseña es obligatoria"
-    : !isValidLength(form.value.password, 8, 128)
-      ? "Debe tener entre 8 y 128 caracteres"
+    : !isValidPasswordLength(form.value.password)
+      ? "Debe tener al menos 8 caracteres y no superar 72 bytes UTF-8"
       : "";
 };
 

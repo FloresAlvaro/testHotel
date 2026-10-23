@@ -15,9 +15,10 @@ const createAccount = (clientId, data) => db.transaction(async connection => {
   return User.create({ name: guest.name, email: data.email, password: data.password, role: 'customer', client_id: guest.id }, connection);
 });
 
-const changeAccess = async (clientId, isActive) => {
-  const result = await db.query(`UPDATE "user" SET is_active=$1 WHERE client_id=$2 AND role='customer' RETURNING id,name,email,is_active,created_at`, [isActive,clientId]);
+const changeAccess = (clientId, isActive) => db.transaction(async connection => {
+  const result = await connection.query(`UPDATE "user" SET is_active=$1, auth_version=auth_version+1, updated_at=now() WHERE client_id=$2 AND role='customer' RETURNING id,name,email,is_active,created_at`, [isActive,clientId]);
   if (!result.rowCount) throw fail('Cuenta del huésped no encontrada',404);
+  await connection.query('DELETE FROM web_session WHERE user_id=$1', [result.rows[0].id]);
   return result.rows[0];
-};
+});
 module.exports = { findAccount, createAccount, changeAccess };
