@@ -37,7 +37,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Detectar secretos sin escribir coincidencias en logs
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         with:
           version: v0.69.3
           scan-type: fs
@@ -72,7 +72,7 @@ jobs:
       - name: Construir la imagen final
         run: docker build --pull -t hotel-security:scan '${{ matrix.directory }}'
       - name: Bloquear vulnerabilidades altas y críticas de la imagen final
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         with:
           version: v0.69.3
           image-ref: hotel-security:scan
