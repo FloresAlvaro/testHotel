@@ -27,7 +27,7 @@
     "morgan": "^1.10.0",
     "nodemailer": "^10.2.1",
     "otpauth": "^9.5.2",
-    "pg": "^8.10.0",
+    "pg": "^8.23.1",
     "stripe": "^23.0.0",
     "swagger-ui-express": "^5.0.1"
   },
