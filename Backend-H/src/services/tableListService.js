@@ -2,6 +2,8 @@ const db = require('../config/database');
 
 // Los identificadores SQL proceden exclusivamente de estas definiciones internas.
 const definitions = {
+  rooms: { from: 'room rm JOIN room_type rt ON rt.id=rm.room_type_id', select: 'rm.*, rt.name AS room_type_name, rt.price', order: 'rm.floor,rm.number,rm.id', search: ['rm.number','rt.name'], date: 'rm.created_at::date', status: 'rm.status', floor: 'rm.floor' },
+  roomTypes: { from: 'room_type rt', select: 'rt.*', active: 'rt.is_active=true', order: 'rt.name,rt.id', search: ['rt.name'], date: 'rt.created_at::date' },
   users: { from: '"user" u', select: 'u.id,u.name,u.email,u.role,u.is_active,u.created_at,u.updated_at', order: 'u.created_at DESC,u.id DESC', active: "u.role <> 'customer'", search: ['u.name','u.email'], date: 'u.created_at::date' },
   clients: { from: 'client c', select: 'c.*', order: 'c.created_at DESC, c.id DESC', active: 'c.is_active = true', search: ['c.name', 'c.document', 'c.email', 'c.phone'], date: 'c.created_at::date' },
   reservations: { from: 'reservation r JOIN client c ON c.id=r.client_id JOIN room rm ON rm.id=r.room_id JOIN room_type rt ON rt.id=rm.room_type_id', select: 'r.*, c.name AS client_name, c.email AS client_email, c.phone AS client_phone, c.document AS client_document, rm.number AS room_number, rt.name AS room_type_name', order: 'r.check_in DESC, r.id DESC', search: ['c.name', 'rm.number', 'r.id::text'], date: 'r.check_in', status: 'r.status' },
@@ -20,6 +22,7 @@ const buildFilter = (definition, filters) => {
     clauses.push(`(${definition.search.map(field => `${field} ILIKE ${token}`).join(' OR ')})`);
   }
   if (filters.status && definition.status) clauses.push(`${definition.status} = ${bind(filters.status)}`);
+  if (filters.floor !== undefined && definition.floor) clauses.push(`${definition.floor} = ${bind(filters.floor)}`);
   if (filters.method && definition.method) clauses.push(`${definition.method} = ${bind(filters.method)}`);
   if (filters.startDate) clauses.push(`${definition.date} >= ${bind(filters.startDate)}::date`);
   if (filters.endDate) clauses.push(`${definition.date} <= ${bind(filters.endDate)}::date`);

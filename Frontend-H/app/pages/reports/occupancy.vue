@@ -193,6 +193,7 @@
 </template>
 
 <script setup lang="ts">
+import { serializeCsv } from '~/utils/csv';
 import { computed, onMounted, ref, watch } from 'vue';
 import type { Room } from '~/types';
 import { useApiClient } from '~/services/api';
@@ -290,7 +291,7 @@ const downloadReport = () => {
       room.number, room.room_type_name || '', String(room.floor ?? ''), room.status, `${room.occupancy}%`
     ])
   ];
-  const csv = rows.map(row => row.map(value => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n');
+  const csv = serializeCsv(rows);
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;

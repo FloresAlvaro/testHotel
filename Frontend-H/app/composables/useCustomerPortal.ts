@@ -1,3 +1,4 @@
+import { RESERVATION_STATUS_LABELS,PAYMENT_STATUS_LABELS } from '~/utils/constants'
 import { useApiClient } from '~/services/api'
 import type { ApiResponse, PaginatedApiResponse } from '~/types'
 import type { PortalProfile, PortalReservation, PortalReservationDetail, GuestAvailability, GuestBookingRequest, GuestBookingResult } from '~/types/portal'
@@ -18,7 +19,7 @@ export const useCustomerPortal = () => {
   const availability=(check_in:string,check_out:string,page=1,adults=1,children=0)=>api.request<ApiResponse<GuestAvailability>>('/portal/availability',{query:{check_in,check_out,page,pageSize:12,adults,children}})
   const book=(body:GuestBookingRequest)=>api.request<ApiResponse<GuestBookingResult>>('/portal/reservations',{method:'POST',body,retry:0})
   const receipt=(id:string)=>api.request<ApiResponse<Receipt>>(`/portal/receipts/${id}`)
-  const states:Record<string,string>={confirmed:'Confirmada',checked_in:'En estancia',checked_out:'Finalizada',cancelled:'Cancelada',pending:'Pendiente',completed:'Completado',failed:'Fallido',refunded:'Reembolsado'}
+  const states:Record<string,string>={...RESERVATION_STATUS_LABELS,...PAYMENT_STATUS_LABELS}
   const methods:Record<string,string>={cash:'Efectivo',credit_card:'Tarjeta de crédito',debit_card:'Tarjeta de débito',transfer:'Transferencia',check:'Cheque'}
   return {availability,book,profile,nextStay,reservations,reservation,receipt,run,error,loading,states,methods}
 }

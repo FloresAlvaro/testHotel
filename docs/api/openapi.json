@@ -650,6 +650,269 @@
             "description": "Importe decimal exacto en la moneda del hotel"
           }
         }
+      },
+      "OwnSession": {
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "expires_at",
+          "current"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OwnSessionsResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnSession"
+            }
+          }
+        }
+      },
+      "MfaChallengeResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "mfaRequired",
+              "challengeId",
+              "enrollmentRequired"
+            ],
+            "properties": {
+              "mfaRequired": {
+                "type": "boolean"
+              },
+              "challengeId": {
+                "type": "string",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "enrollmentRequired": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "MfaEnrollmentResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "secret",
+              "uri",
+              "recoveryCodes"
+            ],
+            "properties": {
+              "secret": {
+                "type": "string"
+              },
+              "uri": {
+                "type": "string"
+              },
+              "recoveryCodes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "MfaStatusResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "enabled",
+              "required",
+              "recoveryCodesRemaining"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "recoveryCodesRemaining": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "MfaChallengeInput": {
+        "type": "object",
+        "required": [
+          "challengeId"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "MfaVerifyInput": {
+        "type": "object",
+        "required": [
+          "challengeId",
+          "code"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^(?:[0-9]{6}|[a-f0-9]{16})$"
+          }
+        }
+      },
+      "MfaConfirmInput": {
+        "type": "object",
+        "required": [
+          "challengeId",
+          "code",
+          "recoveryCodesSaved"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "recoveryCodesSaved": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        }
+      },
+      "MfaRenewInput": {
+        "type": "object",
+        "required": [
+          "password",
+          "code"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^(?:[0-9]{6}|[a-f0-9]{16})$"
+          }
+        }
+      },
+      "BearerLoginResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "user",
+              "token"
+            ],
+            "properties": {
+              "user": {
+                "$ref": "#/components/schemas/SessionUser"
+              },
+              "token": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "MfaCompletionResponse": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SessionResponse"
+          },
+          {
+            "$ref": "#/components/schemas/BearerLoginResponse"
+          }
+        ]
+      },
+      "MfaEnableInput": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72
+          }
+        }
       }
     }
   },
@@ -936,6 +1199,16 @@
         "responses": {
           "200": {
             "description": "Token JWT generado"
+          },
+          "202": {
+            "description": "Contraseña verificada; completar MFA antes de emitir JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallengeResponse"
+                }
+              }
+            }
           },
           "401": {
             "description": "Credenciales invalidas"
@@ -1434,9 +1707,79 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de habitaciones"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "available",
+                "reserved",
+                "occupied",
+                "maintenance"
+              ]
+            }
+          },
+          {
+            "name": "floor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "description": " Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel."
       },
       "post": {
         "tags": [
@@ -1605,9 +1948,57 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de tipos de habitación"
+            "description": "Lista en data y total/page/pageSize/totalPages en pagination"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Búsqueda en todo el conjunto, antes de paginar"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "description": " Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel."
       },
       "post": {
         "tags": [
@@ -4207,6 +4598,98 @@
         }
       }
     },
+    "/api/hotel/contact": {
+      "get": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Contacto de recepción",
+        "description": "Público. Solo nombre, teléfono y correo configurados por el hotel.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
+    "/api/users/reset-password/check": {
+      "post": {
+        "tags": [
+          "Guest services"
+        ],
+        "summary": "Comprobar enlace de recuperación",
+        "description": "Público y limitado. Token en cuerpo; solo devuelve data.valid. No consume el enlace ni revela la cuenta. La escritura revalida el token.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada; success/data o mensaje"
+          },
+          "201": {
+            "description": "Registro creado"
+          },
+          "400": {
+            "description": "Entrada no válida"
+          },
+          "401": {
+            "description": "Sesión no válida"
+          },
+          "403": {
+            "description": "Rol sin permiso"
+          },
+          "404": {
+            "description": "Recurso no encontrado o de otro huésped"
+          },
+          "409": {
+            "description": "Conflicto con estado, saldo, disponibilidad o plazo"
+          },
+          "503": {
+            "description": "Integración pendiente de configurar"
+          }
+        }
+      }
+    },
     "/api/users/forgot-password": {
       "post": {
         "tags": [
@@ -5504,6 +5987,16 @@
               }
             }
           },
+          "202": {
+            "description": "Contraseña verificada; completar MFA sin credenciales de acceso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallengeResponse"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Entrada o enlace no válido"
           },
@@ -5594,6 +6087,438 @@
           }
         },
         "description": "Requiere X-Hotel-Request: 1 y X-Hotel-CSRF del GET /users/session."
+      }
+    },
+    "/api/users/mfa/enable": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Activar MFA propio opcional (solo admin)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaEnableInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallengeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/mfa/disable": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Desactivar MFA propio con contraseña y factor (solo admin)",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaRenewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaCompletionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/mfa/status": {
+      "get": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Estado MFA propio",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/mfa/renew": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Reautenticar con contraseña y factor para renovar TOTP y recuperación",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaRenewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallengeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/mfa/enroll": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Preparar TOTP y diez códigos de recuperación tras contraseña verificada",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaChallengeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaEnrollmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/mfa/confirm": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Confirmar TOTP y guardado de recuperación; emitir sesión",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaConfirmInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaCompletionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/mfa/verify": {
+      "post": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Verificar TOTP o código de recuperación de un solo uso; emitir sesión",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerifyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaCompletionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        }
+      }
+    },
+    "/api/users/sessions": {
+      "get": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Listar las sesiones propias vigentes",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnSessionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        },
+        "description": "Máximo 100. Devuelve identificadores públicos y fechas, nunca credenciales, hashes o CSRF de otras sesiones."
+      }
+    },
+    "/api/users/sessions/{sessionId}": {
+      "delete": {
+        "tags": [
+          "Sessions and invitations"
+        ],
+        "summary": "Revocar una sesión propia",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada o enlace no válido"
+          },
+          "401": {
+            "description": "Sesión vencida"
+          },
+          "403": {
+            "description": "Rol, origen o CSRF no autorizado"
+          },
+          "409": {
+            "description": "Cuenta existente"
+          },
+          "503": {
+            "description": "Servicio no configurado"
+          }
+        },
+        "description": "Solo del usuario autenticado. Cookie requiere CSRF; X-Hotel-Request: 1. Revocar la sesión actual exige volver a iniciar sesión.",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
       }
     },
     "/api/users/invitations": {

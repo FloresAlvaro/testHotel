@@ -1,3 +1,4 @@
+import {RESERVATION_STATUS_LABELS,RESERVATION_STATUS_COLORS} from '~/utils/constants'
 import type {
   CreateReservationRequest,
   ReservationStatus,
@@ -210,14 +211,7 @@ export const useReservations = () => {
    * Obtener estado visual de una reserva
    */
   const getReservationStatus = (status: string) => {
-    const statuses: Record<string, { label: string; color: string }> = {
-      confirmed: { label: "Confirmada", color: "blue" },
-      checked_in: { label: "Check-in", color: "green" },
-      checked_out: { label: "Check-out", color: "gray" },
-      cancelled: { label: "Cancelada", color: "red" },
-    };
-
-    return statuses[status] || { label: status, color: "gray" };
+    return {label:RESERVATION_STATUS_LABELS[status] || 'Estado desconocido',color:RESERVATION_STATUS_COLORS[status] || 'gray'};
   };
 
   return {

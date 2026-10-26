@@ -27,6 +27,8 @@ const auth = async (req, res, next) => {
       return res.status(403).json({ message: 'El usuario está inactivo' });
     }
 
+    if(user.role==='admin'&&decoded.mfa_verified!==true&&await require('../services/mfaService').required(user))return res.status(401).json({message:'Completa la verificación MFA para acceder.'});
+
     req.user = {
       ...decoded,
       id: user.id,

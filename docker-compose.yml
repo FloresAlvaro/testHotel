@@ -1,12 +1,17 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
     container_name: hotel-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-hotel_db}
       POSTGRES_USER: ${POSTGRES_USER:-hotel_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD debe estar definido en el .env}
+      POSTGRES_RUNTIME_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?Configura POSTGRES_RUNTIME_PASSWORD}
+      POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?Configura POSTGRES_MIGRATOR_PASSWORD}
+      POSTGRES_BACKUP_PASSWORD: ${POSTGRES_BACKUP_PASSWORD:?Configura POSTGRES_BACKUP_PASSWORD}
+      POSTGRES_VERIFY_PASSWORD: ${POSTGRES_VERIFY_PASSWORD:?Configura POSTGRES_VERIFY_PASSWORD}
+      HOTEL_SECURITY_SQL: /security/roles.sql
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -18,6 +23,10 @@ services:
       - ./database/migrations/004-guest-services.sql:/docker-entrypoint-initdb.d/04b-guest-services.sql:ro
       - ./database/migrations/005-reservation-guests.sql:/docker-entrypoint-initdb.d/04c-reservation-guests.sql:ro
       - ./database/migrations/006-sessions-invitations.sql:/docker-entrypoint-initdb.d/04d-sessions-invitations.sql:ro
+      - ./database/migrations/007-security-sessions-refunds.sql:/docker-entrypoint-initdb.d/04e-security.sql:ro
+      - ./database/migrations/008-mfa.sql:/docker-entrypoint-initdb.d/04f-mfa.sql:ro
+      - ./database/security:/security:ro
+      - ./database/security/provision.sh:/docker-entrypoint-initdb.d/90-security.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -46,9 +55,14 @@ services:
       STRIPE_CURRENCIES: ${STRIPE_CURRENCIES:-USD,EUR}
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-hotel_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD debe estar definido en el .env}@db:5432/${POSTGRES_DB:-hotel_db}
+      DATABASE_URL: postgresql://hotel_runtime:${POSTGRES_RUNTIME_PASSWORD:?Configura POSTGRES_RUNTIME_PASSWORD}@db:5432/${POSTGRES_DB:-hotel_db}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET debe estar definido en el .env}
       JWT_EXPIRE: ${JWT_EXPIRE:-24h}
+      MFA_ENABLED: ${MFA_ENABLED:-true}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Configura MFA_ENCRYPTION_KEY}
+      SECURITY_RETENTION_ENABLED: ${SECURITY_RETENTION_ENABLED:-true}
+      SECURITY_SESSION_RETENTION_DAYS: ${SECURITY_SESSION_RETENTION_DAYS:-7}
+      SECURITY_LINK_RETENTION_HOURS: ${SECURITY_LINK_RETENTION_HOURS:-24}
       SESSION_MAX_AGE: ${SESSION_MAX_AGE:-86400000}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-1000}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
@@ -58,7 +72,35 @@ services:
       - ./database/migrations:/app/migrations:ro
       - postgres_backups:/backups:ro
     ports:
-      - "${BACKEND_PORT:-3000}:3000"
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    depends_on:
+      db:
+        condition: service_healthy
+
+  migrate:
+    profiles: [tools]
+    build:
+      context: ./Backend-H
+    command: [node, scripts/migrate.js]
+    restart: 'no'
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://hotel_migrator:${POSTGRES_MIGRATOR_PASSWORD:?Configura POSTGRES_MIGRATOR_PASSWORD}@db:5432/${POSTGRES_DB:-hotel_db}
+    volumes:
+      - ./database/migrations:/app/migrations:ro
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
     depends_on:
       db:
         condition: service_healthy
@@ -72,20 +114,29 @@ services:
       NITRO_HOST: 0.0.0.0
       NITRO_PORT: 3000
       NUXT_API_INTERNAL_BASE: http://backend:3000/api
-      NUXT_PUBLIC_API_BASE: http://localhost:${BACKEND_PORT:-3000}/api
+      NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost:${BACKEND_PORT:-3000}/api}
     ports:
-      - "${FRONTEND_PORT:-3001}:3000"
+      - "127.0.0.1:${FRONTEND_PORT:-3001}:3000"
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 1.0
     depends_on:
       - backend
 
   backups:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
     restart: unless-stopped
     entrypoint: ["sh", "/scripts/loop.sh"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-hotel_db}
-      POSTGRES_USER: ${POSTGRES_USER:-hotel_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD debe estar definido en el .env}
+      POSTGRES_USER: hotel_backup
+      POSTGRES_PASSWORD: ${POSTGRES_BACKUP_PASSWORD:?Configura POSTGRES_BACKUP_PASSWORD}
+      VERIFY_PGUSER: hotel_backup_verify
+      VERIFY_PGPASSWORD: ${POSTGRES_VERIFY_PASSWORD:?Configura POSTGRES_VERIFY_PASSWORD}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
       BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
     volumes:

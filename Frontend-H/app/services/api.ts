@@ -1,4 +1,4 @@
-import type { SessionResponse } from '~/types/generated/api';
+import type { SessionResponse, MfaChallengeResponse, MfaEnrollmentResponse, MfaStatusResponse } from '~/types/generated/api';
 import type {
   ApiResponse,
   CheckInLogData,
@@ -64,12 +64,14 @@ export const useApiClient = () => {
     },
 
     // Interceptor de errores
-    onResponseError({ response }) {
+    onResponseError({ request, response, options }) {
       const requestId=response.headers.get('X-Request-ID') || response._data?.requestId;
       console.error(`[API Error] ${response.status}${requestId ? ` [${requestId}]` : ''}:`, response._data?.message || 'Error al procesar la solicitud');
 
       // Manejar errores comunes
-      if (response.status === 401) {
+      const requestUrl = typeof request === 'string' ? request : request.url;
+      const mfaAttempt = options.method === 'POST' && /\/users\/mfa\/(enroll|confirm|verify|renew)(?:\?|$)/.test(requestUrl);
+      if (response.status === 401 && !mfaAttempt) {
         authStore.clearSession();
         navigateTo("/auth/login");
       }
@@ -92,10 +94,26 @@ export const useApiClient = () => {
     request: api,
     // ==================== USUARIOS ====================
     login: (data: LoginRequest) =>
-      api<SessionResponse>("/users/session", {
+      api<SessionResponse | MfaChallengeResponse>("/users/session", {
         method: "POST",
         body: data,
       }),
+
+    enableMfa: (password: string) => api<MfaChallengeResponse>('/users/mfa/enable', {method:'POST',body:{password},retry:0}),
+    disableMfa: (password: string, code: string) => api<SessionResponse>('/users/mfa/disable', {method:'POST',body:{password,code},retry:0}),
+    getMfaStatus: () => api<MfaStatusResponse>('/users/mfa/status'),
+    renewMfa: (password: string, code: string) => api<MfaChallengeResponse>('/users/mfa/renew', {
+      method: 'POST', body: { password, code }, retry: 0,
+    }),
+    enrollMfa: (challengeId: string) => api<MfaEnrollmentResponse>('/users/mfa/enroll', {
+      method: 'POST', body: { challengeId }, retry: 0,
+    }),
+    confirmMfa: (challengeId: string, code: string, recoveryCodesSaved: boolean) => api<SessionResponse>('/users/mfa/confirm', {
+      method: 'POST', body: { challengeId, code, recoveryCodesSaved }, retry: 0,
+    }),
+    verifyMfa: (challengeId: string, code: string) => api<SessionResponse>('/users/mfa/verify', {
+      method: 'POST', body: { challengeId, code }, retry: 0,
+    }),
 
     register: (data: Pick<RegisterRequest, "name" | "email" | "password"> & { role?: User["role"] }) =>
       api<ApiResponse<User>>("/users", {
@@ -167,9 +185,9 @@ export const useApiClient = () => {
       ),
 
     // ==================== CLIENTES ====================
-    getClients: (page = 1, pageSize = 10) =>
+    getClients: (page = 1, pageSize = 10, q = "") =>
       api<PaginatedApiResponse<Client>>(
-        `/clients?page=${page}&pageSize=${pageSize}`,
+        `/clients?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(q)}`,
       ),
 
     getClient: (id: number) => api<ApiResponse<Client>>(`/clients/${id}`),
@@ -231,18 +249,18 @@ export const useApiClient = () => {
       api<ApiResponse<OccupancyStats>>("/rooms/occupancy"),
 
     // ==================== TIPOS DE HABITACIÓN ====================
-    getRoomTypes: (page = 1, pageSize = 10) =>
+    getRoomTypes: (page = 1, pageSize = 10, q = "") =>
       api<PaginatedApiResponse<RoomType>>(
-        `/room-types?page=${page}&pageSize=${pageSize}`,
+        `/room-types?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(q)}`,
       ),
 
     getRoomType: (id: number) =>
       api<ApiResponse<RoomType>>(`/room-types/${id}`),
 
     // ==================== RESERVAS ====================
-    getReservations: (page = 1, pageSize = 10, status?: ReservationStatus) =>
+    getReservations: (page = 1, pageSize = 10, status?: ReservationStatus, q = "") =>
       api<PaginatedApiResponse<Reservation>>(
-        `/reservations?page=${page}&pageSize=${pageSize}${status ? `&status=${status}` : ""}`,
+        `/reservations?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(q)}${status ? `&status=${status}` : ""}`,
       ),
 
     getReservation: (id: number) =>

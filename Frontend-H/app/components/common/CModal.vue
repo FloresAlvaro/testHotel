@@ -1,14 +1,19 @@
 <template>
   <Teleport to="body">
-    <dialog ref="dialog" class="modal-container" :data-size="size" :aria-labelledby="titleId" @cancel.prevent="emit('close')" @click="handleBackdrop">
-      <div class="modal-header"><h2 :id="titleId" class="modal-title">{{ title }}</h2><button type="button" class="icon-button" aria-label="Cerrar ventana" @click="emit('close')"><Icon name="system-uicons:cross" /></button></div>
+    <dialog ref="dialog" class="modal-container" :data-size="size" :aria-labelledby="titleId" @cancel.prevent="requestClose" @click="handleBackdrop">
+      <div class="modal-header"><h2 :id="titleId" class="modal-title">{{ title }}</h2><button type="button" class="icon-button" aria-label="Cerrar ventana" @click="requestClose"><Icon name="system-uicons:cross" /></button></div>
       <div class="modal-body"><slot /></div>
       <div v-if="$slots.footer" class="modal-footer"><slot name="footer" /></div>
     </dialog>
   </Teleport>
 </template>
 <script setup lang="ts">
-const props = withDefaults(defineProps<{ isOpen: boolean; title: string; size?: 'sm' | 'md' | 'lg'; closeOnOverlay?: boolean }>(), { size: 'md', closeOnOverlay: true });
+import { unsavedChangesKey, confirmDiscard } from '~/utils/unsavedChanges'
+const guards=new Set<()=>boolean|'busy'>()
+provide(unsavedChangesKey,guard=>{guards.add(guard);return ()=>guards.delete(guard)})
+const requestClose=()=>{const states=[...guards].map(guard=>guard());if(props.busy||states.includes('busy'))return;if(!(props.dirty||states.some(Boolean))||confirmDiscard())emit('close')}
+
+const props = withDefaults(defineProps<{ isOpen: boolean; title: string; size?: 'sm' | 'md' | 'lg'; closeOnOverlay?: boolean; dirty?:boolean; busy?:boolean }>(), { size: 'md', closeOnOverlay: true });
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement | null>(null);
 const titleId = useId();
@@ -22,7 +27,7 @@ const handleBackdrop = (event: MouseEvent) => {
   const element = dialog.value;
   if (!element || !props.closeOnOverlay || event.target !== element) return;
   const rect = element.getBoundingClientRect();
-  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) emit('close');
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) requestClose();
 };
 watch(() => props.isOpen, sync, { flush: 'post' });
 onMounted(sync);

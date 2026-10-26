@@ -1,3 +1,4 @@
+import { loginApi, finishBrowserMfa } from './helpers'
 import { test, expect } from '@playwright/test'
 
 test.skip(process.env.E2E_ALLOW_WRITES!=='1','Requiere una demo aislada y E2E_ALLOW_WRITES=1')
@@ -8,7 +9,7 @@ for(const kind of ['dates','cancel'] as const)for(const decision of ['approved',
   const errors:string[]=[]
   page.on('pageerror',e=>errors.push(e.message))
   const login=async(email:string,password:string)=>{
-   const result=await request.post(`${api}/users/login`,{data:{email,password}})
+   const result=await loginApi(request,{email,password})
    expect(result.ok()).toBeTruthy()
    return {Authorization:`Bearer ${(await result.json()).data.token}`}
   }
@@ -29,7 +30,7 @@ for(const kind of ['dates','cancel'] as const)for(const decision of ['approved',
   await page.goto('/auth/login')
   await page.getByLabel('Correo electrónico',{exact:true}).fill('admin@hotel.com')
   await page.getByLabel('Contraseña',{exact:true}).fill('Admin123!')
-  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
   await expect(page).not.toHaveURL(/auth\/login/)
   await page.goto('/operations/requests')
   const row=page.getByRole('article').filter({hasText:`Prueba de interfaz ${suffix}`})

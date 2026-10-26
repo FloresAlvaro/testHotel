@@ -1,3 +1,4 @@
+import { loginApi, finishBrowserMfa } from './helpers'
 import { test, expect } from '@playwright/test'
 
 test.skip(process.env.E2E_ALLOW_WRITES!=='1','Requiere una demo aislada y E2E_ALLOW_WRITES=1')
@@ -11,7 +12,7 @@ test('huésped: login, estancias propias, comprobante y bloqueo del panel intern
   await page.goto('/auth/login?redirect=/operations/calendar')
   await page.getByLabel('Correo electrónico',{exact:true}).fill(customerEmail)
   await page.getByLabel('Contraseña',{exact:true}).fill(customerPassword)
-  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
   await expect(page).toHaveURL(/\/portal$/)
   await expect(page.getByRole('heading',{name:/Hola, María/})).toBeVisible()
   await expect(page.getByRole('navigation',{name:'Navegación del huésped'})).toBeVisible()
@@ -29,11 +30,11 @@ test('huésped: login, estancias propias, comprobante y bloqueo del panel intern
   await expect(page).toHaveURL(/\/portal$/)
   await expect(page.getByRole('heading',{name:/Hola, María/})).toBeVisible()
   // La protección se comprueba también por HTTP, fuera de la navegación del frontend.
-  const login=await request.post(`${api}/users/login`,{data:{email:customerEmail,password:customerPassword}})
+  const login=await loginApi(request,{email:customerEmail,password:customerPassword})
   const token=(await login.json()).data.token
   const denied=await request.get(`${api}/payments`,{headers:{Authorization:`Bearer ${token}`}})
   expect(denied.status()).toBe(403)
-  const second=await request.post(`${api}/users/login`,{data:{email:'customer2@hotel.com',password:'Customer123!'}})
+  const second=await loginApi(request,{email:'customer2@hotel.com',password:'Customer123!'})
   const secondToken=(await second.json()).data.token
   const others=await request.get(`${api}/portal/reservations`,{headers:{Authorization:`Bearer ${secondToken}`}})
   const foreignId=(await others.json()).data[0].id
@@ -52,7 +53,7 @@ test('huésped: login, estancias propias, comprobante y bloqueo del panel intern
 
 test('administrador crea y desactiva el acceso desde la ficha del huésped',async({page,request})=>{
   const suffix=Date.now().toString(),email=`e2e-customer-${suffix}@sample.com`
-  const login=await request.post(`${api}/users/login`,{data:{email:process.env.E2E_EMAIL||'admin@hotel.com',password:process.env.E2E_PASSWORD||'Admin123!'}})
+  const login=await loginApi(request,{email:process.env.E2E_EMAIL||'admin@hotel.com',password:process.env.E2E_PASSWORD||'Admin123!'})
   const headers={Authorization:`Bearer ${(await login.json()).data.token}`}
   const created=await request.post(`${api}/clients`,{headers,data:{name:`Huésped portal ${suffix}`,document:suffix}})
   expect(created.ok()).toBeTruthy()
@@ -60,7 +61,7 @@ test('administrador crea y desactiva el acceso desde la ficha del huésped',asyn
   await page.goto('/auth/login')
   await page.getByLabel('Correo electrónico',{exact:true}).fill(process.env.E2E_EMAIL||'admin@hotel.com')
   await page.getByLabel('Contraseña',{exact:true}).fill(process.env.E2E_PASSWORD||'Admin123!')
-  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
   await expect(page).toHaveURL(/dashboard/)
   await page.goto(`/clients/${guest.id}`)
   await page.getByLabel('Correo de acceso del huésped').fill(email)
@@ -70,13 +71,13 @@ test('administrador crea y desactiva el acceso desde la ficha del huésped',asyn
   await expect(page.getByText(email,{exact:true})).toBeVisible()
   await page.getByRole('button',{name:'Desactivar acceso',exact:true}).click()
   await expect(page.getByText('Acceso desactivado',{exact:true})).toBeVisible()
-  const denied=await request.post(`${api}/users/login`,{data:{email,password:'Customer123!'}})
+  const denied=await loginApi(request,{email,password:'Customer123!'})
   expect(denied.status()).toBe(403)
 })
 
 test('cliente reserva una habitación desde móvil y el enlace de accesibilidad aparece al enfocar',async({page,request})=>{
   const suffix=Date.now().toString().slice(-8),number=`B${suffix}`
-  const admin=await request.post(`${api}/users/login`,{data:{email:process.env.E2E_EMAIL||'admin@hotel.com',password:process.env.E2E_PASSWORD||'Admin123!'}})
+  const admin=await loginApi(request,{email:process.env.E2E_EMAIL||'admin@hotel.com',password:process.env.E2E_PASSWORD||'Admin123!'})
   const headers={Authorization:`Bearer ${(await admin.json()).data.token}`}
   const type=await request.post(`${api}/room-types`,{headers,data:{name:`Reserva web ${suffix}`,price:80,capacity:2}})
   expect(type.ok()).toBeTruthy()
@@ -86,7 +87,7 @@ test('cliente reserva una habitación desde móvil y el enlace de accesibilidad 
   await page.goto('/auth/login')
   await page.getByLabel('Correo electrónico',{exact:true}).fill(customerEmail)
   await page.getByLabel('Contraseña',{exact:true}).fill(customerPassword)
-  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
   await expect(page).toHaveURL(/\/portal$/)
   const skip=page.getByRole('link',{name:'Ir al contenido',exact:true})
   await expect(skip).not.toBeInViewport()
@@ -122,9 +123,9 @@ test('cliente reserva una habitación desde móvil y el enlace de accesibilidad 
 
 test('solicitud aprobada, pago demo y reembolso desde las pantallas',async({page,request})=>{
   const suffix=Date.now().toString().slice(-8)
-  const admin=await request.post(`${api}/users/login`,{data:{email:'admin@hotel.com',password:'Admin123!'}})
+  const admin=await loginApi(request,{email:'admin@hotel.com',password:'Admin123!'})
   const adminHeaders={Authorization:`Bearer ${(await admin.json()).data.token}`}
-  const guest=await request.post(`${api}/users/login`,{data:{email:customerEmail,password:customerPassword}})
+  const guest=await loginApi(request,{email:customerEmail,password:customerPassword})
   const guestHeaders={Authorization:`Bearer ${(await guest.json()).data.token}`}
   const type=await request.post(`${api}/room-types`,{headers:adminHeaders,data:{name:`Solicitud ${suffix}`,price:100,capacity:2}})
   const room=await request.post(`${api}/rooms`,{headers:adminHeaders,data:{number:`S${suffix}`,room_type_id:(await type.json()).data.id,floor:1}})
@@ -135,7 +136,7 @@ test('solicitud aprobada, pago demo y reembolso desde las pantallas',async({page
     await page.goto('/auth/login')
     await page.getByLabel('Correo electrónico',{exact:true}).fill(email)
     await page.getByLabel('Contraseña',{exact:true}).fill(password)
-    await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+    await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
     await expect(page).not.toHaveURL(/auth\/login/)
   }
   await login(customerEmail,customerPassword)
@@ -188,7 +189,7 @@ test('reserva adaptable: controles visibles y sin desbordamiento en escritorio y
   await page.goto('/auth/login')
   await page.getByLabel('Correo electrónico',{exact:true}).fill(customerEmail)
   await page.getByLabel('Contraseña',{exact:true}).fill(customerPassword)
-  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
   await expect(page).toHaveURL(/\/portal$/)
   await page.goto('/portal/book')
   for(const view of [{width:1440,height:1000,name:'desktop'},{width:390,height:844,name:'mobile'}]){

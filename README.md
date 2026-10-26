@@ -58,7 +58,13 @@ Las contraseñas deben tener al menos 8 caracteres y no superar 72 bytes UTF-8; 
 
 Cambiar la activación del acceso de un huésped revoca sus sesiones y tokens anteriores; al reactivarlo debe iniciar sesión nuevamente.
 
-Docker Compose exige `POSTGRES_PASSWORD` sin valor predeterminado. El puerto de PostgreSQL se publica únicamente en `127.0.0.1`; los contenedores siguen accediendo mediante `db:5432`. Para administración remota utiliza un túnel SSH. En bases existentes, cambiar la variable no cambia la contraseña almacenada: coordina la rotación en PostgreSQL antes de actualizar los servicios.
+Antes del primer arranque ejecuta `python3 database/security/prepare-env.py` para
+generar cuatro secretos de roles y la clave de cifrado MFA, conservando el resto del `.env`.
+Conserva `MFA_ENCRYPTION_KEY` fuera de PostgreSQL y junto a la recuperación segura de
+la instalación: perderla impide descifrar los factores MFA restaurados desde un dump.
+MFA administrativo es obligatorio (`MFA_ENABLED=true`); la retención activada limpia
+sesiones vencidas de más de 7 días y enlaces de correo vencidos de más de 24 horas.
+Docker Compose exige `POSTGRES_PASSWORD` sin valor predeterminado. Los puertos de API, frontend y PostgreSQL se publican únicamente en `127.0.0.1`; los contenedores siguen accediendo mediante `db:5432`. Para administración remota utiliza un túnel SSH. En bases existentes, cambiar la variable no cambia la contraseña almacenada: coordina la rotación en PostgreSQL antes de actualizar los servicios.
 
 ## Ejecutar el sistema sin datos de demo
 
@@ -67,7 +73,8 @@ primero con su comando `down` de la sección de demo (sin `-v`).
 
 ```sh
 docker compose up --build -d
-docker compose exec backend npm run db:migrate
+docker compose run --rm migrate
+docker compose exec -T db sh /security/provision.sh
 ```
 
 En el **primer arranque, si todavía no hay administrador**, créalo con el comando
@@ -75,7 +82,7 @@ interactivo. Solicita nombre, correo y contraseña; no recibe contraseñas como
 argumentos:
 
 ```sh
-docker compose exec backend npm run admin:create
+docker compose exec backend node scripts/create-admin.js
 ```
 
 Esta instalación no carga cuentas ni reservas ficticias. Inicia sesión con el
@@ -100,7 +107,8 @@ detén primero esa instancia con `docker compose down` (conserva sus datos).
 
 ```sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up --build -d
-docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec backend npm run db:migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml run --rm migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec -T db sh /security/provision.sh
 ```
 
 Abre http://localhost:3001. Cuentas principales:
@@ -165,14 +173,19 @@ y registra cada archivo/checksum. Desde la raíz, para el sistema normal:
 ```sh
 docker compose up -d db backups
 docker compose exec -T backups sh /scripts/backup.sh
-docker compose build backend frontend
-docker compose run --rm --no-deps backend npm run db:migrate
+docker compose build backend frontend migrate
+docker compose run --rm migrate
+docker compose exec -T db sh /security/provision.sh
 docker compose up -d backend frontend backups
 ```
 
 El segundo comando debe terminar con respaldo y restauración verificados antes
 de continuar. Para la demo, usa la secuencia equivalente de
 [su guía de actualización](docs/demo.md#actualizar-una-demo-existente).
+**Transición desde versiones con cuenta única:** antes de esta secuencia, sigue
+el [procedimiento de roles](database/security/README.md#actualizar-una-instalación-con-datos):
+respaldo restaurado, secretos nuevos, migraciones iniciales como administrador y
+provisionamiento explícito. Recrear un volumen existente no ejecuta initdb.
 No cargues el seed sobre una base con datos. No edites migraciones ya registradas.
 
 ## Desarrollo local con recarga en caliente
@@ -185,9 +198,10 @@ Desde la raíz, con el `.env` raíz preparado:
 # Libera el puerto 3001 si el frontend Docker estaba iniciado.
 docker compose stop frontend
 docker compose up --build -d db backend
-docker compose exec backend npm run db:migrate
+docker compose run --rm migrate
+docker compose exec -T db sh /security/provision.sh
 # Solo si aún no existe administrador:
-# docker compose exec backend npm run admin:create
+# docker compose exec backend node scripts/create-admin.js
 cd Frontend-H
 npm ci
 npm run dev -- --host 0.0.0.0 --port 3001
@@ -219,7 +233,8 @@ Crea `Backend-H/.env` desde su ejemplo si todavía no existe (`cp` en macOS/Linu
 credenciales y puerto de PostgreSQL definidos en el `.env` raíz:
 
 ```dotenv
-DATABASE_URL=postgresql://USUARIO:CLAVE@localhost:5432/hotel_db
+DATABASE_URL=postgresql://hotel_runtime:CLAVE_RUNTIME@localhost:5432/hotel_db
+MIGRATION_DATABASE_URL=postgresql://hotel_migrator:CLAVE_MIGRATOR@localhost:5432/hotel_db
 JWT_SECRET=REEMPLAZAR_POR_UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_CARACTERES
 APP_URL=http://localhost:3001
 CORS_ORIGIN=http://localhost:3001
@@ -247,7 +262,9 @@ npm run dev -- --host 0.0.0.0 --port 3001
 
 El contenedor `db` ya instala esquema y migraciones al crear el volumen. Si usas
 un PostgreSQL instalado fuera de Docker, crea primero una base vacía y carga
-`database/init/01-schema.sql` con `psql` antes de `npm run db:migrate`.
+`database/init/01-schema.sql` y las migraciones SQL en orden como administrador,
+aplica `database/security/provision.sh` y después usa `MIGRATION_DATABASE_URL`
+para `npm run db:migrate`. Consulta [roles y reversión](database/security/README.md).
 Copiar el `.env` raíz no configura automáticamente el backend ejecutado con Node;
 este lee su propio `Backend-H/.env` al iniciarse desde esa carpeta.
 
@@ -295,7 +312,7 @@ python3 database/backup/test-backup.py
 - **JWT_SECRET ausente:** prepara el `.env` raíz; para Node local, prepara además Backend-H/.env.
 - **Puertos ocupados:** detén la otra instancia. Si cambias puertos, ajusta `FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT`, `APP_URL` y, si se define, `CORS_ORIGIN`. APP_URL y CORS_ORIGIN deben coincidir con la dirección exacta del navegador.
 - **Login falla por CORS/cookie:** no mezcles localhost con 127.0.0.1; usa el mismo host en APP_URL, navegador y API. En Node local configura CORS_CREDENTIALS=true y un origen explícito.
-- **Faltan tablas nuevas:** aplica `npm run db:migrate` con el contenedor actualizado. Reiniciar la API no aplica migraciones.
+- **Faltan tablas nuevas:** ejecuta `docker compose run --rm migrate` y después `docker compose exec -T db sh /security/provision.sh`. Reiniciar la API no aplica migraciones.
 - **No aparecen datos nuevos de demo:** el seed solo se aplica en volúmenes vacíos. Actualizar el código conserva los datos existentes.
 - **Contraseña PostgreSQL cambiada en `.env`:** una base ya inicializada conserva la contraseña anterior; editar el archivo no cambia el usuario de PostgreSQL. No borres volúmenes para solucionar una instalación con datos importantes.
 - **Invitaciones sin correo:** la instalación normal necesita SMTP. En demo consulta Mailpit en localhost:8025 y los logs de backend.
@@ -369,8 +386,16 @@ La primera integración incorpora CI para backend, frontend y E2E, identificador
 ### Historial de migraciones
 
 Tras instalar el esquema inicial (o actualizar una instalación existente), ejecuta
-`npm run db:migrate` desde `Backend-H/`, con `DATABASE_URL` apuntando a la base que
-vas a actualizar. En Docker: `docker compose exec backend npm run db:migrate`.
+`npm run db:migrate` desde `Backend-H/`, con `MIGRATION_DATABASE_URL` de
+`hotel_migrator` apuntando a la base que vas a actualizar. La API solo recibe
+`DATABASE_URL` de `hotel_runtime`. En Docker:
+
+```sh
+docker compose run --rm migrate
+docker compose exec -T db sh /security/provision.sh
+```
+
+El segundo paso reaplica permisos mínimos tras el DDL.
 El inicio de la API no ejecuta migraciones automáticamente.
 
 El ejecutor guarda nombre, SHA-256 y fecha en `schema_migrations`. La primera
@@ -394,3 +419,7 @@ salir de una transacción (por ejemplo `CREATE INDEX CONCURRENTLY`).
 ### Sesiones, invitaciones y copia externa
 
 Consulta [la guía de operación](docs/sesiones-respaldos-contratos.md) para actualizar una base existente, configurar el destino de respaldos e invitar personal o huéspedes. Los contratos se generan con `npm run api:generate` y se verifican con `npm run api:check` desde `Backend-H/`.
+
+### Activar o desactivar MFA
+
+Cada administrador puede activar o desactivar MFA de su propia cuenta en Configuración → Seguridad. Los factores ya inscritos siguen activos; desactivarlos requiere contraseña y código actual o de recuperación. Consulta [MFA opcional por administrador](docs/mfa-opcional.md).

@@ -65,7 +65,16 @@
     <p v-if="error" role="alert" class="operation-error">{{ error }} <button class="underline" @click="load">Reintentar</button></p>
     <!-- Tabla de Reservas -->
     <CCard>
-      <CTableHint /><div v-if="!loading && !error" class="overflow-x-auto" tabindex="0" role="region" aria-label="Reservas">
+      <div v-if="!loading && !error" class="reservation-mobile-list space-y-3">
+        <article v-for="reservation in filteredReservations" :key="reservation.id" class="rounded-lg border p-4 space-y-3" :aria-label="`Reserva ${reservation.id}`">
+          <p><strong>{{ reservation.client_name || 'Huésped' }}</strong></p><p>#{{ reservation.id }} · Habitación {{ reservation.room_number }}</p>
+          <p>Entrada {{ formatDate(reservation.check_in) }} · Salida {{ formatDate(reservation.check_out) }}</p>
+          <p><span class="status-badge" :class="`status-${reservation.status}`">{{ getStatusLabel(reservation.status) }}</span> · {{ hotelMoney(reservation.total_price) }}</p>
+          <div class="flex flex-wrap gap-2"><CButton variant="secondary" size="sm" :aria-label="`Ver reserva ${reservation.id}`" @click="viewReservation(reservation.id)">Ver</CButton><CButton v-if="reservation.status==='confirmed'||reservation.status==='checked_in'" variant="secondary" size="sm" :aria-label="`Editar reserva ${reservation.id}`" @click="editReservation(reservation.id)">Editar</CButton></div>
+        </article>
+        <p v-if="!filteredReservations.length">No hay reservas para estos filtros.</p>
+      </div>
+      <div class="reservation-desktop-list"><CTableHint /><div v-if="!loading && !error" class="overflow-x-auto" tabindex="0" role="region" aria-label="Reservas">
         <table class="w-full table-with-actions reservations-table">
           <thead class="border-b border-slate-200 dark:border-slate-700">
             <tr>
@@ -73,7 +82,7 @@
                 ID
               </th>
               <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
-                Cliente
+                Huésped
               </th>
               <th scope="col" class="text-left py-3 px-4 font-semibold text-slate-900 dark:text-white">
                 Habitación
@@ -107,7 +116,7 @@
                 </code>
               </td>
               <td class="py-3 px-4 text-slate-900 dark:text-white font-medium">
-                {{ reservation.client_name || 'Cliente' }}
+                {{ reservation.client_name || 'Huésped' }}
               </td>
               <td class="py-3 px-4 text-slate-600 dark:text-slate-400">
                 #{{ reservation.room_number }}
@@ -181,6 +190,7 @@
           Cargando reservas...
         </p>
       </div>
+      </div>
     </CCard>
 
     <CTablePagination :pagination="pagination" :loading="loading" @change="page=$event" />
@@ -198,6 +208,7 @@ v-if="isModalOpen"
 </template>
 
 <script setup lang="ts">
+import {RESERVATION_STATUS_LABELS} from '~/utils/constants'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '~/stores/ui'
@@ -228,15 +239,7 @@ const {rows:reservations,loading,error,pagination,page,load} = useTableList<Rese
 const filteredReservations=reservations
 const totalReservations=computed(()=>pagination.value.total)
 
-const getStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    confirmed: 'Confirmada',
-    checked_in: 'Check-in',
-    checked_out: 'Check-out',
-    cancelled: 'Cancelada'
-  }
-  return labels[status] || status
-}
+const getStatusLabel = (status:string)=>RESERVATION_STATUS_LABELS[status] || 'Estado desconocido'
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
@@ -295,6 +298,9 @@ const clearFilters = () => {
 </script>
 
 <style scoped>
+.reservation-mobile-list{display:none}
+@media(max-width:640px){.reservation-mobile-list{display:block}.reservation-desktop-list{display:none}}
+
 .reservations-table tbody td { text-align: center; }
 .reservations-table tbody td:nth-child(2) { text-align: left; }
 .reservations-table tbody td:last-child > .flex { justify-content: center; }

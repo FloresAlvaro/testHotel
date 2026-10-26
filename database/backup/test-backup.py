@@ -23,7 +23,7 @@ def execute(*args, source=None, ok=True, extra=()):
 try:
     run(['docker', 'run', '-d', '--name', container, '--network', 'none',
          '-e', 'POSTGRES_USER=hotel_test', '-e', 'POSTGRES_DB=hotel_test',
-         '-e', 'POSTGRES_PASSWORD=isolated-backup-test', 'postgres:16-alpine'])
+         '-e', 'POSTGRES_PASSWORD=isolated-backup-test', 'postgres:16-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36'])
     for _ in range(60):
         if execute('pg_isready', '-U', 'hotel_test', '-d', 'hotel_test', ok=False).returncode == 0:
             break

@@ -19,7 +19,7 @@
     </div>
 
     <div class="form-row">
-      <label class="select-field"><span>Tipo de habitación</span><select v-model="form.room_type_id" required :disabled="optionsLoading"><option value="" disabled>{{ optionsLoading ? 'Cargando tipos…' : 'Seleccionar tipo' }}</option><option v-for="type in roomTypes" :key="type.id" :value="String(type.id)">{{ type.name }} · {{ hotelMoney(type.price) }} / noche</option></select></label>
+      <CRecordSelect v-model="form.room_type_id" label="Tipo de habitación" :fetch-options="findRoomTypes" :resolve-option="resolveRoomType" />
     </div>
 
     <p v-if="optionsError" class="form-error" role="alert">{{ optionsError }}</p>
@@ -59,14 +59,12 @@ const form = ref({
 });
 
 const api = useApiClient();
-const roomTypes = ref<RoomType[]>([]);
-const optionsLoading = ref(true);
+const typeOption=(type:RoomType)=>({id:type.id,label:`${type.name} · ${hotelMoney(type.price)} / noche`,disabled:!type.is_active})
+const findRoomTypes=async(page:number,q:string)=>{const response=await api.getRoomTypes(page,20,q);return {options:(response.data||[]).map(typeOption),pagination:response.pagination}}
+const resolveRoomType=async(id:number)=>{const response=await api.getRoomType(id);if(!response.data)throw new Error('Tipo no disponible');return typeOption(response.data)}
+const optionsLoading = ref(false);
 const optionsError = ref('');
-onMounted(async () => {
-  try { roomTypes.value = (await api.getRoomTypes(1, 100)).data?.filter(type => type.is_active) || []; }
-  catch { optionsError.value = 'No se pudieron cargar los tipos de habitación. Cierra la ventana y vuelve a intentar.'; }
-  finally { optionsLoading.value = false; }
-});
+
 
 const isEditing = computed(() => !!props.room);
 
@@ -86,21 +84,26 @@ watch(
   { immediate: true }
 );
 
+const {requestDiscard,markSaved}=useUnsavedChanges(()=>form.value,()=>!!props.loading)
+watch(()=>props.room,()=>nextTick(markSaved))
 const handleSubmit = () => {
+  if(props.loading)return;
   const roomTypeId = Number(form.value.room_type_id);
-  const floor = Number(form.value.floor);
-  if (!form.value.number.trim() || !Number.isInteger(roomTypeId) || roomTypeId <= 0) return;
+  const floorText=String(form.value.floor).trim();
+  const number=String(form.value.number).trim();
+  const floor = Number(floorText);
+  if (!number || !Number.isInteger(roomTypeId) || roomTypeId <= 0) return;
 
   const data: CreateRoomRequest = {
-    number: form.value.number.trim(),
+    number,
     room_type_id: roomTypeId,
-    ...(form.value.floor.trim() && Number.isInteger(floor) ? { floor } : {})
+    ...(floorText && Number.isInteger(floor) ? { floor } : {})
   };
   emit('submit', data);
 };
 
 const handleCancel = () => {
-  emit('cancel');
+  if(requestDiscard()) { markSaved(); emit('cancel'); }
 };
 </script>
 

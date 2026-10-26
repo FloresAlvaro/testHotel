@@ -1,6 +1,6 @@
 <template>
  <main class="auth-help"><section class="space-y-5">
-  <h1 class="text-2xl font-bold">Activa tu cuenta</h1><p>Elige una contraseña de al menos 8 caracteres y como máximo 72 bytes UTF-8, con mayúscula, minúscula y número. La invitación vence a las 48 horas y se usa una sola vez.</p>
+  <h1 class="text-2xl font-bold">Activa tu cuenta</h1><p>Elige una contraseña de al menos 8 caracteres, con mayúscula, minúscula y número. La invitación vence a las 48 horas y se usa una sola vez.</p><details class="text-sm"><summary>Longitud máxima</summary><p>El máximo es de 72 bytes UTF-8; algunos símbolos ocupan más de un byte.</p></details>
   <form v-if="!message && token" class="space-y-4" @submit.prevent="submit">
    <label class="block">Nueva contraseña<input v-model="password" class="operation-filter block w-full mt-2" type="password" autocomplete="new-password" minlength="8" maxlength="72" required :disabled="busy"></label>
    <label class="block">Confirmar contraseña<input v-model="confirmation" class="operation-filter block w-full mt-2" type="password" autocomplete="new-password" required :disabled="busy"></label>

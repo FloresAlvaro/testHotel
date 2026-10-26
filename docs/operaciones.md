@@ -18,7 +18,8 @@ Con Docker Compose existente, desde la raíz:
 docker compose up -d db backups
 docker compose exec -T backups sh /scripts/backup.sh
 docker compose build backend frontend
-docker compose run --rm --no-deps backend npm run db:migrate
+docker compose run --rm migrate
+docker compose exec -T db sh /security/provision.sh
 docker compose up -d backend frontend backups
 ```
 

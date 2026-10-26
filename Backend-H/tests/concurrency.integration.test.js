@@ -129,6 +129,43 @@ describeDb('Concurrencia real PostgreSQL y altas de empleados', () => {
     expect(invalid.status).toBe(422);
   });
 
+  test('inventario y tipos: búsqueda global, piso cero, paginación y filtros inválidos',async()=>{
+    const service=require('../src/services/tableListService');
+    const type=(await pool.query('SELECT room_type_id FROM room WHERE id=$1',[roomId])).rows[0].room_type_id;
+    await pool.query(`INSERT INTO room(number,room_type_id,floor) SELECT 'UX-'||lpad(n::text,3,'0'),$1,0 FROM generate_series(1,25)n`,[type]);
+    const page=await service.list('rooms',{page:3,pageSize:10});
+    expect(page.total).toBe(26);expect(page.rows).toHaveLength(6);
+    const found=await service.list('rooms',{q:'UX-025',floor:0,page:1,pageSize:10});
+    expect(found.total).toBe(1);expect(found.rows[0].number).toBe('UX-025');
+    const literal=await service.list('rooms',{q:"%' OR true --",page:1,pageSize:10});
+    expect(literal.total).toBe(0);
+    await pool.query(`INSERT INTO room_type(name,price,capacity) SELECT 'UX tipo '||n,100,2 FROM generate_series(1,105)n`);
+    const types=await service.list('roomTypes',{q:'UX tipo 105',page:1,pageSize:20});
+    expect(types.total).toBe(1);expect(types.rows[0].name).toBe('UX tipo 105');
+    const headers={Authorization:`Bearer ${createToken({id:userId})}`};
+    for(const filter of ['floor=-1','floor=abc','pageSize=101','q='+encodeURIComponent('a'.repeat(201))]){
+      expect((await fetch(base+'/api/rooms?'+filter,{headers})).status).toBe(422);
+    }
+  });
+
+  test('recuperación comprueba enlaces sin consumirlos ni revelar la cuenta',async()=>{
+    const token='a'.repeat(64),hash=require('../src/utils/tokenHash');
+    await pool.query("INSERT INTO password_reset(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')",[userId,hash(token)]);
+    const check=async value=>fetch(base+'/users/reset-password/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:value})});
+    for(let i=0;i<2;i++)expect(await (await check(token)).json()).toEqual({success:true,data:{valid:true}});
+    expect((await pool.query('SELECT used_at FROM password_reset')).rows[0].used_at).toBeNull();
+    await pool.query("UPDATE password_reset SET expires_at=now()-interval '1 hour'");
+    expect(await (await check(token)).json()).toEqual({success:true,data:{valid:false}});
+    expect((await check('bad')).status).toBe(422);
+  });
+
+  test('contacto público expone solo los campos destinados a recepción',async()=>{
+    const response=await fetch(base+'/api/hotel/contact');
+    expect(response.status).toBe(200);
+    const data=(await response.json()).data;
+    expect(Object.keys(data).sort()).toEqual(['email','hotel_name','phone']);
+  });
+
   test('dos creaciones simultáneas de la misma habitación: solo una gana', async () => {
     const create = () => invoke(ReservationController.create, { user: { id: userId }, body: {
       check_in: '2030-01-01', check_out: '2030-01-03', client_id: clientId, room_id: roomId, notes: 'Bienvenida'
@@ -713,6 +750,116 @@ describeDb('Concurrencia real PostgreSQL y altas de empleados', () => {
     const response=await fetch(`${base}/users/session`,{method:'POST',headers:{'Content-Type':'application/json','X-Hotel-Request':'1'},body:JSON.stringify({email:'Legacy@Example.com',password:'Admin123!'})});
     expect(response.status).toBe(200);
     expect((await response.json()).data.user.email).toBe('Legacy@Example.com');
+  });
+
+  test('las sesiones propias no exponen credenciales y no permiten revocar las ajenas',async()=>{
+    const other=(await pool.query(`INSERT INTO "user"(name,email,password,role) VALUES('Other','other@example.com','hash','manager') RETURNING id`)).rows[0].id;
+    const mine=(await pool.query("INSERT INTO web_session(token_hash,user_id,auth_version,csrf_token,expires_at) VALUES($1,$2,0,$3,now()+interval '1 day') RETURNING public_id",[require('../src/utils/tokenHash')('a'.repeat(64)),userId,'b'.repeat(64)])).rows[0].public_id;
+    const foreign=(await pool.query("INSERT INTO web_session(token_hash,user_id,auth_version,csrf_token,expires_at) VALUES($1,$2,0,$3,now()+interval '1 day') RETURNING public_id",[require('../src/utils/tokenHash')('c'.repeat(64)),other,'d'.repeat(64)])).rows[0].public_id;
+    const headers={Authorization:`Bearer ${createToken({id:userId,version:0})}`,'X-Hotel-Request':'1'};
+    const result=await fetch(`${base}/users/sessions`,{headers});expect(result.status).toBe(200);
+    const data=(await result.json()).data;expect(data).toHaveLength(1);expect(data[0].id).toBe(mine);
+    expect(Object.keys(data[0]).sort()).toEqual(['created_at','current','expires_at','id']);
+    expect((await fetch(`${base}/users/sessions/${foreign}`,{method:'DELETE',headers})).status).toBe(404);
+    const cookieHeaders={Cookie:`hotel_session=${'a'.repeat(64)}`,'X-Hotel-Request':'1'};
+    expect((await fetch(`${base}/users/sessions/${mine}`,{method:'DELETE',headers:cookieHeaders})).status).toBe(403);
+    expect((await fetch(`${base}/users/sessions/${mine}`,{method:'DELETE',headers:{...cookieHeaders,'X-Hotel-CSRF':'b'.repeat(64)}})).status).toBe(200);
+    expect((await pool.query('SELECT 1 FROM web_session WHERE public_id=$1',[foreign])).rowCount).toBe(1);
+    expect((await fetch(`${base}/users/sessions`,{headers:cookieHeaders})).status).toBe(401);
+  });
+
+  test('activar/desactivar MFA exige sesión de administrador; no admite personal ni anónimos',async()=>{
+    for(const path of ['enable','disable']){
+      const body={password:'Admin123!',...(path==='disable'?{code:'000000'}:{})};
+      const headers={'Content-Type':'application/json','X-Hotel-Request':'1'};
+      expect((await fetch(`${base}/users/mfa/${path}`,{method:'POST',headers,body:JSON.stringify(body)})).status).toBe(401);
+      await pool.query('UPDATE "user" SET role=$1 WHERE id=$2',['receptionist',userId]);
+      expect((await fetch(`${base}/users/mfa/${path}`,{method:'POST',headers:{...headers,Authorization:`Bearer ${createToken({id:userId,version:0})}`},body:JSON.stringify(body)})).status).toBe(403);
+    }
+  });
+
+  test('MFA admin: inscripción limitada, TOTP, códigos guardados y recuperación de un solo uso',async()=>{
+    const oldEnabled=process.env.MFA_ENABLED,oldKey=process.env.MFA_ENCRYPTION_KEY;
+    process.env.MFA_ENABLED='true';process.env.MFA_ENCRYPTION_KEY='12'.repeat(32);
+    try{
+      await pool.query('UPDATE "user" SET password=$1 WHERE id=$2',[await hashPassword('Admin123!'),userId]);
+      const headers={'Content-Type':'application/json','X-Hotel-Request':'1'};
+      const post=(path,body)=>fetch(`${base}/users/${path}`,{method:'POST',headers,body:JSON.stringify(body)});
+      const login=()=>post('session',{email:'admin@example.com',password:'Admin123!'});
+      const first=await login();expect(first.status).toBe(200);
+      const initial=await first.json(),initialCookie=first.headers.get('set-cookie').split(';')[0];
+      const enable=await fetch(`${base}/users/mfa/enable`,{method:'POST',headers:{...headers,Cookie:initialCookie,'X-Hotel-CSRF':initial.data.csrfToken},body:JSON.stringify({password:'Admin123!'})});
+      expect(enable.status).toBe(200);
+      const challenge=(await enable.json()).data;expect(challenge.enrollmentRequired).toBe(true);
+      const prepare=await post('mfa/enroll',{challengeId:challenge.challengeId});expect(prepare.status).toBe(200);
+      const enrollment=(await prepare.json()).data;expect(enrollment.recoveryCodes).toHaveLength(10);
+      const stored=(await pool.query('SELECT pending_secret,pending_recovery FROM mfa_challenge')).rows[0];
+      expect(stored.pending_secret).not.toContain(enrollment.secret);expect(stored.pending_recovery).not.toContain(enrollment.recoveryCodes[0]);
+      const totp=new (require('otpauth').TOTP)({secret:require('otpauth').Secret.fromBase32(enrollment.secret),algorithm:'SHA1',digits:6,period:30});
+      const code=totp.generate();
+      expect((await post('mfa/confirm',{challengeId:challenge.challengeId,code,recoveryCodesSaved:false})).status).toBe(422);
+      const confirmed=await post('mfa/confirm',{challengeId:challenge.challengeId,code,recoveryCodesSaved:true});expect(confirmed.status).toBe(200);
+      const response=await confirmed.json(),cookie=confirmed.headers.get('set-cookie').split(';')[0];
+      expect(response.data.csrfToken).toBeTruthy();expect(response.data.user.mfa_verified).toBe(true);
+      expect((await fetch(`${base}/users/mfa/status`,{headers:{Cookie:cookie}})).status).toBe(200);
+      expect((await post('mfa/confirm',{challengeId:challenge.challengeId,code,recoveryCodesSaved:true})).status).toBe(401);
+      const again=(await (await login()).json()).data;expect(again.enrollmentRequired).toBe(false);
+      const recovered=await post('mfa/verify',{challengeId:again.challengeId,code:enrollment.recoveryCodes[0]});expect(recovered.status).toBe(200);
+      const third=(await (await login()).json()).data;
+      expect((await post('mfa/verify',{challengeId:third.challengeId,code:enrollment.recoveryCodes[0]})).status).toBe(401);
+      const remaining=await fetch(`${base}/users/mfa/status`,{headers:{Cookie:cookie}});expect((await remaining.json()).data.recoveryCodesRemaining).toBe(9);
+      for(let n=0;n<5;n++)await post('mfa/verify',{challengeId:third.challengeId,code:'000000'});
+      expect((await post('mfa/verify',{challengeId:third.challengeId,code:enrollment.recoveryCodes[1]})).status).toBe(401);
+      const renewal=await fetch(`${base}/users/mfa/renew`,{method:'POST',headers:{...headers,Cookie:cookie,'X-Hotel-CSRF':response.data.csrfToken},body:JSON.stringify({password:'Admin123!',code:enrollment.recoveryCodes[1]})});expect(renewal.status).toBe(200);
+      const renewChallenge=(await renewal.json()).data;
+      const renewData=(await (await post('mfa/enroll',{challengeId:renewChallenge.challengeId})).json()).data;
+      const freshOtp=new (require('otpauth').TOTP)({secret:require('otpauth').Secret.fromBase32(renewData.secret),algorithm:'SHA1',digits:6,period:30}).generate();
+      const renewed=await post('mfa/confirm',{challengeId:renewChallenge.challengeId,code:freshOtp,recoveryCodesSaved:true});expect(renewed.status).toBe(200);
+      const renewedData=await renewed.json(),renewedCookie=renewed.headers.get('set-cookie').split(';')[0];
+      expect((await fetch(`${base}/users/mfa/status`,{headers:{Cookie:cookie}})).status).toBe(401);
+      expect((await pool.query('SELECT count(*) AS count FROM mfa_recovery_code WHERE user_id=$1 AND used_at IS NULL',[userId])).rows[0].count).toBe('10');
+      const disableHeaders={...headers,Cookie:renewedCookie,'X-Hotel-CSRF':renewedData.data.csrfToken};
+      const disableBody={password:'Admin123!',code:renewData.recoveryCodes[0]};
+      expect((await fetch(`${base}/users/mfa/disable`,{method:'POST',headers:{...headers,Cookie:renewedCookie},body:JSON.stringify(disableBody)})).status).toBe(403);
+      expect((await fetch(`${base}/users/mfa/disable`,{method:'POST',headers:disableHeaders,body:JSON.stringify({...disableBody,password:'Incorrect123!'})})).status).toBe(401);
+      expect((await fetch(`${base}/users/mfa/disable`,{method:'POST',headers:disableHeaders,body:JSON.stringify({...disableBody,code:enrollment.recoveryCodes[0]})})).status).toBe(401);
+      const disabled=await fetch(`${base}/users/mfa/disable`,{method:'POST',headers:disableHeaders,body:JSON.stringify(disableBody)});expect(disabled.status).toBe(200);
+      expect((await disabled.json()).data.user.mfa_verified).toBe(false);
+      expect((await pool.query('SELECT count(*) AS count FROM user_mfa WHERE user_id=$1',[userId])).rows[0].count).toBe('0');
+      expect((await pool.query('SELECT count(*) AS count FROM mfa_recovery_code WHERE user_id=$1',[userId])).rows[0].count).toBe('0');
+      expect((await fetch(`${base}/users/mfa/status`,{headers:{Cookie:renewedCookie}})).status).toBe(401);
+      expect((await login()).status).toBe(200);
+
+    }finally{if(oldEnabled===undefined)delete process.env.MFA_ENABLED;else process.env.MFA_ENABLED=oldEnabled;if(oldKey===undefined)delete process.env.MFA_ENCRYPTION_KEY;else process.env.MFA_ENCRYPTION_KEY=oldKey;}
+  });
+
+  test('MFA limita intentos por cuenta entre challenges e impide más de cinco pendientes',async()=>{
+    const oldEnabled=process.env.MFA_ENABLED,oldKey=process.env.MFA_ENCRYPTION_KEY;
+    process.env.MFA_ENABLED='true';process.env.MFA_ENCRYPTION_KEY='12'.repeat(32);
+    try{
+      const mfa=require('../src/services/mfaService'),user=await User.findById(userId),challenges=[];
+      for(let i=0;i<5;i++)challenges.push(await mfa.challenge(user,true));
+      await expect(mfa.challenge(user,true)).rejects.toMatchObject({statusCode:429});
+      // Simulate enrollment-pending wrong codes: each failure commits against the same account budget.
+      for(const challenge of challenges.slice(0,2))for(let i=0;i<5;i++)await expect(mfa.verify(challenge.challengeId,'not-a-code')).rejects.toMatchObject({statusCode:401});
+      await expect(mfa.verify(challenges[2].challengeId,'not-a-code')).rejects.toMatchObject({statusCode:429});
+      await expect(mfa.challenge(user,true)).rejects.toMatchObject({statusCode:429});
+      expect(Number((await pool.query('SELECT sum(attempts) AS total FROM mfa_challenge WHERE user_id=$1',[userId])).rows[0].total)).toBe(10);
+    }finally{if(oldEnabled===undefined)delete process.env.MFA_ENABLED;else process.env.MFA_ENABLED=oldEnabled;if(oldKey===undefined)delete process.env.MFA_ENCRYPTION_KEY;else process.env.MFA_ENCRYPTION_KEY=oldKey;}
+  });
+
+  test('retención 7d/24h redacta recuperación antigua sin borrar invitaciones vigentes ni auditoría',async()=>{
+    const previous=process.env.SECURITY_RETENTION_ENABLED;process.env.SECURITY_RETENTION_ENABLED='true';
+    try{
+      await pool.query("INSERT INTO web_session(token_hash,user_id,auth_version,csrf_token,expires_at) VALUES($1,$2,0,$3,now()-interval '8 days')",['1'.repeat(64),userId,'2'.repeat(64)]);
+      const invite=(await pool.query("INSERT INTO user_invitation(name,email,role,token_hash,created_by,expires_at) VALUES('Invitada','pending@example.com','manager',$1,$2,now()+interval '12 hours') RETURNING id",['3'.repeat(64),userId])).rows[0].id;
+      await pool.query("INSERT INTO email_outbox(recipient,subject,body,event_key,created_at) VALUES('reset@example.com','Reset','secret reset link','reset:999',now()-interval '25 hours'),('pending@example.com','Invite','live invitation link',$1,now()-interval '36 hours')",[`invite:${invite}`]);
+      const before=(await pool.query('SELECT count(*) FROM audit_log')).rows[0].count;
+      const result=await require('../src/services/securityRetentionService').run();expect(result.scrubbed).toBe(1);expect(result.sessions).toBe(1);
+      expect((await pool.query("SELECT body FROM email_outbox WHERE event_key='reset:999'")).rows[0].body).not.toContain('secret reset link');
+      expect((await pool.query('SELECT body FROM email_outbox WHERE event_key=$1',[`invite:${invite}`])).rows[0].body).toBe('live invitation link');
+      expect((await pool.query('SELECT count(*) FROM audit_log')).rows[0].count).toBe(before);
+    }finally{if(previous===undefined)delete process.env.SECURITY_RETENTION_ENABLED;else process.env.SECURITY_RETENTION_ENABLED=previous;}
   });
 
 });

@@ -69,7 +69,7 @@
         "minLength": 8,
         "maxLength": 72,
         "x-maxBytes": 72,
-        "description": "Mínimo 8 caracteres y máximo 72 bytes UTF-8"
+        "description": "M\u00ednimo 8 caracteres y m\u00e1ximo 72 bytes UTF-8"
       }
     },
     "required": [
@@ -209,7 +209,7 @@
         "minLength": 8,
         "maxLength": 72,
         "x-maxBytes": 72,
-        "description": "Mínimo 8 caracteres y máximo 72 bytes UTF-8",
+        "description": "M\u00ednimo 8 caracteres y m\u00e1ximo 72 bytes UTF-8",
         "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).*$"
       }
     },
@@ -393,6 +393,269 @@
       "max_income": {
         "type": "string",
         "description": "Importe decimal exacto en la moneda del hotel"
+      }
+    }
+  },
+  "OwnSession": {
+    "type": "object",
+    "required": [
+      "id",
+      "created_at",
+      "expires_at",
+      "current"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "created_at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "expires_at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "current": {
+        "type": "boolean"
+      }
+    }
+  },
+  "OwnSessionsResponse": {
+    "type": "object",
+    "required": [
+      "success",
+      "data"
+    ],
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/OwnSession"
+        }
+      }
+    }
+  },
+  "MfaChallengeResponse": {
+    "type": "object",
+    "required": [
+      "success",
+      "data"
+    ],
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "object",
+        "required": [
+          "mfaRequired",
+          "challengeId",
+          "enrollmentRequired"
+        ],
+        "properties": {
+          "mfaRequired": {
+            "type": "boolean"
+          },
+          "challengeId": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "enrollmentRequired": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "MfaEnrollmentResponse": {
+    "type": "object",
+    "required": [
+      "success",
+      "data"
+    ],
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "object",
+        "required": [
+          "secret",
+          "uri",
+          "recoveryCodes"
+        ],
+        "properties": {
+          "secret": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "recoveryCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "MfaStatusResponse": {
+    "type": "object",
+    "required": [
+      "success",
+      "data"
+    ],
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "required",
+          "recoveryCodesRemaining"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "recoveryCodesRemaining": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "MfaChallengeInput": {
+    "type": "object",
+    "required": [
+      "challengeId"
+    ],
+    "properties": {
+      "challengeId": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    }
+  },
+  "MfaVerifyInput": {
+    "type": "object",
+    "required": [
+      "challengeId",
+      "code"
+    ],
+    "properties": {
+      "challengeId": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "code": {
+        "type": "string",
+        "pattern": "^(?:[0-9]{6}|[a-f0-9]{16})$"
+      }
+    }
+  },
+  "MfaConfirmInput": {
+    "type": "object",
+    "required": [
+      "challengeId",
+      "code",
+      "recoveryCodesSaved"
+    ],
+    "properties": {
+      "challengeId": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "code": {
+        "type": "string",
+        "pattern": "^[0-9]{6}$"
+      },
+      "recoveryCodesSaved": {
+        "type": "boolean",
+        "enum": [
+          true
+        ]
+      }
+    }
+  },
+  "MfaRenewInput": {
+    "type": "object",
+    "required": [
+      "password",
+      "code"
+    ],
+    "properties": {
+      "password": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 72
+      },
+      "code": {
+        "type": "string",
+        "pattern": "^(?:[0-9]{6}|[a-f0-9]{16})$"
+      }
+    }
+  },
+  "BearerLoginResponse": {
+    "type": "object",
+    "required": [
+      "success",
+      "data"
+    ],
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "object",
+        "required": [
+          "user",
+          "token"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "MfaCompletionResponse": {
+    "anyOf": [
+      {
+        "$ref": "#/components/schemas/SessionResponse"
+      },
+      {
+        "$ref": "#/components/schemas/BearerLoginResponse"
+      }
+    ]
+  },
+  "MfaEnableInput": {
+    "type": "object",
+    "required": [
+      "password"
+    ],
+    "properties": {
+      "password": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 72
       }
     }
   }

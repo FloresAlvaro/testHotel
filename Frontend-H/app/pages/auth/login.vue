@@ -1,11 +1,13 @@
 <template>
   <section class="login-page" aria-labelledby="login-title">
-    <header class="login-heading">
+    <header v-if="!mfaChallenge" class="login-heading">
       <h1 id="login-title">Iniciar sesión</h1>
       <p>Ingresa tus datos para continuar.</p>
     </header>
 
-    <form class="login-form" @submit.prevent="handleLogin">
+    <MfaChallengeForm v-if="mfaChallenge" :challenge="mfaChallenge" @authenticated="completeMfa" @cancel="cancelMfa" />
+
+    <form v-else class="login-form" @submit.prevent="handleLogin">
       <div class="form-field" :class="{ 'has-error': errors.email }">
         <label for="login-email">Correo electrónico</label>
         <div class="input-shell">
@@ -100,6 +102,8 @@ import { useAuthStore } from "~/stores/auth";
 import { useUIStore } from "~/stores/ui";
 import { useAuthService } from "~/services/auth";
 import { isValidEmail, isValidPasswordLength } from "~/utils/validators";
+import type { MfaChallenge } from '~/types/auth';
+import type { SessionData } from '~/types/generated/api';
 
 definePageMeta({
   layout: "auth",
@@ -117,6 +121,21 @@ const ready = ref(false);
 const passwordVisible = ref(false);
 const form = ref({ email: "", password: "" });
 const errors = ref({ email: "", password: "" });
+const mfaChallenge = ref<MfaChallenge | null>(null);
+
+const cancelMfa = () => { mfaChallenge.value = null; form.value.password = ''; authStore.clearError(); };
+const redirectAfterLogin = async () => {
+  const queryRedirect = route.query.redirect;
+  const redirectUrl = (typeof queryRedirect === 'string' ? queryRedirect : null)
+    || sessionStorage.getItem('redirectUrl') || '/dashboard';
+  sessionStorage.removeItem('redirectUrl');
+  await router.push(postLoginPath(authStore.user?.role, redirectUrl));
+};
+const completeMfa = async (session: SessionData) => {
+  await authService.completeSession(session);
+  mfaChallenge.value = null;
+  await redirectAfterLogin();
+};
 
 const validateField = (field: "email" | "password") => {
   if (field === "email") {
@@ -131,7 +150,7 @@ const validateField = (field: "email" | "password") => {
   errors.value.password = !form.value.password
     ? "La contraseña es obligatoria"
     : !isValidPasswordLength(form.value.password)
-      ? "Debe tener al menos 8 caracteres y no superar 72 bytes UTF-8"
+      ? "Debe tener al menos 8 caracteres y respetar el límite de longitud"
       : "";
 };
 
@@ -156,15 +175,13 @@ const handleLogin = async () => {
   authStore.clearError();
 
   try {
-    await authService.login(form.value.email, form.value.password);
-
-    const queryRedirect = route.query.redirect;
-    const redirectUrl =
-      (typeof queryRedirect === "string" ? queryRedirect : null) ||
-      sessionStorage.getItem("redirectUrl") ||
-      "/dashboard";
-    sessionStorage.removeItem("redirectUrl");
-    await router.push(postLoginPath(authStore.user?.role, redirectUrl));
+    const result = await authService.login(form.value.email, form.value.password);
+    if (result && 'mfaRequired' in result) {
+      mfaChallenge.value = result;
+      form.value.password = '';
+      return;
+    }
+    if (result) await redirectAfterLogin();
   } catch (error: unknown) {
     if (!authStore.error) {
       uiStore.error(

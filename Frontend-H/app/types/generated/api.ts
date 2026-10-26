@@ -91,3 +91,76 @@ export type PaymentListSummary = {
   "refunds": string;
   "max_income": string;
 };
+
+export type OwnSession = {
+  "id": string;
+  "created_at": string;
+  "expires_at": string;
+  "current": boolean;
+};
+
+export type OwnSessionsResponse = {
+  "success": boolean;
+  "data": Array<OwnSession>;
+};
+
+export type MfaChallengeResponse = {
+  "success": boolean;
+  "data": {
+  "mfaRequired": boolean;
+  "challengeId": string;
+  "enrollmentRequired": boolean;
+};
+};
+
+export type MfaEnrollmentResponse = {
+  "success": boolean;
+  "data": {
+  "secret": string;
+  "uri": string;
+  "recoveryCodes": Array<string>;
+};
+};
+
+export type MfaStatusResponse = {
+  "success": boolean;
+  "data": {
+  "enabled": boolean;
+  "required": boolean;
+  "recoveryCodesRemaining": number;
+};
+};
+
+export type MfaChallengeInput = {
+  "challengeId": string;
+};
+
+export type MfaVerifyInput = {
+  "challengeId": string;
+  "code": string;
+};
+
+export type MfaConfirmInput = {
+  "challengeId": string;
+  "code": string;
+  "recoveryCodesSaved": true;
+};
+
+export type MfaRenewInput = {
+  "password": string;
+  "code": string;
+};
+
+export type BearerLoginResponse = {
+  "success": boolean;
+  "data": {
+  "user": SessionUser;
+  "token": string;
+};
+};
+
+export type MfaCompletionResponse = SessionResponse | BearerLoginResponse;
+
+export type MfaEnableInput = {
+  "password": string;
+};

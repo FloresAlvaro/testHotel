@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Senior"
+  short_description: "Auditoría y correcciones de seguridad del Hotel"
+  default_prompt: "Usa $security-senior para revisar o reforzar la seguridad del Hotel, priorizando hallazgos verificables, correcciones y pruebas aisladas."

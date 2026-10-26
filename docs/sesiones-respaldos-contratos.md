@@ -9,7 +9,8 @@ verificada. Construye los servicios, aplica las migraciones y reinicia la API/fr
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up -d db backups mailpit
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec -T backups sh /scripts/backup.sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml build backend frontend
-docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml run --rm --no-deps backend npm run db:migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml run --rm migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec -T db sh /security/provision.sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up -d backend frontend backups mailpit
 ```
 

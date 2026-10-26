@@ -4,10 +4,10 @@
       'btn',
       `btn-${variant}`,
       `btn-${size}`,
-      { 'btn-disabled': disabled || loading },
+      { 'btn-disabled': disabled || loading || !ready },
       customClass
     ]"
-    :disabled="disabled || loading"
+    :disabled="disabled || loading || !ready"
     v-bind="$attrs"
   >
     <span v-if="loading" class="btn-spinner"/>
@@ -17,6 +17,8 @@
 </template>
 
 <script setup lang="ts">
+const ready=ref(false);
+onMounted(()=>{ready.value=true});
 interface Props {
   variant?: 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'ghost';
   size?: 'sm' | 'md' | 'lg';

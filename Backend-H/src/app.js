@@ -49,7 +49,7 @@ app.use('/api/', limiter);
 app.use('/api', (req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
 // La firma de Stripe se comprueba contra los bytes originales, antes de express.json.
-app.post('/api/webhooks/stripe', express.raw({type:'application/json',limit:'256kb'}), async(req,res,next)=>{
+app.post('/api/webhooks/stripe', express.raw({type:'application/json',limit:'256kb',inflate:false}), async(req,res,next)=>{
   const service=require('./services/onlinePaymentService');
   if(process.env.PAYMENT_PROVIDER!=='stripe'||!service.enabled())return res.sendStatus(404);
   let event;
@@ -57,8 +57,8 @@ app.post('/api/webhooks/stripe', express.raw({type:'application/json',limit:'256
   try{await service.handleEvent(event);res.json({received:true});}catch(error){next(error);}
 });
 // Body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({limit:'100kb',inflate:false}));
+app.use(express.urlencoded({extended:false,limit:'100kb',parameterLimit:100,inflate:false}));
 
 // Documentacion OpenAPI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -69,9 +69,15 @@ app.get('/api-docs.json', (req, res) => {
 // Rutas
 app.use('/api', routes);
 
-// Health check
-app.get('/health', async (req,res)=>{
-  const ready=await require('./config/database').testConnection();
+// Liveness never touches PostgreSQL; readiness retains its existing contract.
+app.get('/live', (req,res)=>res.json({status:'OK'}));
+const healthLimiter=rateLimit({windowMs:60000,max:60,standardHeaders:true,legacyHeaders:false,
+ message:{success:false,message:'Demasiadas comprobaciones de salud'}});
+let healthPending;
+app.get('/health', healthLimiter, async (req,res)=>{
+  // Coalesce concurrent probes; the pool connection timeout bounds the query.
+  healthPending ||= require('./config/database').testConnection().catch(()=>false).finally(()=>{healthPending=undefined;});
+  const ready=await healthPending;
   res.status(ready?200:503).json({status:ready?'OK':'unavailable',database:ready?'available':'unavailable',timestamp:new Date()});
 });
 

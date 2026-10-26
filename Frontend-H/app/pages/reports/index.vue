@@ -216,6 +216,7 @@
 </template>
 
 <script setup lang="ts">
+import { serializeCsv } from '~/utils/csv';
 import { computed, onMounted, ref, watch } from 'vue';
 import type { Payment, PaymentMethod, RevenueByMethod, RevenueReport } from '~/types';
 import { useApiClient } from '~/services/api';
@@ -316,7 +317,7 @@ const downloadReport = async () => {
       payment.amount, payment.status
     ])
   ];
-  const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n');
+  const csv = serializeCsv(rows);
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;

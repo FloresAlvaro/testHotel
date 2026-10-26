@@ -5,8 +5,9 @@ import type {BackupStatus} from '~/types/generated/api'
 import type {Presentation,MailStatus} from '~/types/guestServices'
 definePageMeta({middleware:['auth','receptionist']})
 const api=useApiClient(),{get,run,error,busy}=useOperations(),auth=useAuthStore(),presentation=ref<Presentation>(),mail=ref<MailStatus>(),message=ref(''),backup=ref<BackupStatus>()
+const propertyDraft=useUnsavedChanges(()=>presentation.value,()=>busy.value)
 const fetchMail=async()=>{if(auth.isAdmin){const result=await api.request<import('~/types').PaginatedApiResponse<MailStatus['messages'][number]>&Pick<MailStatus,'configured'|'demo'>>('/operations/email-status',{query:{page:1,pageSize:1}});mail.value={configured:result.configured,demo:result.demo,messages:result.data||[]}}}
-const save=()=>run(async()=>{if(!presentation.value)return;await api.request('/operations/presentation',{method:'PUT',body:{...presentation.value.hotel,rooms:presentation.value.rooms.map(r=>({id:r.id,description:r.description,image_url:r.image_url}))},retry:0});message.value='Presentación y reglas guardadas.'})
-onMounted(()=>run(async()=>{presentation.value=(await get<Presentation>('presentation')).data;await fetchMail();if(auth.isAdmin)backup.value=(await get<BackupStatus>('backup-status')).data}))
+const save=()=>run(async()=>{if(!presentation.value)return;await api.request('/operations/presentation',{method:'PUT',body:{...presentation.value.hotel,rooms:presentation.value.rooms.map(r=>({id:r.id,description:r.description,image_url:r.image_url}))},retry:0});propertyDraft.markSaved();message.value='Presentación y reglas guardadas.'})
+onMounted(()=>run(async()=>{presentation.value=(await get<Presentation>('presentation')).data;propertyDraft.markSaved();await fetchMail();if(auth.isAdmin)backup.value=(await get<BackupStatus>('backup-status')).data}))
 </script>
 <style scoped>.field{display:flex;flex-direction:column;gap:8px;font-size:13px}.field input,.field textarea{padding:12px;border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);background:var(--bg-secondary);width:100%}.property-preview{width:100%;max-width:480px;height:220px;object-fit:cover;border-radius:12px}h3{font-weight:500}</style>

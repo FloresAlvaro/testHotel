@@ -1,4 +1,11 @@
 const errorHandler = (err, req, res, next) => {
+  const parserMessages = {
+    'encoding.unsupported': 'No se admiten cuerpos comprimidos',
+    'entity.too.large': 'El cuerpo de la solicitud supera el límite permitido',
+    'entity.parse.failed': 'El cuerpo de la solicitud no es válido',
+    'parameters.too.many': 'Demasiados parámetros en la solicitud'
+  };
+  if (parserMessages[err.type]) err = Object.assign(new Error(parserMessages[err.type]), {statusCode:err.status || 400});
   if (err.code === 'P0001') err.statusCode = 409;
   if (err.code === '23505') err = Object.assign(new Error('El registro ya existe o la operación ya fue realizada'), { statusCode: 409 });
   if (err.code === '23P01') {

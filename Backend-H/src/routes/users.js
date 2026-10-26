@@ -11,6 +11,7 @@ const {
 } = require('../validators/userValidator');
 
 const router = express.Router();
+const accountLimiter=require('../middleware/accountRateLimit')(10);
 const loginLimiter = require('express-rate-limit')({
   windowMs: 15 * 60 * 1000, max: 20, skipSuccessfulRequests: true,
   standardHeaders: true, legacyHeaders: false,
@@ -30,10 +31,11 @@ router.post('/register', auth, authorize('admin'), validate(registerSchema), Use
 router.post('/', auth, authorize('admin'), validate(registerSchema), UserController.register);
 
 router.use(require('./passwordRecovery'));
+router.use(require('./mfa'));
 
 router.use(require('./invitations'));
 const sessions = require('../services/sessionService');
-router.post('/session', loginLimiter, sessions.trustedRequest, validate(require('../utils/contractValidator').byName('SessionLoginInput')), UserController.login);
+router.post('/session', loginLimiter, accountLimiter, sessions.trustedRequest, validate(require('../utils/contractValidator').byName('SessionLoginInput')), UserController.login);
 router.get('/session', auth, async(req,res,next)=>{
  try { if(!req.session)return res.status(401).json({message:'Inicia una sesión de navegador'});
  const user=await require('../models/User').findById(req.user.id);
@@ -44,8 +46,19 @@ router.delete('/session', sessions.trustedRequest, auth, async(req,res,next)=>{
  try{await sessions.destroy(req,res);res.json({success:true,data:null});}catch(error){next(error);}
 });
 
+router.get('/sessions',auth,async(req,res,next)=>{
+ try{res.json({success:true,data:await sessions.list(req.user.id,req.session?.public_id)});}catch(error){next(error);}
+});
+router.delete('/sessions/:sessionId',sessions.trustedRequest,auth,validate(require('joi').object({sessionId:require('joi').string().guid({version:'uuidv4'}).required()}),'params'),async(req,res,next)=>{
+ try{
+  if(!await sessions.revoke(req.user.id,req.params.sessionId))return res.status(404).json({success:false,message:'Sesión no encontrada'});
+  if(req.session?.public_id===req.params.sessionId)res.clearCookie(require('../utils/sessionCookies').cookieName,require('../utils/sessionCookies').cookieOptions());
+  res.json({success:true,data:null});
+ }catch(error){next(error);}
+});
+
 // Pública
-router.post('/login', loginLimiter, validate(loginSchema), UserController.login);
+router.post('/login', loginLimiter, accountLimiter, validate(loginSchema), UserController.login);
 
 // Protegidas
 router.get('/profile', auth, UserController.getProfile);

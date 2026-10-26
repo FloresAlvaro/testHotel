@@ -185,7 +185,11 @@ const validateField = (field: string) => {
   }
 };
 
+const {requestDiscard,markSaved}=useUnsavedChanges(()=>form.value,()=>!!props.loading)
+watch(()=>props.client,()=>nextTick(markSaved))
+defineExpose({markSaved})
 const handleSubmit = () => {
+  if(props.loading)return;
   // Validar todos los campos
   Object.keys(form.value).forEach((field) => {
     validateField(field);
@@ -209,7 +213,7 @@ const handleSubmit = () => {
 };
 
 const handleCancel = () => {
-  emit('cancel');
+  if(requestDiscard()) { markSaved(); emit('cancel'); }
 };
 </script>
 

@@ -47,8 +47,8 @@ export const RESERVATION_STATUS = {
 
 export const RESERVATION_STATUS_LABELS: Record<string, string> = {
   [RESERVATION_STATUS.CONFIRMED]: "Confirmada",
-  [RESERVATION_STATUS.CHECKED_IN]: "Check-in",
-  [RESERVATION_STATUS.CHECKED_OUT]: "Check-out",
+  [RESERVATION_STATUS.CHECKED_IN]: "En estancia",
+  [RESERVATION_STATUS.CHECKED_OUT]: "Finalizada",
   [RESERVATION_STATUS.CANCELLED]: "Cancelada",
 };
 
@@ -70,7 +70,7 @@ export const PAYMENT_STATUS = {
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   [PAYMENT_STATUS.PENDING]: "Pendiente",
   [PAYMENT_STATUS.COMPLETED]: "Completado",
-  [PAYMENT_STATUS.FAILED]: "Falló",
+  [PAYMENT_STATUS.FAILED]: "Fallido",
   [PAYMENT_STATUS.REFUNDED]: "Reembolsado",
 };
 
@@ -289,3 +289,5 @@ export const EVENT_TYPES = {
   ROOM_AVAILABLE: "room_available",
   ROOM_MAINTENANCE: "room_maintenance",
 } as const;
+
+export const ONLINE_PAYMENT_STATUS_LABELS:Record<string,string>={pending:'Pendiente',paid:'Cobrado',expired:'Vencido',refunded:'Reembolsado',refund_pending:'Reembolso en proceso',failed:'Fallido'}

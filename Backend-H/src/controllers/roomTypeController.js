@@ -26,7 +26,7 @@ class RoomTypeController {
       }
 
       const roomType = await RoomType.create({
-        name, description, price: parseFloat(price), capacity: parseInt(capacity), amenities, image
+        name, description, price, capacity, amenities, image
       });
 
       sendCreated(res, roomType, SUCCESS_MESSAGES.CREATED_SUCCESS);
@@ -61,14 +61,9 @@ class RoomTypeController {
    */
   static async getAll(req, res, next) {
     try {
-      const { page = 1, pageSize = 10 } = req.query;
-
-      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
-
-      const roomTypes = await RoomType.findAllPaginated(limit, offset);
-      const total = await RoomType.countAll();
-
-      sendPaginated(res, roomTypes, total, currentPage, limit);
+      const { page, pageSize } = req.query;
+      const result = await require('../services/tableListService').list('roomTypes', req.query);
+      sendPaginated(res, result.rows, result.total, page, pageSize);
     } catch (error) {
       next(error);
     }
@@ -88,7 +83,7 @@ class RoomTypeController {
       }
 
       const updated = await RoomType.update(id, {
-        name, description, price: parseFloat(price), capacity: parseInt(capacity), amenities, image
+        name: name ?? roomType.name, description: description === undefined ? roomType.description : description, price: price ?? roomType.price, capacity: capacity ?? roomType.capacity, amenities: amenities === undefined ? roomType.amenities : amenities, image: image === undefined ? roomType.image : image
       });
 
       sendUpdated(res, updated, SUCCESS_MESSAGES.UPDATED_SUCCESS);

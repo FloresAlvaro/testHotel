@@ -4,6 +4,7 @@
 <p v-if="busy" role="status">Cargando calendario…</p><CTableHint /><div class="operation-scroll" tabindex="0" role="region" aria-label="Resultados de la tabla"><table class="operation-table calendar-table"><thead><tr><th scope="col">Habitación</th><th v-for="day in days" :key="day">{{ day.slice(8) }}/{{ day.slice(5,7) }}</th></tr></thead><tbody><tr v-for="room in data.rooms" :key="room.id"><th scope="row">{{ room.number }}<small>{{ room.room_type_name }}<br>{{ room.status==='maintenance'?'No habilitada':'' }}</small></th><td v-for="day in days" :key="day" :class="{blocked:room.status==='maintenance'}"><NuxtLink v-if="booking(room.id,day)" :to="`/reservations/${booking(room.id,day)!.id}`" :class="['calendar-booking',booking(room.id,day)!.status]">#{{ booking(room.id,day)!.id }} {{ booking(room.id,day)!.client_name }}<small>{{ states[booking(room.id,day)!.status] }}</small></NuxtLink><span v-else>{{ room.status==='maintenance'?'Bloqueada':'Libre' }}</span></td></tr></tbody></table></div><p v-if="!data.rooms.length&&!busy&&!error">No hay habitaciones.</p><div class="operation-pager"><CButton variant="secondary" :disabled="page===1||busy" @click="page--;load()">Anterior</CButton><span>Habitaciones · página {{ page }} de {{ Math.max(1,Math.ceil(data.total/30)) }}</span><CButton variant="secondary" :disabled="page*30>=data.total||busy" @click="page++;load()">Siguiente</CButton></div>
 </CCard><p class="text-sm text-slate-500">Una habitación bloqueada necesita finalizar sus tareas. El calendario muestra reservas confirmadas, en estancia y finalizadas; las canceladas se excluyen.</p></div></template>
 <script setup lang="ts">
+import {RESERVATION_STATUS_LABELS} from '~/utils/constants'
 import type { CalendarData } from '~/types/operations'
 definePageMeta({middleware:'auth'})
 const {get,run,error,busy}=useOperations(),hotel=useHotelSettings()
@@ -13,7 +14,7 @@ const add=(date:string,n:number)=>{const d=new Date(`${date}T12:00:00Z`);d.setUT
 const days=computed(()=>shownStart.value?Array.from({length:7},(_,i)=>add(shownStart.value,i)):[])
 const load=()=>run(async()=>{if(!start.value)return;const r=await get<CalendarData>('calendar',{start:start.value,end:add(start.value,7),page:page.value});if(r.data){data.value=r.data;shownStart.value=start.value}})
 const move=(n:number)=>{start.value=add(shownStart.value||start.value,n);page.value=1;load()}
-const states:Record<string,string>={confirmed:'Confirmada',checked_in:'En estancia',checked_out:'Finalizada'}
+const states=RESERVATION_STATUS_LABELS
 const booking=(id:number,day:string)=>data.value.reservations.find(r=>r.room_id===id&&r.check_in<=day&&r.check_out>day)
 onMounted(()=>{start.value=today();load()})
 </script>

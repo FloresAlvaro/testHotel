@@ -1,13 +1,14 @@
 <template>
-  <CModal :is-open="isOpen" title="Registrar pago" size="md" @close="handleCancel">
+  <CModal :is-open="isOpen" title="Registrar pago" size="md" :dirty="dirty" :busy="loading" @close="emit('cancel')">
     <form class="form" @submit.prevent="handleSubmit">
     <div class="form-row-2">
-      <label class="select-field"><span>Reserva</span><select v-model="form.reservation_id" required :disabled="optionsLoading || !!reservationId"><option value="" disabled>Seleccionar reserva</option><option v-for="reservation in reservations" :key="reservation.id" :value="String(reservation.id)">#{{ reservation.id }} · {{ reservation.client_name }} · Hab. {{ reservation.room_number }}</option></select></label>
+      <CRecordSelect v-model="form.reservation_id" label="Reserva" :fetch-options="findReservations" :resolve-option="resolveReservation" :disabled="!!reservationId" />
 
       <CInput
         v-model="form.amount"
         step="0.01"
         min="0.01"
+        :max="balance || undefined"
         label="Monto"
         type="number"
         placeholder="0.00"
@@ -15,6 +16,12 @@
       />
     </div>
 
+    <div v-if="selectedReservation" class="rounded-lg border p-4 space-y-2" aria-label="Resumen del saldo" aria-live="polite">
+      <p>Reserva #{{ selectedReservation.id }} · {{ selectedReservation.client_name }} · Hab. {{ selectedReservation.room_number }}</p>
+      <p>Total: {{ money(selectedReservation.total_price) }}</p>
+      <template v-if="!optionsLoading && !optionsError"><p>Cobrado: {{ money(paid) }}</p><p><strong>Saldo pendiente: {{ money(balance) }}</strong></p><p v-if="pending>0">Pagos pendientes de confirmar: {{ money(pending) }}. Revisa los pagos existentes antes de registrar otro.</p><CButton type="button" size="sm" variant="secondary" @click="refreshBalance">Actualizar saldo</CButton></template>
+      <p v-else role="status">Consultando saldo…</p>
+    </div>
     <div class="form-row-2">
       <label class="field-label">
         Método de pago
@@ -53,12 +60,12 @@
       />
     </div>
 
-    <p v-if="optionsError" class="form-error" role="alert">{{ optionsError }}</p>
+    <p v-if="optionsError" class="form-error" role="alert">{{ optionsError }} <button type="button" class="underline" @click="refreshBalance">Actualizar saldo</button></p>
     <div class="form-actions">
       <CButton variant="secondary" type="button" @click="handleCancel">
         Cancelar
       </CButton>
-      <CButton variant="primary" type="submit" :loading="loading" :disabled="optionsLoading || !!optionsError">
+      <CButton variant="primary" type="submit" :loading="loading" :disabled="optionsLoading || !!optionsError || !selectedReservation || balance<=0">
         Registrar Pago
       </CButton>
     </div>
@@ -93,27 +100,51 @@ const form = ref({
 });
 
 const api = useApiClient();
-const reservations = ref<Reservation[]>([]);
+const {money}=useHotelSettings()
+const reservationOption=(r:Reservation)=>({id:r.id,label:`#${r.id} · ${r.client_name} · Hab. ${r.room_number}`,disabled:r.status==='cancelled'})
+const findReservations=async(page:number,q:string)=>{const response=await api.getReservations(page,20,undefined,q);return {options:(response.data||[]).map(reservationOption),pagination:response.pagination}}
+const resolveReservation=async(id:number)=>{const response=await api.getReservation(id);if(!response.data)throw new Error('Reserva no disponible');return reservationOption(response.data)}
+const selectedReservation=ref<Reservation>(),paid=ref(0),pending=ref(0),suggestedAmount=ref('')
+const balance=computed(()=>Math.max(0,Math.round((Number(selectedReservation.value?.total_price||0)-paid.value)*100)/100))
+let balanceVersion=0
+const refreshBalance=async()=>{
+ const version=++balanceVersion,id=Number(form.value.reservation_id)
+ selectedReservation.value=undefined;optionsError.value='';paid.value=0;pending.value=0
+ if(!id){optionsLoading.value=false;return}
+ optionsLoading.value=true
+ try{
+  const [reservation,payments]=await Promise.all([api.getReservation(id),api.request<import('~/types').ApiResponse<import('~/types').Payment[]>>(`/payments/reservation/${id}`)])
+  if(version!==balanceVersion)return
+  if(!reservation.data || reservation.data.status==='cancelled')throw new Error('Reserva cancelada o no disponible')
+  selectedReservation.value=reservation.data
+  const sum=(status:string)=>(payments.data||[]).filter(p=>p.status===status).reduce((total,p)=>total+Math.round(Number(p.amount)*100),0)/100
+  paid.value=sum('completed');pending.value=sum('pending')
+  if(!form.value.amount){suggestedAmount.value=balance.value>0?String(balance.value):'';form.value.amount=suggestedAmount.value}
+ }catch{if(version===balanceVersion)optionsError.value='No se pudo confirmar el saldo. Selecciona otra reserva o pulsa Actualizar saldo.'}
+ finally{if(version===balanceVersion)optionsLoading.value=false}
+}
+watch(()=>form.value.reservation_id,()=>{form.value.amount='';refreshBalance()})
+onBeforeUnmount(()=>{balanceVersion++})
 const optionsLoading = ref(false);
 const optionsError = ref('');
 watch(() => props.isOpen, async (open) => {
   if (!open) return;
   form.value = { reservation_id: props.reservationId ? String(props.reservationId) : '', amount: '', payment_method: 'cash', payment_type: 'full', transaction_id: '', notes: '' };
-  optionsLoading.value = true;
-  optionsError.value = '';
-  try { reservations.value = (await api.getReservations(1, 100)).data?.filter(r => r.status !== 'cancelled') || []; }
-  catch { optionsError.value = 'No se pudieron cargar las reservas. Cierra la ventana y vuelve a intentar.'; }
-  finally { optionsLoading.value = false; }
+  refreshBalance();
 }, { immediate: true });
 
 watch(() => props.reservationId, (reservationId) => {
   if (reservationId) form.value.reservation_id = String(reservationId);
 }, { immediate: true });
 
+const {requestDiscard,markSaved,dirty}=useUnsavedChanges(()=>({...form.value,amount:String(form.value.amount)===suggestedAmount.value?'':form.value.amount}),()=>!!props.loading)
+watch(()=>props.isOpen,()=>nextTick(markSaved))
 const handleSubmit = () => {
+  if(props.loading)return;
+  if(optionsLoading.value || optionsError.value || !selectedReservation.value)return;
   const reservationId = Number(form.value.reservation_id);
   const amount = Number(form.value.amount);
-  if (!Number.isInteger(reservationId) || reservationId <= 0 || !Number.isFinite(amount) || amount <= 0) return;
+  if (!Number.isInteger(reservationId) || reservationId <= 0 || !Number.isFinite(amount) || amount <= 0 || amount > balance.value) return;
 
   const data: CreatePaymentRequest = {
     reservation_id: reservationId,
@@ -127,7 +158,7 @@ const handleSubmit = () => {
 };
 
 const handleCancel = () => {
-  emit('cancel');
+  if(requestDiscard()) { markSaved(); emit('cancel'); }
 };
 </script>
 

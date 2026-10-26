@@ -1,0 +1,4 @@
+interface:
+  display_name: "Senior UX/UI"
+  short_description: "Auditoría UX/UI y mejoras priorizadas del Hotel"
+  default_prompt: "Usa $ux-ui-senior para revisar la experiencia del Hotel y entregar mejoras priorizadas con evidencia y criterios de aceptación."

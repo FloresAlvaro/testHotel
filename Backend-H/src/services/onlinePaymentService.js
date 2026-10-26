@@ -49,13 +49,15 @@ const settle=async(id,amount,currency,intent)=>db.transaction(async c=>{
  const payment=(await c.query("INSERT INTO payment(reservation_id,amount,type,method,status,transaction_id,notes) VALUES($1,$2,'partial','credit_card','completed',$3,$4) RETURNING id",[r.id,p.amount,intent,p.provider==='demo'?'SIMULACIÓN DEMO: sin cobro real':'Cobro de pasarela confirmado por servidor'])).rows[0];
  return view((await c.query("UPDATE online_payment SET status='paid',provider_intent=$1,payment_id=$2 WHERE id=$3 RETURNING *",[intent,payment.id,id])).rows[0]);
 });
-const finishRefund=async id=>db.transaction(async c=>{
+const matchesRefund=(p,r)=>Boolean(r?.id && r.id===p.provider_refund && r.payment_intent===p.provider_intent && Number.isSafeInteger(r.amount) && r.amount===cents(p.amount) && typeof r.currency==='string' && r.currency.toLowerCase()===p.currency.toLowerCase() && r.status==='succeeded');
+const finishRefund=async (id,receipt)=>db.transaction(async c=>{
  const snapshot=(await c.query('SELECT reservation_id FROM online_payment WHERE id=$1',[id])).rows[0];
  if(!snapshot)throw fail('Pago no encontrado',404);
  await c.query('SELECT id FROM reservation WHERE id=$1 FOR UPDATE',[snapshot.reservation_id]);
  const p=(await c.query('SELECT * FROM online_payment WHERE id=$1 FOR UPDATE',[id])).rows[0];
  if(p.status==='refunded')return view(p);
  if(p.status!=='refund_pending')throw fail('El reembolso no está pendiente',409);
+ if(p.provider==='stripe'&&!matchesRefund(p,receipt))throw fail('El reembolso de la pasarela no coincide',409);
  await c.query("SELECT set_config('hotel.actor_id','',true)");
  if(p.payment_id)await c.query("UPDATE payment SET status='refunded',updated_at=now() WHERE id=$1 AND status='completed'",[p.payment_id]);
  await c.query(`INSERT INTO email_outbox(recipient,subject,body,event_key) SELECT COALESCE((SELECT email FROM "user" WHERE client_id=c.id AND is_active LIMIT 1),c.email),'Reembolso de reserva #'||r.id,$1,$2 FROM reservation r JOIN client c ON c.id=r.client_id WHERE r.id=$3 AND COALESCE((SELECT email FROM "user" WHERE client_id=c.id AND is_active LIMIT 1),c.email,'')<>''`,[`Se reembolsó ${p.amount} ${p.currency}${p.provider==='demo'?' (simulación sin dinero real)':''}.`,`refund:${id}`,p.reservation_id]);
@@ -71,8 +73,11 @@ const refund=async id=>{
  });
  if(p.status==='refunded')return view(p);
  if(p.provider==='stripe'){
-  const result=await stripe().refunds.create({payment_intent:p.provider_intent},{idempotencyKey:`refund:${p.id}`});
+  const result=await stripe().refunds.create({payment_intent:p.provider_intent,amount:cents(p.amount),metadata:{hotel_payment_id:p.id}},{idempotencyKey:`refund:${p.id}`});
+  if(!result.id||result.payment_intent!==p.provider_intent||result.amount!==cents(p.amount)||result.currency?.toLowerCase()!==p.currency.toLowerCase())throw fail('El reembolso de la pasarela no coincide',409);
+  await db.query('UPDATE online_payment SET provider_refund=$1 WHERE id=$2 AND (provider_refund IS NULL OR provider_refund=$1)',[result.id,p.id]);
   if(result.status!=='succeeded')return {...view(p),status:'refund_pending'};
+  return finishRefund(id,result);
  }
  return finishRefund(id);
 };
@@ -86,8 +91,8 @@ const handleEvent=async event=>{
   else if(event.type==='checkout.session.expired')await db.query("UPDATE online_payment SET status='expired' WHERE id=$1 AND status='pending'",[p.id]);
  }
  if(event.type==='refund.updated'&&object.status==='succeeded'){
-  const p=(await db.query("SELECT id FROM online_payment WHERE provider_intent=$1 AND status='refund_pending'",[object.payment_intent])).rows[0];
-  if(p)await finishRefund(p.id);
+  const p=(await db.query("SELECT * FROM online_payment WHERE provider_refund=$1 AND status='refund_pending'",[object.id])).rows[0];
+  if(p&&matchesRefund(p,object))await finishRefund(p.id,object);
  }
  await db.query('INSERT INTO payment_webhook(id) VALUES($1) ON CONFLICT DO NOTHING',[event.id]);
 };
@@ -111,4 +116,4 @@ const demoPay=async(user,id)=>{
  if(p.status==='expired'||new Date(p.expires_at)<=new Date())throw fail('El enlace de pago venció',409);
  return settle(id,cents(p.amount),p.currency,`demo:${id}`);
 };
-module.exports={create,enabled,demoPay,refund,handleEvent,stripe,reconcile,view};
+module.exports={create,enabled,demoPay,refund,handleEvent,stripe,reconcile,view,matchesRefund};

@@ -34,15 +34,7 @@
           </select>
 
           <!-- Filtro por Piso -->
-          <select
-            v-model="selectedFloor" aria-label="Filtrar por piso"
-            class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Todos los Pisos</option>
-            <option value="1">Piso 1</option>
-            <option value="2">Piso 2</option>
-            <option value="3">Piso 3</option>
-          </select>
+          <label class="text-sm">Piso <input v-model="selectedFloor" type="number" min="0" step="1" placeholder="Todos los pisos" class="operation-filter w-full" aria-label="Filtrar por piso"></label>
         </div>
 
         <!-- Estadísticas de Filtros -->
@@ -51,7 +43,7 @@
             Mostrando {{ filteredRooms.length }} de {{ totalRooms }} habitaciones
           </p>
           <CButton
-            v-if="searchQuery || selectedStatus || selectedFloor"
+            v-if="hasFilters"
             variant="secondary"
             size="sm"
             @click="clearFilters"
@@ -62,8 +54,9 @@
       </div>
     </CCard>
 
+    <p v-if="error" role="alert" class="operation-error">{{ error }} <button class="underline" @click="fetchRooms">Reintentar</button></p>
     <!-- Grid de Habitaciones -->
-    <div v-if="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-if="!loading && !error" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <CardRoom
         v-for="room in filteredRooms"
         :key="room.id"
@@ -75,7 +68,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-else class="text-center py-12">
+    <div v-else-if="loading" class="text-center py-12">
       <Icon
         name="system-uicons:loader"
         size="32"
@@ -88,7 +81,7 @@
 
     <!-- Empty State -->
     <div
-      v-if="!loading && filteredRooms.length === 0"
+      v-if="!loading && !error && filteredRooms.length === 0"
       class="text-center py-12"
     >
       <Icon
@@ -97,16 +90,19 @@
         class="mx-auto text-slate-400 mb-4"
       />
       <p class="text-slate-600 dark:text-slate-400 mb-4">
-        {{ searchQuery || selectedStatus || selectedFloor
+        {{ hasFilters
           ? 'No hay habitaciones que coincidan con los filtros'
           : 'No hay habitaciones registradas'
         }}
       </p>
-      <CButton variant="primary" @click="openAddModal">
+      <CButton v-if="hasFilters" variant="secondary" @click="clearFilters">Limpiar filtros</CButton>
+      <CButton v-else variant="primary" @click="openAddModal">
         <Icon name="system-uicons:home" size="18" class="mr-2" />
         Agregar Primera Habitación
       </CButton>
     </div>
+
+    <CTablePagination :pagination="pagination" :loading="loading" @change="page=$event" />
 
     <CModal :is-open="!!detailRoom" :title="`Habitación ${detailRoom?.number || ''}`" @close="detailRoom = null">
       <dl v-if="detailRoom" class="room-detail-grid"><div><dt>Tipo</dt><dd>{{ detailRoom.room_type_name }}</dd></div><div><dt>Piso</dt><dd>{{ detailRoom.floor ?? '—' }}</dd></div><div><dt>Precio por noche</dt><dd>{{ hotelMoney(Number(detailRoom.price || 0).toFixed(2)) }}</dd></div><div><dt>Estado</dt><dd>{{ { available: 'Disponible', occupied: 'Ocupada', reserved: 'Reservada', maintenance: 'Mantenimiento' }[detailRoom.status] }}</dd></div></dl>
@@ -126,8 +122,8 @@ v-if="isModalOpen"
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoomsStore } from '~/stores/rooms'
+import { ref, computed } from 'vue'
+
 import { useUIStore } from '~/stores/ui'
 import { useRooms } from '~/composables/useRooms'
 import type { CreateRoomRequest, Room } from '~/types'
@@ -138,37 +134,24 @@ definePageMeta({
   middleware: ['auth', 'manager']
 })
 
-const roomsStore = useRoomsStore()
-const uiStore = useUIStore()
-const { fetchRooms, createRoom, updateRoom } = useRooms()
 
-const loading = ref(false)
+const uiStore = useUIStore()
+const { createRoom, updateRoom } = useRooms()
+
+
 const isSubmitting = ref(false)
 const isModalOpen = ref(false)
 const searchQuery = ref('')
 const selectedStatus = ref('')
-const selectedFloor = ref('')
+const selectedFloor = ref<string|number>('')
+const hasFilters=computed(()=>!!searchQuery.value||!!selectedStatus.value||selectedFloor.value!=='')
 const selectedRoom = ref<Room | null>(null)
 const detailRoom = ref<Room | null>(null)
 
-const rooms = computed(() => roomsStore.rooms)
-const totalRooms = computed(() => rooms.value.length)
+const {rows:rooms,loading,error,pagination,page,load:fetchRooms}=useTableList<Room>('/rooms',()=>({q:searchQuery.value.trim(),status:selectedStatus.value,floor:selectedFloor.value===''?undefined:selectedFloor.value}))
+const totalRooms = computed(() => pagination.value.total)
 
-const filteredRooms = computed(() => {
-  return rooms.value.filter(room => {
-    const matchesSearch = searchQuery.value
-      ? room.number.toString().includes(searchQuery.value)
-      : true
-    const matchesStatus = selectedStatus.value
-      ? room.status === selectedStatus.value
-      : true
-    const matchesFloor = selectedFloor.value
-      ? room.floor != null && room.floor.toString() === selectedFloor.value
-      : true
-
-    return matchesSearch && matchesStatus && matchesFloor
-  })
-})
+const filteredRooms = computed(() => rooms.value)
 
 const openAddModal = () => {
   selectedRoom.value = null
@@ -224,12 +207,4 @@ const clearFilters = () => {
   selectedFloor.value = ''
 }
 
-onMounted(async () => {
-  loading.value = true
-  try {
-    await fetchRooms()
-  } finally {
-    loading.value = false
-  }
-})
 </script>

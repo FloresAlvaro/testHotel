@@ -1,27 +1,14 @@
 <template>
   <form class="form" @submit.prevent="handleSubmit">
     <div class="form-row-2">
-      <label class="select-field"><span>Huésped</span><select v-model="form.client_id" required :disabled="optionsLoading || !!reservation"><option value="" disabled>Seleccionar huésped</option><option v-for="client in clients" :key="client.id" :value="String(client.id)">{{ client.name }} · {{ client.document }}</option></select></label>
-
-      <label class="select-field"><span>Habitación</span><select v-model="form.room_id" required :disabled="optionsLoading || !!reservation"><option value="" disabled>Seleccionar habitación</option><option v-for="room in rooms" :key="room.id" :value="String(room.id)" :disabled="room.status === 'maintenance'">{{ room.number }} · {{ room.room_type_name }}{{ room.status === 'maintenance' ? ' (mantenimiento)' : '' }}</option></select></label>
+      <CInput v-model="form.check_in" label="Check-in" type="date" required />
+      <CInput v-model="form.check_out" label="Check-out" type="date" :min="form.check_in || undefined" required />
     </div>
-
+    <p v-if="!reservation" class="text-sm" role="status">{{ availabilityMessage }}</p>
     <div class="form-row-2">
-      <CInput
-        v-model="form.check_in"
-        label="Check-in"
-        type="date"
-        required
-      />
-
-      <CInput
-        v-model="form.check_out"
-        label="Check-out"
-        type="date"
-        required
-      />
+      <CRecordSelect v-model="form.client_id" label="Huésped" :fetch-options="findClients" :resolve-option="resolveClient" :disabled="!!reservation" />
+      <label class="select-field"><span>Habitación</span><select v-model="form.room_id" required :disabled="optionsLoading || !validDates || !!reservation"><option value="" disabled>Seleccionar habitación disponible</option><option v-for="room in rooms" :key="room.id" :value="String(room.id)" :disabled="room.status === 'maintenance'">{{ room.number }} · {{ room.room_type_name }}{{ room.status === 'maintenance' ? ' (mantenimiento)' : '' }}</option></select></label>
     </div>
-
     <div class="form-row">
       <CInput
         v-model="form.notes"
@@ -44,7 +31,7 @@
       <CButton variant="secondary" type="button" @click="handleCancel">
         Cancelar
       </CButton>
-      <CButton variant="primary" type="submit" :loading="loading" :disabled="optionsLoading || !!optionsError">
+      <CButton variant="primary" type="submit" :loading="loading" :disabled="optionsLoading || !!optionsError || !validDates || !form.room_id || !form.client_id">
         {{ reservation ? 'Guardar cambios' : 'Crear reserva' }}
       </CButton>
     </div>
@@ -91,18 +78,40 @@ watch(() => props.reservation, (reservation) => {
 }, { immediate: true });
 
 const api = useApiClient();
-const clients = ref<Client[]>([]);
+const clientOption=(client:Client)=>({id:client.id,label:`${client.name} · ${client.document}`})
+const findClients=async(page:number,q:string)=>{const response=await api.getClients(page,20,q);return {options:(response.data||[]).map(clientOption),pagination:response.pagination}}
+const resolveClient=async(id:number)=>{const response=await api.getClient(id);if(!response.data)throw new Error('Huésped no disponible');return clientOption(response.data)}
 const rooms = ref<Room[]>([]);
-const optionsLoading = ref(true);
+const optionsLoading = ref(false);
 const optionsError = ref('');
-onMounted(async () => {
-  try {
-    const [clientResponse, roomResponse] = await Promise.all([api.getClients(1, 100), api.getRooms(1, 100)]);
-    clients.value = clientResponse.data || [];
-    rooms.value = roomResponse.data || [];
-  } catch { optionsError.value = 'No se pudieron cargar las opciones. Cierra la ventana y vuelve a intentar.'; }
-  finally { optionsLoading.value = false; }
-});
+const availabilityMessage=ref('Elige las fechas para consultar habitaciones disponibles.')
+const validDates=computed(()=>!!form.value.check_in && !!form.value.check_out && form.value.check_in<form.value.check_out)
+let availabilityVersion=0
+watch(()=>[form.value.check_in,form.value.check_out],async()=>{
+ const version=++availabilityVersion
+ optionsError.value=''
+ if(props.reservation){
+  try{const response=await api.getRoom(props.reservation.room_id);if(version===availabilityVersion)rooms.value=response.data?[response.data]:[]}
+  catch{if(version===availabilityVersion)optionsError.value='No se pudo cargar la habitación.'}
+  return
+ }
+ optionsLoading.value=false
+ rooms.value=[]
+ const previous=form.value.room_id
+ form.value.room_id=''
+ if(!validDates.value){availabilityMessage.value='Elige una salida posterior a la entrada para consultar disponibilidad.';return}
+ optionsLoading.value=true
+ availabilityMessage.value='Consultando disponibilidad…'
+ try{
+  const response=await api.getAvailableRooms(form.value.check_in,form.value.check_out)
+  if(version!==availabilityVersion)return
+  rooms.value=(response.data||[]).filter(room=>room.status!=='maintenance')
+  if(rooms.value.some(room=>String(room.id)===previous))form.value.room_id=previous
+  availabilityMessage.value=rooms.value.length?`${rooms.value.length} habitaciones disponibles para estas fechas. El total se confirma al guardar.`:'No hay habitaciones disponibles. Prueba otras fechas.'
+ }catch{if(version===availabilityVersion){optionsError.value='No se pudo consultar la disponibilidad. Cambia las fechas para reintentar.';availabilityMessage.value='Disponibilidad sin confirmar.'}}
+ finally{if(version===availabilityVersion)optionsLoading.value=false}
+},{immediate:true})
+onBeforeUnmount(()=>{availabilityVersion++})
 
 const nights = computed(() => {
   if (form.value.check_in && form.value.check_out) {
@@ -116,9 +125,13 @@ const totalPrice = computed(() => {
   return Number(room?.price || 0) * nights.value;
 });
 
+const {requestDiscard,markSaved}=useUnsavedChanges(()=>form.value,()=>!!props.loading)
+watch(()=>props.reservation,()=>nextTick(markSaved))
 const handleSubmit = () => {
+  if(props.loading)return;
   const clientId = Number(form.value.client_id);
   const roomId = Number(form.value.room_id);
+  if (!validDates.value || optionsLoading.value || optionsError.value) return;
   if (!Number.isInteger(clientId) || clientId <= 0 || !Number.isInteger(roomId) || roomId <= 0) return;
 
   const data: CreateReservationRequest = {
@@ -132,7 +145,7 @@ const handleSubmit = () => {
 };
 
 const handleCancel = () => {
-  emit('cancel');
+  if(requestDiscard()) { markSaved(); emit('cancel'); }
 };
 </script>
 

@@ -9,7 +9,8 @@ const mail=require('../services/mailService');
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 const limiter=require('express-rate-limit')({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false});
 const hash=require('../utils/tokenHash');
-router.post('/forgot-password',limiter,validate(Joi.object({email:Joi.string().email({tlds:false}).max(254).required()})),wrap(async(req,res)=>{
+const accountLimiter=require('../middleware/accountRateLimit')(5,false);
+router.post('/forgot-password',limiter,accountLimiter,validate(Joi.object({email:Joi.string().email({tlds:false}).max(254).required()})),wrap(async(req,res)=>{
  if(!mail.configured())throw fail('La recuperación por correo aún no está configurada. Contacta con recepción.',503);
  const token=crypto.randomBytes(32).toString('hex');
  await db.transaction(async c=>{
@@ -23,6 +24,10 @@ router.post('/forgot-password',limiter,validate(Joi.object({email:Joi.string().e
   await c.query(`INSERT INTO email_outbox(recipient,subject,body,event_key) SELECT email,'Restablece tu contraseña',$1,$2 FROM "user" WHERE id=$3`,[`Abre este enlace para elegir una contraseña. Vence en 30 minutos y solo se puede usar una vez.\n${url}\nSi no lo solicitaste, ignora este mensaje.`,`reset:${reset.id}`,u.id]);
  });
  res.json({success:true,message:'Si la cuenta existe, recibirás un enlace para restablecer tu contraseña.'});
+}));
+router.post('/reset-password/check',limiter,validate(Joi.object({token:Joi.string().hex().length(64).required()})),wrap(async(req,res)=>{
+ const result=await db.query('SELECT 1 FROM password_reset pr JOIN "user" u ON u.id=pr.user_id WHERE pr.token_hash=$1 AND pr.used_at IS NULL AND pr.expires_at>now() AND u.is_active',[hash(req.body.token)]);
+ res.json({success:true,data:{valid:result.rowCount>0}});
 }));
 router.post('/reset-password',limiter,validate(Joi.object({token:Joi.string().hex().length(64).required(),password:require('../validators/passwordValidator').pattern(/[A-Z]/).pattern(/[a-z]/).pattern(/[0-9]/).required()})),wrap(async(req,res)=>{
  const password=await hashPassword(req.body.password);

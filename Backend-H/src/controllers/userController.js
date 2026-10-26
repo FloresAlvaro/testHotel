@@ -68,6 +68,8 @@ class UserController {
         const linked = await User.findById(user.id);
         if (!linked?.client_id || linked.client_active !== true) return sendError(res, 'El acceso de este huésped está desactivado', HTTP_STATUS.FORBIDDEN);
       }
+      const mfa=require('../services/mfaService');
+      if(await mfa.required(user))return res.status(202).json({success:true,data:await mfa.challenge(user,req.path==='/session')});
       if (req.path === '/session') {
         delete user.password;
         const csrfToken = await require('../services/sessionService').create(user, req, res);

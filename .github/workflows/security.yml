@@ -1,0 +1,84 @@
+name: Seguridad del hotel
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * 1'
+permissions:
+  contents: read
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: [Backend-H, Frontend-H]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - name: Auditar lockfile sin instalar ni ejecutar scripts
+        run: node scripts/security/audit-dependencies.mjs '${{ matrix.directory }}'
+      - name: Verificar que las excepciones no ocultan avisos nuevos ni errores
+        run: node --test scripts/security/audit-dependencies.test.mjs
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Detectar secretos sin escribir coincidencias en logs
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          version: v0.69.3
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          format: json
+          output: /tmp/hotel-secrets.json
+          exit-code: '1'
+          skip-dirs: .git,node_modules,Backend-H/node_modules,Frontend-H/node_modules
+      - name: Resumir sin mostrar valores ni contenido de archivos
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('/tmp/hotel-secrets.json').read_text())
+          findings = sum(len(result.get('Secrets', [])) for result in report.get('Results', []))
+          print(f'Coincidencias de secretos: {findings}. Revisar localmente; no se publican valores.')
+          raise SystemExit(1 if findings else 0)
+          PY
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: [Backend-H, Frontend-H]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Construir la imagen final
+        run: docker build --pull -t hotel-security:scan '${{ matrix.directory }}'
+      - name: Bloquear vulnerabilidades altas y críticas de la imagen final
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          version: v0.69.3
+          image-ref: hotel-security:scan
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          format: table
+          exit-code: '1'

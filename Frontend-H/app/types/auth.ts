@@ -2,13 +2,16 @@
  * Tipos de autenticación
  */
 
-import type { SessionUser, SessionData, SessionLoginInput } from './generated/api';
+import type { SessionUser, SessionData, SessionLoginInput, MfaChallengeResponse, MfaEnrollmentResponse } from './generated/api';
 export type User = SessionUser;
 export type UserRole = User['role'];
 
 export type LoginRequest = SessionLoginInput;
 
 export type LoginResponse = SessionData;
+
+export type MfaChallenge = MfaChallengeResponse['data'];
+export type MfaEnrollment = MfaEnrollmentResponse['data'];
 
 export interface RegisterRequest {
   name: string;

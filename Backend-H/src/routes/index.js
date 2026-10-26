@@ -13,6 +13,8 @@ const dashboardRoutes = require('./dashboard');
 
 const router = express.Router();
 
+// Solo datos de contacto que el hotel configura para sus visitantes.
+router.get('/hotel/contact',async(req,res,next)=>{try{const result=await require('../config/database').query('SELECT hotel_name,phone,email FROM hotel_settings WHERE id=1');require('../utils/response').sendSuccess(res,result.rows[0]||null)}catch(error){next(error)}});
 // Rutas públicas
 router.use('/users', userRoutes);
 

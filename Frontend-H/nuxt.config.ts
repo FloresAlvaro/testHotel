@@ -20,7 +20,7 @@ export default defineNuxtConfig({
   routeRules: {'/auth/**':{headers:{'referrer-policy':'no-referrer','cache-control':'no-store'}}},
   components: [{ path: "~/components", pathPrefix: false }],
   modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxt/ui", "@nuxt/image"],
-  fonts: { providers: { google: false, bunny: false, fontshare: false, fontsource: false } },
+  fonts: { providers: { google: false, googleicons: false, bunny: false, fontshare: false, fontsource: false } },
   ui: {
     colorMode: false,
   },

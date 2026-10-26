@@ -2,7 +2,7 @@
   <div class="input-wrapper" v-bind="{ class: attrs.class, style: attrs.style }">
     <label v-if="label" :for="inputId" class="input-label">
       {{ label }}
-      <span v-if="required" class="required">*</span>
+      <span v-if="required" class="required" aria-hidden="true">*</span>
     </label>
 
     <div class="input-container">
@@ -15,7 +15,7 @@
         :value="modelValue"
         :placeholder="placeholder"
         :aria-label="typeof attrs['aria-label'] === 'string' ? attrs['aria-label'] : !label ? placeholder : undefined"
-        :disabled="disabled"
+        :disabled="disabled || !ready"
         :required="required"
         :aria-invalid="Boolean(error)"
         :aria-describedby="error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined"
@@ -36,6 +36,8 @@
 <script setup lang="ts">
 import { useId } from 'vue';
 defineOptions({ inheritAttrs: false });
+const ready=ref(false);
+onMounted(()=>{ready.value=true});
 const attrs = useAttrs();
 const inputAttributes = computed(() => Object.fromEntries(Object.entries(attrs).filter(([key]) => key !== 'class' && key !== 'style')));
 

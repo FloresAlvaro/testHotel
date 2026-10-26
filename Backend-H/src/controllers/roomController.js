@@ -58,18 +58,9 @@ class RoomController {
    */
   static async getAll(req, res, next) {
     try {
-      const { page = 1, pageSize = 10, status } = req.query;
-
-      if (status && !Object.values(ROOM_STATUS).includes(status)) {
-        return sendError(res, 'Estado de habitación inválido', HTTP_STATUS.BAD_REQUEST);
-      }
-
-      const { offset, limit, page: currentPage } = getPaginationParams(page, pageSize, 10);
-
-      const rooms = await Room.findAll(limit, offset, status);
-      const total = await Room.countAll(status);
-
-      sendPaginated(res, rooms, total, currentPage, limit);
+      const { page, pageSize } = req.query;
+      const result = await require('../services/tableListService').list('rooms', req.query);
+      sendPaginated(res, result.rows, result.total, page, pageSize);
     } catch (error) {
       next(error);
     }

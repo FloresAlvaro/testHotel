@@ -35,7 +35,8 @@ docker compose down
 
 ```sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up --build -d
-docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec backend npm run db:migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml run --rm migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec -T db sh /security/provision.sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml ps
 ```
 
@@ -86,7 +87,8 @@ continúa tras el respaldo solo si informa restauración verificada:
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up -d db backups mailpit
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec -T backups sh /scripts/backup.sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml build backend frontend
-docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml run --rm --no-deps backend npm run db:migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml run --rm migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec -T db sh /security/provision.sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up -d backend frontend backups mailpit
 ```
 
@@ -104,7 +106,8 @@ No afecta a los volúmenes de un proyecto distinto, como el sistema normal.
 ```sh
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml down -v
 docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml up --build -d
-docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec backend npm run db:migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml run --rm migrate
+docker compose -p hotel-demo -f docker-compose.yml -f docker-compose.demo.yml exec -T db sh /security/provision.sh
 ```
 
 No cargues el seed manualmente sobre una base ya poblada: exige tablas vacías y

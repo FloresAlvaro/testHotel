@@ -1,0 +1,14 @@
+{
+  "npm": [
+    {
+      "directory": "Frontend-H",
+      "package": "node-forge",
+      "version": "1.4.0",
+      "advisory": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+      "owner": "Mantenedores del Hotel / security-senior",
+      "reviewBy": "2026-11-07",
+      "reason": "Consumidor transitivo listhen para certificados TLS locales. No se encontró verificación RSA de firmas externas en la aplicación ni parche compatible disponible el 2026-10-24.",
+      "mitigation": "No usar certificados/firmas de usuarios con node-forge; TLS público termina en proxy. Revisar upstream semanalmente; no degradar Nuxt automáticamente."
+    }
+  ]
+}

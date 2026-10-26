@@ -166,15 +166,14 @@ describe('RoomController.getAll', () => {
   });
 
   test('aplica el filtro de estado también al total paginado', async () => {
-    Room.findAll.mockResolvedValue([{ id: 1, status: 'maintenance' }]);
-    Room.countAll.mockResolvedValue(1);
+    const list=jest.spyOn(require('../src/services/tableListService'),'list').mockResolvedValue({rows:[{id:1,status:'maintenance'}],total:1});
     const req = { query: { page: '2', pageSize: '5', status: 'maintenance' } };
     const res = responseMock();
 
     await RoomController.getAll(req, res, jest.fn());
 
-    expect(Room.findAll).toHaveBeenCalledWith(5, 5, 'maintenance');
-    expect(Room.countAll).toHaveBeenCalledWith('maintenance');
+    expect(list).toHaveBeenCalledWith('rooms',req.query);
+    list.mockRestore();
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       pagination: expect.objectContaining({ page: 2, pageSize: 5, total: 1 })
     }));

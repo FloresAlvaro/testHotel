@@ -53,6 +53,14 @@ const testConnection = async () => {
   let client;
   try {
     client = await pool.connect();
+    if (NODE_ENV === 'production') {
+      const identity = (await client.query(`SELECT rolsuper,rolcreatedb,rolcreaterole,rolbypassrls,
+        has_schema_privilege(current_user,'public','CREATE') AS can_ddl
+        FROM pg_roles WHERE rolname=current_user`)).rows[0];
+      if (!identity || identity.rolsuper || identity.rolcreatedb || identity.rolcreaterole || identity.rolbypassrls || identity.can_ddl) {
+        throw new Error('La API requiere un rol PostgreSQL de runtime sin privilegios administrativos ni DDL');
+      }
+    }
     const result = await client.query('SELECT NOW()');
     console.log(`✅ Conexión a PostgreSQL establecida: ${result.rows[0].now}`);
     isConnected = true;

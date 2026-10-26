@@ -1,3 +1,4 @@
+import { loginApi, finishBrowserMfa } from './helpers'
 import { test, expect } from '@playwright/test'
 
 test.skip(process.env.E2E_ALLOW_WRITES!=='1','Requiere una demo aislada y E2E_ALLOW_WRITES=1')
@@ -10,7 +11,7 @@ test.afterEach(async()=>{expect(pageErrors,'Sin excepciones de JavaScript en el 
 
 test('huésped → reserva → entrada → cobro → comprobante → salida → limpieza → arqueo',async({page,request})=>{
   const suffix=Date.now().toString().slice(-8),guest=`Demo E2E ${suffix}`,roomNumber=`E${suffix}`
-  const login=await request.post(`${apiBase}/users/login`,{data:{email,password}})
+  const login=await loginApi(request,{email,password})
   expect(login.ok()).toBeTruthy()
   const {token}= (await login.json()).data
   const headers={Authorization:`Bearer ${token}`}
@@ -22,7 +23,7 @@ test('huésped → reserva → entrada → cobro → comprobante → salida → 
   await page.goto('/auth/login')
   await page.getByLabel(/Correo|Email/i).fill(email)
   await page.getByLabel('Contraseña',{exact:true}).fill(password)
-  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
   await expect(page).toHaveURL(/dashboard/)
   await page.getByRole('link',{name:'Caja',exact:true}).click()
   await page.getByLabel('Fondo inicial').fill('50')
@@ -39,10 +40,11 @@ test('huésped → reserva → entrada → cobro → comprobante → salida → 
   await page.getByRole('link',{name:'Reservas',exact:true}).click()
   await page.getByRole('button',{name:/Nueva reserva/i,exact:true}).first().click()
   const dialog=page.getByRole('dialog')
+  await dialog.getByRole('searchbox',{name:'Buscar huésped'}).fill(guest)
   await dialog.getByRole('combobox',{name:'Huésped',exact:true}).selectOption({label:`${guest} · ${suffix}`})
-  await dialog.getByRole('combobox',{name:'Habitación',exact:true}).selectOption({label:`${roomNumber} · E2E ${suffix}`})
   await dialog.getByLabel('Check-in').fill('2035-05-01')
   await dialog.getByLabel('Check-out').fill('2035-05-03')
+  await dialog.getByRole('combobox',{name:'Habitación',exact:true}).selectOption({label:`${roomNumber} · E2E ${suffix}`})
   const reservationSaved=page.waitForResponse(r=>r.url()===`${apiBase}/reservations`&&r.request().method()==='POST')
   await dialog.getByRole('button',{name:'Crear reserva',exact:true}).click()
   const reservationResponse=await reservationSaved
@@ -68,14 +70,19 @@ test('huésped → reserva → entrada → cobro → comprobante → salida → 
   await expect(page.getByRole('button',{name:'Imprimir',exact:true})).toBeEnabled()
   await page.goto(`/reservations/${reservation.id}`)
   await page.getByRole('button',{name:'Check-out',exact:true}).click()
-  await expect(page.getByText('checked_out',{exact:true})).toBeVisible()
+  await expect(page.getByText('Finalizada',{exact:true}).first()).toBeVisible()
   await page.getByRole('link',{name:'Limpieza y mantenimiento',exact:true}).click()
   const row=page.getByRole('row').filter({has:page.getByRole('cell',{name:roomNumber,exact:true})})
   await row.getByRole('button',{name:'Finalizar',exact:true}).click()
   await expect(row.getByText('Finalizada',{exact:true})).toBeVisible()
   await page.getByRole('link',{name:'Caja',exact:true}).click()
+  await expect(page.getByLabel('Efectivo contado')).toHaveValue('')
+  await page.getByRole('button',{name:'Revisar cierre de caja'}).click()
+  await expect(page.getByRole('dialog')).not.toBeVisible()
   await page.getByLabel('Efectivo contado').fill('250')
-  await page.getByRole('button',{name:'Cerrar y guardar arqueo'}).click()
+  await page.getByRole('button',{name:'Revisar cierre de caja'}).click()
+  await expect(page.getByRole('dialog')).toContainText('El efectivo contado coincide')
+  await page.getByRole('button',{name:'Confirmar cierre',exact:true}).click()
   await expect(page.getByRole('button',{name:'Abrir mi turno'})).toBeVisible()
   await expect(page.getByText(/Diferencia.*0,00/).first()).toBeVisible()
   await page.getByRole('link',{name:'Historial de cambios',exact:true}).click()
@@ -91,7 +98,7 @@ test('huésped → reserva → entrada → cobro → comprobante → salida → 
 })
 
 test('configuración compartida entre sesiones y navegación móvil',async({page,browser})=>{
- const login=async(p:typeof page)=>{await p.goto('/auth/login');await p.getByLabel(/Correo|Email/i).fill(email);await p.getByLabel('Contraseña',{exact:true}).fill(password);await p.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await expect(p).toHaveURL(/dashboard/)}
+ const login=async(p:typeof page)=>{await p.goto('/auth/login');await p.getByLabel(/Correo|Email/i).fill(email);await p.getByLabel('Contraseña',{exact:true}).fill(password);await p.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(p);await expect(p).toHaveURL(/dashboard/)}
  await login(page)
  await page.getByRole('link',{name:'Configuración',exact:true}).click()
  const field=page.getByLabel('Nombre del Hotel',{exact:false})

@@ -123,7 +123,7 @@ const swaggerSpec = {
         tags: ['Users'],
         summary: 'Iniciar sesion',
         requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UserCredentials' } } } },
-        responses: { 200: { description: 'Token JWT generado' }, 401: { description: 'Credenciales invalidas' } }
+        responses: { 200: { description: 'Token JWT generado' }, 202: { description:'Contraseña verificada; completar MFA antes de emitir JWT',content:{'application/json':{schema:{$ref:'#/components/schemas/MfaChallengeResponse'}}}}, 401: { description: 'Credenciales invalidas' } }
       }
     },
     '/api/users/profile': {
@@ -449,13 +449,14 @@ for(const path of Object.values(swaggerSpec.paths))for(const operation of Object
 swaggerSpec.paths['/api/operations/backup-status'].get.responses[200]={description:'Estado local y externo',content:{'application/json':{schema:{type:'object',required:['success','data'],properties:{success:{type:'boolean'},data:{$ref:'#/components/schemas/BackupStatus'}}}}}};
 const queryParameter=(name,schema)=>({name,in:'query',schema});
 const tableParams=[queryParameter('page',{type:'integer',minimum:1,maximum:100000,default:1}),queryParameter('pageSize',{type:'integer',minimum:1,maximum:100,default:10}),queryParameter('q',{type:'string',maxLength:200,description:'Búsqueda en todo el conjunto, antes de paginar'}),queryParameter('startDate',{type:'string',format:'date'}),queryParameter('endDate',{type:'string',format:'date'})];
-const statuses={clients:[],reservations:['confirmed','checked_in','checked_out','cancelled'],payments:['pending','completed','failed','refunded'],users:['active','inactive'],'operations/online-payments':['pending','paid','expired','refunded','refund_pending','failed'],'operations/email-status':['sent','queued','failed'],'operations/reservation-requests':['pending','approved','rejected']};
+const statuses={rooms:['available','reserved','occupied','maintenance'],'room-types':[],clients:[],reservations:['confirmed','checked_in','checked_out','cancelled'],payments:['pending','completed','failed','refunded'],users:['active','inactive'],'operations/online-payments':['pending','paid','expired','refunded','refund_pending','failed'],'operations/email-status':['sent','queued','failed'],'operations/reservation-requests':['pending','approved','rejected']};
 for(const [path,values] of Object.entries(statuses)){
  const op=swaggerSpec.paths[`/api/${path}`].get ||= {tags:[path==='users'?'Users':'Operations'],summary:'Listado paginado',security:[{bearerAuth:[]},{cookieAuth:[]}],responses:{}};
  op.parameters=[...tableParams,...(values.length?[queryParameter('status',{type:'string',enum:values})]:[])];
  op.description=(op.description||'')+' Listado paginado sin límite oculto de 100 registros. Los filtros se aplican antes de paginar. Fechas inclusivas en la zona horaria del hotel.';
  op.responses[200]={description:'Lista en data y total/page/pageSize/totalPages en pagination'+(path==='payments'?'; summary contiene los agregados de todos los resultados filtrados.':'')};
 }
+swaggerSpec.paths['/api/rooms'].get.parameters.push(queryParameter('floor',{type:'integer',minimum:0,maximum:2147483647}));
 const methodParameter=queryParameter('method',{type:'string',enum:['cash','credit_card','debit_card','transfer','check']});
 swaggerSpec.paths['/api/payments'].get.parameters.push(methodParameter);
 swaggerSpec.paths['/api/payments'].get.responses[200].content={'application/json':{schema:{type:'object',required:['success','data','pagination','summary'],properties:{success:{type:'boolean'},data:{type:'array',items:{$ref:'#/components/schemas/Payment'}},pagination:{type:'object',required:['total','page','pageSize','totalPages'],properties:{total:{type:'integer'},page:{type:'integer'},pageSize:{type:'integer'},totalPages:{type:'integer'}}},summary:{$ref:'#/components/schemas/PaymentListSummary'}}}}};

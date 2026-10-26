@@ -1,0 +1,32 @@
+# Ejemplo para un proxy en el mismo host. Sustituir dominio/certificados y validar nginx -t.
+server {
+    listen 80;
+    server_name hotel.example;
+    return 308 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name hotel.example;
+    ssl_certificate /etc/letsencrypt/live/hotel.example/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/hotel.example/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    # Activar únicamente en el dominio HTTPS real; no usar includeSubDomains/preload sin inventario.
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    client_max_body_size 256k;
+    client_body_timeout 15s;
+    client_header_timeout 15s;
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_read_timeout 35s;
+    }
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_read_timeout 35s;
+    }
+}

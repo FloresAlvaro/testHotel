@@ -1,3 +1,4 @@
+import { finishBrowserMfa } from './helpers'
 import {test,expect} from '@playwright/test'
 test.skip(process.env.E2E_ALLOW_WRITES!=='1','Requiere datos aislados')
 const api=process.env.E2E_API_URL||'http://127.0.0.1:3300/api'
@@ -5,7 +6,7 @@ const login=async(page:import('@playwright/test').Page)=>{
  await page.goto('/auth/login')
  await page.getByLabel('Correo electrónico',{exact:true}).fill('admin@hotel.com')
  await page.getByLabel('Contraseña',{exact:true}).fill('Admin123!')
- await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+ await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(page)
  await expect(page).toHaveURL(/dashboard/)
 }
 test('cookie HttpOnly: recarga, SSR privado, ausencia de token local y salida revocada',async({page,context,request})=>{
@@ -59,7 +60,7 @@ test('invitar personal desde equipo, recibir correo y elegir contraseña desde m
   await other.getByRole('link',{name:'Iniciar sesión',exact:true}).click()
   await other.getByLabel('Correo electrónico',{exact:true}).fill(email)
   await other.getByLabel('Contraseña',{exact:true}).fill('Welcome123!')
-  await other.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await other.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await finishBrowserMfa(other)
   await expect(other).toHaveURL(/dashboard/)
  }finally{await guest.close()}
 })

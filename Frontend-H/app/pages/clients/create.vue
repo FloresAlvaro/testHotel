@@ -2,7 +2,7 @@
 	<section class="mx-auto max-w-3xl space-y-6">
     <CPageHeader title="Nuevo huésped" description="Completa la información necesaria para su estancia." back-to="/clients" />
 		<p v-if="errorMessage" role="alert" class="text-red-700">{{ errorMessage }}</p>
-		<FClientForm class="form-surface" :loading="loading" @submit="saveClient" @cancel="router.back()" />
+		<FClientForm ref="clientForm" class="form-surface" :loading="loading" @submit="saveClient" @cancel="router.back()" />
 	</section>
 </template>
 
@@ -15,6 +15,7 @@ definePageMeta({ middleware: ['auth', 'receptionist'] });
 const router = useRouter();
 const { createClient } = useClients();
 const loading = ref(false);
+const clientForm=ref<{markSaved:()=>void}>();
 const errorMessage = ref('');
 
 const saveClient = async (data: CreateClientRequest) => {
@@ -22,6 +23,8 @@ const saveClient = async (data: CreateClientRequest) => {
 	errorMessage.value = '';
 	try {
 		await createClient(data);
+		clientForm.value?.markSaved();
+		loading.value=false;
 		await router.push('/clients');
 	} catch {
 		errorMessage.value = 'No se pudo registrar el cliente. Revisa los datos e inténtalo nuevamente.';

@@ -238,28 +238,13 @@
               </div>
             </div>
 
-            <!-- Autenticación de Dos Factores -->
-            <div class="p-4 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-r-lg">
-              <div class="flex items-start justify-between">
-                <div>
-                  <h3 class="font-medium text-slate-900 dark:text-white">
-                    Autenticación de Dos Factores
-                  </h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    La verificación en dos pasos todavía no está disponible.
-                  </p>
-                </div>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" class="w-4 h-4 rounded border-slate-300" disabled aria-label="Autenticación de dos factores no disponible" >
-                </label>
-              </div>
-            </div>
+            <MfaStatus />
 
             <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
               <h3 class="font-medium text-slate-900 dark:text-white mb-3">
                 Sesiones Activas
               </h3>
-              <p class="text-sm text-slate-600 dark:text-slate-400">La consulta y el cierre de otras sesiones todavía no están disponibles.</p>
+              <MSessionManager />
             </div>
           </div>
         </div>
@@ -271,9 +256,10 @@
     <CCard v-if="activeTab === 'notifications'">
       <div class="space-y-6">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-          Preferencias de Notificaciones
+          Preferencias locales de notificaciones
         </h2>
 
+        <p class="text-sm text-slate-600 dark:text-slate-400">Estas opciones solo se guardan como preferencias en este navegador. Todavía no controlan el envío de correos. Los correos transaccionales del hotel siguen funcionando de forma independiente. Las notificaciones push aún no están disponibles.</p>
         <div class="space-y-4">
           <div
             v-for="notification in notificationSettings"
@@ -300,10 +286,11 @@
               <label class="flex items-center gap-2">
                 <input
                   v-model="notification.push"
+                  disabled
                   type="checkbox"
                   class="w-4 h-4 rounded border-slate-300"
                 >
-                <span class="text-sm text-slate-600 dark:text-slate-400">Push</span>
+                <span class="text-sm text-slate-600 dark:text-slate-400">Push (próximamente)</span>
               </label>
             </div>
           </div>
@@ -315,7 +302,7 @@
           </CButton>
           <CButton variant="primary" @click="saveNotifications">
             <Icon name="system-uicons:check" size="18" class="mr-2" />
-            Guardar Preferencias
+            Guardar preferencias locales
           </CButton>
         </div>
       </div>
@@ -481,6 +468,11 @@ const selectTab = (tab: string) => navigateTo({ path: '/admin/settings', query: 
 const hotel = useHotelSettings()
 const settings = ref({ ...defaultSettings })
 const notificationSettings = ref(defaultNotifications.map(item => ({ ...item })))
+const settingsDraft=useUnsavedChanges(()=>settings.value,()=>isSaving.value,false)
+const notificationDraft=useUnsavedChanges(()=>notificationSettings.value,()=>false,false)
+onBeforeRouteLeave(()=>isSaving.value?false:(!settingsDraft.dirty.value&&!notificationDraft.dirty.value)||window.confirm('Hay preferencias sin guardar. ¿Quieres descartarlas y salir?'))
+// Mismo componente de ruta al cambiar pestaña: proteger también los borradores.
+onBeforeRouteUpdate(()=>isSaving.value?false:(!settingsDraft.dirty.value&&!notificationDraft.dirty.value)||window.confirm('Hay preferencias sin guardar. ¿Quieres cambiar de pestaña? Los cambios se conservarán mientras sigas en Configuración.'))
 interface BackupRecord { id: string; name: string; date: string; payload: string }
 const backupHistory = ref<BackupRecord[]>([])
 const lastBackup = computed(() => backupHistory.value[0]?.date || 'Todavía no hay exportaciones')
@@ -492,6 +484,7 @@ const saveSettings = async () => {
   isSaving.value = true
   try {
     settings.value = { ...await hotel.save(settings.value) }
+    settingsDraft.markSaved()
     uiStore.success('Configuración compartida guardada')
   } catch (e: unknown) {
     const failure = e as { data?: { message?: string } }
@@ -499,7 +492,7 @@ const saveSettings = async () => {
   } finally { isSaving.value = false }
 }
 const resetChanges = async () => {
-  try { settings.value = { ...await hotel.load() }; settingsLoaded.value = true }
+  try { settings.value = { ...await hotel.load() }; settingsLoaded.value = true; settingsDraft.markSaved() }
   catch { uiStore.error('No se pudo cargar la configuración') }
 }
 
@@ -538,12 +531,14 @@ const removeBackup = (id: string) => {
 
 const saveNotifications = () => {
   localStorage.setItem('hotel-notifications', JSON.stringify(notificationSettings.value))
+  notificationDraft.markSaved()
   uiStore.success('Preferencias de notificación guardadas en este navegador')
 }
 
 const resetNotifications = () => {
   const saved = localStorage.getItem('hotel-notifications')
   notificationSettings.value = saved ? JSON.parse(saved) : defaultNotifications.map(item => ({ ...item }))
+  notificationDraft.markSaved()
 }
 
 const changePassword = async () => {
@@ -615,6 +610,7 @@ onMounted(() => {
   const storedBackups = localStorage.getItem('hotel-settings-exports')
   resetChanges()
   if (storedNotifications) notificationSettings.value = JSON.parse(storedNotifications)
+  notificationDraft.markSaved()
   if (storedBackups) backupHistory.value = JSON.parse(storedBackups)
 })
 </script>

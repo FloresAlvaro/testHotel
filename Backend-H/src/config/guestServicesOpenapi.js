@@ -5,6 +5,8 @@ const op=(summary,description,{body,parameters=[],publicAccess=false}={})=>({tag
 const object=(required,properties)=>({type:'object',additionalProperties:false,required,properties});
 const text={type:'string',maxLength:1000},date={type:'string',format:'date'};
 module.exports={
+ '/api/hotel/contact':{get:op('Contacto de recepción','Público. Solo nombre, teléfono y correo configurados por el hotel.',{publicAccess:true})},
+ '/api/users/reset-password/check':{post:op('Comprobar enlace de recuperación','Público y limitado. Token en cuerpo; solo devuelve data.valid. No consume el enlace ni revela la cuenta. La escritura revalida el token.',{publicAccess:true,body:object(['token'],{token:{type:'string',pattern:'^[a-fA-F0-9]{64}$'}})})},
  '/api/users/forgot-password':{post:op('Solicitar recuperación','Público y limitado. Respuesta neutra; SMTP debe estar configurado. Enlace de 30 minutos.',{publicAccess:true,body:object(['email'],{email:{type:'string',format:'email'}})})},
  '/api/users/reset-password':{post:op('Restablecer contraseña','Público y limitado. Token de un solo uso; revoca las sesiones anteriores.',{publicAccess:true,body:object(['token','password'],{token:{type:'string',minLength:64,maxLength:64},password:{type:'string',minLength:8,maxLength:72,description:'Máximo 72 bytes UTF-8'}})})},
  '/api/portal/presentation':{get:op('Presentación y reglas','Customer. Contenido público del hotel, tipos de habitación y disponibilidad del proveedor de pago.')},

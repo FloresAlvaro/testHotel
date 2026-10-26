@@ -34,7 +34,7 @@
                 :class="getStatusColor(reservation.status)"
                 class="px-4 py-2 rounded-lg font-medium"
               >
-                {{ reservation.status }}
+                {{ getStatusLabel(reservation.status) }}
               </span>
             </div>
 
@@ -180,6 +180,7 @@
 </template>
 
 <script setup lang="ts">
+import {RESERVATION_STATUS_LABELS} from '~/utils/constants'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useReservationsStore } from '~/stores/reservations'
@@ -239,15 +240,7 @@ const goToPayments = () => {
   }
 }
 
-const getStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    confirmed: 'Confirmada',
-    checked_in: 'En la Propiedad',
-    checked_out: 'Completada',
-    cancelled: 'Cancelada'
-  }
-  return labels[status] || status
-}
+const getStatusLabel = (status:string)=>RESERVATION_STATUS_LABELS[status] || 'Estado desconocido'
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {

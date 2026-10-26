@@ -12,6 +12,15 @@ const path=require('node:path');
   await pool.query(fs.readFileSync(path.join(root,'init/01-schema.sql'),'utf8'));
   await require('../src/database/migrations')(pool,path.join(root,'migrations'));
   await pool.query(fs.readFileSync(path.join(root,'init/data_seed.sql'),'utf8'));
+  if(process.env.MFA_ENABLED==='true'){
+   const crypto=require('node:crypto');
+   if(!/^[a-fA-F0-9]{64}$/.test(process.env.MFA_ENCRYPTION_KEY||''))throw new Error('Clave MFA E2E requerida');
+   const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',Buffer.from(process.env.MFA_ENCRYPTION_KEY,'hex'),iv);
+   const secret='JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'; // Fixture aislado, nunca seed operativo.
+   const encrypted=Buffer.concat([cipher.update(secret,'utf8'),cipher.final()]);
+   const ciphertext=[iv,cipher.getAuthTag(),encrypted].map(b=>b.toString('base64')).join('.');
+   await pool.query('INSERT INTO user_mfa(user_id,secret_ciphertext) SELECT id,$1 FROM "user" WHERE role=\'admin\'',[ciphertext]);
+  }
   console.log('Base E2E preparada con migraciones y seed');
  }finally{await pool.end();}
 })().catch(()=>{console.error('No se pudo preparar E2E. Verifica que la base aislada esté vacía y disponible.');process.exitCode=1;});

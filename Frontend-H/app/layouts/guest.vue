@@ -3,7 +3,7 @@
     <a class="skip-link" href="#guest-content">Ir al contenido</a>
     <header class="guest-header">
       <NuxtLink to="/portal" class="guest-brand"><span class="guest-mark">r.</span><span>{{ hotel.settings.value.hotel_name }}<small>Portal del huésped</small></span></NuxtLink>
-      <nav aria-label="Navegación del huésped" class="guest-navigation"><NuxtLink to="/portal/book" class="guest-book-link">Nueva reserva</NuxtLink><NuxtLink to="/portal" :aria-current="route.path==='/portal'?'page':undefined">Mis estancias</NuxtLink><button class="icon-button" :aria-label="ui.theme==='dark'?'Activar tema claro':'Activar tema oscuro'" @click="ui.toggleTheme"><Icon :name="ui.theme==='dark'?'system-uicons:sun':'system-uicons:moon'" /></button><CButton variant="secondary" size="sm" @click="logout">Cerrar sesión</CButton></nav>
+      <nav aria-label="Navegación del huésped" class="guest-navigation"><NuxtLink to="/portal/book" class="guest-book-link">Nueva reserva</NuxtLink><NuxtLink to="/portal#mis-estancias" :aria-current="route.path==='/portal'?'page':undefined">Mis estancias</NuxtLink><button class="icon-button" :aria-label="ui.theme==='dark'?'Activar tema claro':'Activar tema oscuro'" @click="ui.toggleTheme"><Icon :name="ui.theme==='dark'?'system-uicons:sun':'system-uicons:moon'" /></button><CButton variant="secondary" size="sm" @click="logout">Cerrar sesión</CButton></nav>
     </header>
     <main id="guest-content" class="guest-content" tabindex="-1"><slot /></main>
     <footer class="guest-footer"><p>{{ hotel.settings.value.hotel_name }} · {{ hotel.settings.value.city }}</p><p v-if="hotel.settings.value.phone">Recepción: {{ hotel.settings.value.phone }}</p></footer>

@@ -1,6 +1,7 @@
 import { useApiClient } from "./api";
 import { useHotelSettings } from "../composables/useHotelSettings";
 import type { RegisterRequest, UserRole } from "~/types";
+import type { SessionData } from '~/types/generated/api';
 
 /**
  * Servicio de autenticación
@@ -12,16 +13,21 @@ export const useAuthService = () => {
   const uiStore = useUiStore();
   const hotel = useHotelSettings();
 
+  const completeSession = async (data: SessionData) => {
+    authStore.setAuth(data.user, data.csrfToken);
+    await hotel.load().catch(() => uiStore.error("No se pudo cargar la configuración del hotel"));
+    uiStore.success("Sesión iniciada correctamente");
+    return data;
+  };
+
   const login = async (email: string, password: string) => {
     try {
       uiStore.setLoading(true);
       const response = await api.login({ email, password });
 
       if (response.success && response.data) {
-        authStore.setAuth(response.data.user, response.data.csrfToken);
-        await hotel.load().catch(() => uiStore.error("No se pudo cargar la configuración del hotel"));
-        uiStore.success("Sesión iniciada correctamente");
-        return response.data;
+        if ('mfaRequired' in response.data) return response.data;
+        return await completeSession(response.data);
       }
     } catch (error: unknown) {
       const failure = error as { statusCode?: number; data?: { message?: string } };
@@ -90,6 +96,7 @@ export const useAuthService = () => {
 
   return {
     login,
+    completeSession,
     register,
     logout,
     getProfile,

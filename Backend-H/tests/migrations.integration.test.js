@@ -22,7 +22,7 @@ suite('Historial de migraciones PostgreSQL', () => {
   });
   test('instala con commits separados y serializa dos ejecutores', async () => {
     await Promise.all([migrate(pool,directory),migrate(pool,directory)]);
-    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(6);
+    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(8);
     expect((await pool.query("SELECT enumlabel FROM pg_enum WHERE enumtypid='user_role'::regtype AND enumlabel='customer'")).rowCount).toBe(1);
   });
   test('omite archivos aplicados y detecta cambios antes de ejecutar pendientes', async () => {
@@ -40,10 +40,10 @@ suite('Historial de migraciones PostgreSQL', () => {
     fs.writeFileSync(file,'BEGIN; CREATE TABLE migration_probe(id INT); SELECT missing_column; COMMIT;');
     await expect(migrate(pool,directory)).rejects.toThrow('999-test.sql');
     expect((await pool.query("SELECT to_regclass('migration_probe') AS table_name")).rows[0].table_name).toBeNull();
-    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(6);
+    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(8);
     fs.writeFileSync(file,'BEGIN; CREATE TABLE migration_probe(id INT); COMMIT;');
     await migrate(pool,directory);
-    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(7);
+    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(9);
   });
   test('adopta una instalación previa sin perder registros', async () => {
     await pool.query('INSERT INTO migration_probe VALUES (42)');
@@ -57,6 +57,6 @@ suite('Historial de migraciones PostgreSQL', () => {
     expect((await pool.query('SELECT id FROM migration_probe')).rows).toEqual([{id:42}]);
     expect((await pool.query('SELECT id, email, role, client_id FROM "user" ORDER BY id')).rows).toEqual(guests.rows);
     expect((await pool.query('SELECT * FROM reservation ORDER BY id')).rows).toEqual(reservations.rows);
-    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(6);
+    expect((await pool.query('SELECT * FROM schema_migrations')).rowCount).toBe(8);
   });
 });

@@ -5,12 +5,21 @@ const migrate = require('../src/database/migrations');
 require('dotenv').config();
 
 (async () => {
-  if (!process.env.DATABASE_URL) throw new Error('Configura DATABASE_URL');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  if (!process.env.MIGRATION_DATABASE_URL) throw new Error('Configura MIGRATION_DATABASE_URL con la cuenta de migración; no se usan credenciales runtime para DDL');
+  // Conserva los parámetros TLS de la URL. SET ROLE explícito no puede ser
+  // sustituido por un parámetro options de connectionString.
+  const pool = new Pool({ connectionString: process.env.MIGRATION_DATABASE_URL });
+  const migrationPool = {
+    connect: async () => {
+      const client = await pool.connect();
+      try { await client.query('SET ROLE hotel_owner'); return client; }
+      catch (error) { client.release(true); throw error; }
+    }
+  };
   const local = path.join(__dirname, '../../database/migrations');
   const directory = fs.existsSync(local) ? local : path.join(__dirname, '../migrations');
   try {
-    await migrate(pool, directory, console.log);
+    await migrate(migrationPool, directory, console.log);
     console.log('Migraciones verificadas; base actualizada');
   } finally { await pool.end(); }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });
